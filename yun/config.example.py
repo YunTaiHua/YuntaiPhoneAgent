@@ -1,0 +1,209 @@
+"""
+统一配置文件 - 重构版
+集中管理所有路径和配置参数
+"""
+
+import os
+
+# ==================== 基础路径配置 ====================
+
+# 项目根目录（根据当前文件位置动态计算）
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.dirname(CURRENT_DIR))
+
+# ==================== GPT-SoVITS 配置 ====================
+
+# GPT-SoVITS 根目录
+GPT_SOVITS_ROOT = r"E:\PyCode\GPT-SoVITS-main"   #替换为GPT-SoVITS 根目录实际根目录
+
+# GPT-SoVITS 模型路径
+GPT_MODEL_DIR = os.path.join(GPT_SOVITS_ROOT, "GPT_weights_v2Pro")
+SOVITS_MODEL_DIR = os.path.join(GPT_SOVITS_ROOT, "SoVITS_weights_v2Pro")
+
+# 参考音频和文本路径
+REF_AUDIO_ROOT = os.path.join(GPT_SOVITS_ROOT, "参考音频")
+REF_TEXT_ROOT = os.path.join(GPT_SOVITS_ROOT, "参考音频")  # 通常与音频同一目录
+
+# 预训练模型路径
+BERT_MODEL_PATH = os.path.join(GPT_SOVITS_ROOT, "GPT_SoVITS", "pretrained_models",
+                               "chinese-roberta-wwm-ext-large")
+HUBERT_MODEL_PATH = os.path.join(GPT_SOVITS_ROOT, "GPT_SoVITS", "pretrained_models",
+                                 "chinese-hubert-base")
+
+# TTS 输出目录
+TTS_OUTPUT_DIR = os.path.join(PROJECT_ROOT, "tts_output_audio")
+
+# ==================== 手机投屏配置 ====================
+
+# Scrcpy 路径
+SCRCPY_PATH = r"E:\scrcpy\scrcpy-win64-v3.3.4\scrcpy-win64-v3.3.4\scrcpy.exe"    #替换为实际# Scrcpy 路径
+
+# ==================== 文件系统配置 ====================
+
+# 对话历史文件
+CONVERSATION_HISTORY_FILE = os.path.join(PROJECT_ROOT, "conversation_history.json")
+
+# 记录日志目录
+RECORD_LOGS_DIR = os.path.join(PROJECT_ROOT, "record_logs")
+
+# 永久记忆文件
+FOREVER_MEMORY_FILE = os.path.join(PROJECT_ROOT, "forever.txt")
+
+# 连接配置文件
+CONNECTION_CONFIG_FILE = os.path.join(PROJECT_ROOT, "connection_config.json")
+
+# ==================== AI 配置 ====================
+
+# 智谱AI API 密钥
+# ZHIPU_API_KEY = None
+ZHIPU_API_KEY = "替换为个人智谱AI API 密钥"
+# API 端点
+ZHIPU_API_BASE_URL = "https://open.bigmodel.cn/api/paas/v4"
+
+# 模型名称
+ZHIPU_MODEL = "autoglm-phone"
+ZHIPU_CHAT_MODEL = "glm-4.6v-flash"
+ZHIPU_MULTIMODAL_MODEL = "glm-4.6v-flash"
+
+# 文件上传配置
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 10MB（恢复原来的大小）
+ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
+ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mov', '.mkv', '.wmv']
+ALLOWED_FILE_EXTENSIONS = ['.txt', '.py', '.csv', '.xls', '.xlsx', '.docx', '.pdf', '.ppt', '.pptx', 'html', 'js']
+
+# ==================== 系统配置 ====================
+
+# 历史记录长度
+MAX_HISTORY_LENGTH = 50
+
+# 循环次数
+MAX_CYCLE_TIMES = 30
+
+# 重试次数
+MAX_RETRY_TIMES = 3
+
+# 等待间隔（秒）
+WAIT_INTERVAL = 1
+
+# ==================== 快捷键配置 ====================
+
+SHORTCUTS = {
+    'w': '打开微信',
+    'q': '打开QQ',
+    'd': '打开抖音',
+    'k': '打开快手',
+    't': '打开淘宝',
+    'm': '打开QQ音乐'
+}
+
+# ==================== TTS 配置 ====================
+
+# TTS 默认语言
+TTS_REF_LANGUAGE = "中文"
+TTS_TARGET_LANGUAGE = "中文"
+
+# TTS 合成参数
+TTS_TOP_P = 1.0
+TTS_TEMPERATURE = 1.0
+TTS_SPEED = 1.0
+
+# 分段合成配置
+TTS_MAX_SEGMENT_LENGTH = 500  # 单个片段最大长度（字符）
+TTS_MIN_TEXT_LENGTH = 100     # 启用分段的最小文本长度
+TTS_ENABLE_PARALLEL = True    # 启用并行合成
+
+
+# ==================== GUI 主题配置 ====================
+
+class ThemeColors:
+    """GUI 主题颜色"""
+    PRIMARY = "#4361ee"
+    SECONDARY = "#7209b7"
+    ACCENT = "#f72585"
+    SUCCESS = "#4cc9f0"
+    WARNING = "#f8961e"
+    DANGER = "#e63946"
+    BG_DARK = "#121212"
+    BG_CARD = "#1e1e1e"
+    BG_HOVER = "#2d2d2d"
+    TEXT_PRIMARY = "#ffffff"
+    TEXT_SECONDARY = "#b0b0b0"
+    TEXT_DISABLED = "#666666"
+
+
+# ==================== 终端颜色配置 ====================
+
+class Color:
+    """终端输出颜色"""
+    GOLD = "\033[38;5;220m"  # GLM-4.6v-flash 输出颜色
+    GREEN = "\033[32m"  # phone_agent 输出颜色
+    BLUE = "\033[34m"  # 最终结果颜色
+    RED = "\033[91m"  # 错误信息颜色
+    RESET = "\033[0m"  # 重置颜色
+
+
+# ==================== 验证配置 ====================
+
+def validate_config():
+    """验证配置有效性"""
+    errors = []
+
+    # 检查 GPT-SoVITS 目录
+    if not os.path.exists(GPT_SOVITS_ROOT):
+        errors.append(f"GPT-SoVITS 根目录不存在: {GPT_SOVITS_ROOT}")
+
+    # 检查 Scrcpy
+    if not os.path.exists(SCRCPY_PATH):
+        errors.append(f"Scrcpy 路径不存在: {SCRCPY_PATH}")
+
+    # 检查模型目录
+    if not os.path.exists(GPT_MODEL_DIR):
+        errors.append(f"GPT 模型目录不存在: {GPT_MODEL_DIR}")
+
+    if not os.path.exists(SOVITS_MODEL_DIR):
+        errors.append(f"SoVITS 模型目录不存在: {SOVITS_MODEL_DIR}")
+
+    # 检查参考音频目录
+    if not os.path.exists(REF_AUDIO_ROOT):
+        errors.append(f"参考音频目录不存在: {REF_AUDIO_ROOT}")
+
+    # 检查 API 密钥
+    if not ZHIPU_API_KEY or len(ZHIPU_API_KEY) < 10:
+        errors.append("智谱AI API 密钥无效或为空")
+
+    if errors:
+        print("⚠️ 配置验证警告:")
+        for error in errors:
+            print(f"  - {error}")
+        return False
+
+    print("✅ 配置验证通过")
+    return True
+
+
+# ==================== 配置信息 ====================
+
+def print_config_summary():
+    """打印配置摘要"""
+    summary = f"""
+📋 配置摘要:
+─────────────────────────────────────
+• 项目根目录: {PROJECT_ROOT}
+• GPT-SoVITS 根目录: {GPT_SOVITS_ROOT}
+• GPT 模型目录: {GPT_MODEL_DIR}
+• SoVITS 模型目录: {SOVITS_MODEL_DIR}
+• 参考音频目录: {REF_AUDIO_ROOT}
+• TTS 输出目录: {TTS_OUTPUT_DIR}
+• Scrcpy 路径: {SCRCPY_PATH}
+• 对话历史文件: {CONVERSATION_HISTORY_FILE}
+• 永久记忆文件: {FOREVER_MEMORY_FILE}
+• API 模型: {ZHIPU_MODEL} / {ZHIPU_CHAT_MODEL}
+─────────────────────────────────────
+"""
+    print(summary)
+
+
+# 自动验证配置
+if __name__ == "__main__":
+    validate_config()
+    print_config_summary()

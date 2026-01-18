@@ -1,0 +1,94 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Type checking
+.mypy_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.log
+/tmp/
+screenshots/
+
+# 过渡阶段保留的旧文件
+call_model.py
+app_package_name.py
+
+# 敏感配置文件（含API Key）
+yun/config.py
+yuntai/config.py
+
+# 虚拟环境/构建产物（Python通用）
+venv/
+phone_agent.egg-info/
+
+# 自定义文件夹
+智谱/
+tts_output_audio/
+
+# 测试/废弃的智能助手文件
+bug反馈.txt
+测试.py
+智能助手2.4.py
+智能助手2.5（整合版）.py
+智能助手2.6（拆分版）.py
+智能助手2.7（GUI）.py
+智能助手2.8（TTS集成版）.py
+智能助手2.9（手机投屏）.py
+智能助手3.0.1.py
+智能助手3.0.2.py
+智能助手3.0（过渡版）.py
+智能助手3.1.8.py
+13.txt
+
+# 原始备份文件
+yun/__init__（原始）.py
+yun/gui_controller（原始）.py
+yun/gui_view（原始）.py
+yuntai/reply_manager（原始）.py（原始）.py
+yuntai/task_recognizer（原始）.py（原始）.py
