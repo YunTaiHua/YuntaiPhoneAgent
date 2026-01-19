@@ -66,6 +66,9 @@ CONNECTION_CONFIG_FILE = os.path.join(PROJECT_ROOT, "connection_config.json")
 ZHIPU_API_KEY = os.getenv('ZHIPU_API_KEY')
 assert ZHIPU_API_KEY is not None, "ZHIPU_API_KEY 环境变量未设置"
 
+# 智谱AI客户端 - 将在主文件中初始化
+ZHIPU_CLIENT = None
+
 # API 端点
 ZHIPU_API_BASE_URL = "https://open.bigmodel.cn/api/paas/v4"
 
@@ -183,6 +186,20 @@ class ThemeColors:
 
     # 禁用文本色 - 不可用状态文本
     TEXT_DISABLED = "#666666"
+
+
+# ==================== 快捷键配置 ====================
+# 快捷键映射配置，用于快速启动应用
+
+# 快捷键字典 - 键为单字符快捷键，值为对应的应用名称
+SHORTCUTS = {
+    'w': '打开微信',     # w键打开微信
+    'q': '打开QQ',       # q键打开QQ
+    'd': '打开抖音',     # d键打开抖音
+    'k': '打开快手',     # k键打开快手
+    't': '打开淘宝',     # t键打开淘宝
+    'm': '打开QQ音乐'    # m键打开QQ音乐
+}
 
 
 
