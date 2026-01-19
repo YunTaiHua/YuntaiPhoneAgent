@@ -71,10 +71,10 @@ logger = logging.getLogger(__name__)
 warnings.filterwarnings('ignore')
 
 # 重构模块
-from yun.main_app import MainApp
+from yuntai.main_app import MainApp
 
 # 使用统一配置
-from yun.config import GPT_SOVITS_ROOT
+from yuntai.config import GPT_SOVITS_ROOT
 
 
 # ========================================
