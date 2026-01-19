@@ -30,7 +30,7 @@ class GUIView:
 
     def __init__(self, root):
         self.root = root
-        self.root.title("Phone Agent - 智能移动助手 v1.2.3")
+        self.root.title("Phone Agent - 智能移动助手 v1.2.4")
         self.root.geometry("1400x900")
 
         # 存储UI组件引用
@@ -137,7 +137,7 @@ class GUIView:
         # 版本信息
         ctk.CTkLabel(
             info_frame,
-            text="Version 1.2.3",
+            text="Version 1.2.4",
             font=("Microsoft YaHei", 10),
             text_color=ThemeColors.TEXT_SECONDARY
         ).pack(anchor="w", pady=(5, 0))
@@ -323,9 +323,11 @@ class GUIView:
             ("所有支持的文件",
              "*.jpg *.jpeg *.png *.bmp *.webp "  # 图片
              "*.mp4 *.avi *.mov *.mkv *.wmv "  # 视频
+             "*.mp3 *.wav *.m4a *.flac *.aac *.ogg *.wma" #音频
              "*.txt *.py *.csv *.xls *.xlsx *.docx *.pdf *.ppt *.pptx *.html *.js "),  # 文件
             ("图片文件", "*.jpg *.jpeg *.png *.bmp *.webp"),
             ("视频文件", "*.mp4 *.avi *.mov *.mkv *.wmv"),
+            ("音频文件","*.mp3 *.wav *.m4a *.flac *.aac *.ogg *.wma"),
             ("文档文件", "*.txt *.py *.csv *.xls *.xlsx *.docx *.pdf *.ppt *.pptx *.html *.js "),
             ("所有文件", "*.*")
         ]
@@ -382,6 +384,8 @@ class GUIView:
                 icon = "🖼️"
             elif ext in ['.mp4', '.avi', '.mov', '.mkv', '.wmv']:
                 icon = "🎬"
+            elif ext in ['.mp3', '.wav', '.m4a', '.flac', '.aac', '.ogg', '.wma']:
+                icon = "🎵"
             elif ext == '.txt':
                 icon = "📄"
             else:
@@ -615,19 +619,31 @@ class GUIView:
         audio_btn_frame = ctk.CTkFrame(audio_frame, fg_color="transparent")
         audio_btn_frame.pack(fill="x")
 
-        ctk.CTkButton(
+        self.components["tts_play_btn"] = ctk.CTkButton(
             audio_btn_frame,
             text="播放选中",
             font=("Microsoft YaHei", 12),
             height=35
-        ).pack(side="left", padx=(0, 10))
+        )
+        self.components["tts_play_btn"].pack(side="left", padx=(0, 10))
 
-        ctk.CTkButton(
+        self.components["tts_refresh_btn"] = ctk.CTkButton(
             audio_btn_frame,
             text="刷新列表",
             font=("Microsoft YaHei", 12),
             height=35
-        ).pack(side="left")
+        )
+        self.components["tts_refresh_btn"].pack(side="left", padx=(0, 10))
+
+        self.components["tts_delete_btn"] = ctk.CTkButton(
+            audio_btn_frame,
+            text="删除历史音频",
+            font=("Microsoft YaHei", 12),
+            height=35,
+            fg_color=ThemeColors.DANGER,
+            hover_color="#c62828"
+        )
+        self.components["tts_delete_btn"].pack(side="left")
 
     def create_connection_page(self):
         """创建设备管理页面"""
@@ -1138,7 +1154,7 @@ class GUIView:
             sovits_frame,
             textvariable=self.components["tts_sovits_var"],
             font=("Microsoft YaHei", 13),
-            width=180,
+            width=160,
             anchor="w"
         )
         self.components["tts_sovits_label"].pack(side="left", padx=(0, 10))

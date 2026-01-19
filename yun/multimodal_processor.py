@@ -1,7 +1,8 @@
 """
 多模态处理器模块 - 使用zhipuai库的正确调用方式
-支持图像、视频、文件上传和处理
+支持图像、视频、音频、文件上传和处理
 使用GLM-4.6v-flash模型
+支持 FFmpeg 和 Whisper 进行音频处理
 """
 
 import os
@@ -17,11 +18,15 @@ from docx import Document  # Word(.docx)解析
 import PyPDF2  # PDF解析
 from pptx import Presentation  # PPT(.pptx)解析
 
-from .config import ZHIPU_API_KEY, ZHIPU_MULTIMODAL_MODEL, MAX_FILE_SIZE
+from .config import (
+    ZHIPU_API_KEY, ZHIPU_MULTIMODAL_MODEL, MAX_FILE_SIZE,
+    FFMPEG_PATH, WHISPER_MODEL, WHISPER_LANGUAGE, WHISPER_DEVICE,
+    ALLOWED_AUDIO_EXTENSIONS
+)
 
 
 class MultimodalProcessor:
-    """多模态处理器类（使用zhipuai库的正确调用方式）"""
+    """多模态处理器类（使用zhipuai库的正确调用方式，支持音频处理）"""
 
     def __init__(self, api_key: str = None):
         """
@@ -46,7 +51,18 @@ class MultimodalProcessor:
         self.allowed_image_extensions = ALLOWED_IMAGE_EXTENSIONS
         self.allowed_video_extensions = ALLOWED_VIDEO_EXTENSIONS
         self.allowed_file_extensions = ALLOWED_FILE_EXTENSIONS
+        self.allowed_audio_extensions = ALLOWED_AUDIO_EXTENSIONS
         self.max_file_size = MAX_FILE_SIZE
+
+        # 音频处理器（延迟初始化）
+        self.audio_processor = None
+
+    def get_audio_processor(self):
+        """延迟初始化音频处理器"""
+        if self.audio_processor is None:
+            from .audio_processor import AudioProcessor
+            self.audio_processor = AudioProcessor(ffmpeg_path=FFMPEG_PATH)
+        return self.audio_processor
 
     def parse_document_to_text(self, file_path: str) -> Optional[str]:
         """
@@ -89,7 +105,7 @@ class MultimodalProcessor:
                             text_content += shape.text + "\n"
 
             # 纯文本/CSV
-            elif ext in ['.txt', '.py', '.csv']:
+            elif ext in ['.txt', '.py', '.csv', '.html']:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     text_content = f.read()
 
@@ -140,6 +156,11 @@ class MultimodalProcessor:
         """
         ext = Path(file_path).suffix.lower()
 
+        # 音频类型
+        if ext in self.allowed_audio_extensions:
+            mime_type = mimetypes.guess_type(file_path)[0] or "audio/mpeg"
+            return "audio", mime_type
+
         # 图片类型
         if ext in self.allowed_image_extensions:
             mime_type = mimetypes.guess_type(file_path)[0] or "image/jpeg"
@@ -151,7 +172,7 @@ class MultimodalProcessor:
             return "video", mime_type
 
         # 可解析的文档类型（统一归为text）
-        elif ext in ['.txt', '.py', '.csv', '.xls', '.xlsx', '.docx', '.pdf', '.ppt', '.pptx', 'html', 'js']:
+        elif ext in ['.txt', '.py', '.csv', '.xls', '.xlsx', '.docx', '.pdf', '.ppt', '.pptx', '.html', '.js']:
             return "text", "text/plain"
 
 
@@ -188,9 +209,10 @@ class MultimodalProcessor:
             text: str,
             file_paths: List[str] = None,
             history: List[Dict] = None
-    ) -> List[Dict]:
+    ) -> Tuple[List[Dict], Optional[Dict]]:
         """
         准备多模态消息（根据官方文档格式）
+        支持音频处理和视频音频同步处理
 
         Args:
             text: 用户输入的文本
@@ -198,7 +220,7 @@ class MultimodalProcessor:
             history: 历史对话记录
 
         Returns:
-            符合GLM-4.6v-flash格式的消息列表
+            (消息列表, 音频处理结果字典)
         """
         messages = []
 
@@ -212,6 +234,9 @@ class MultimodalProcessor:
             "content": []
         }
 
+        # 音频处理结果
+        audio_result = None
+
         # 添加文件内容（在文本前面，这是关键！）
         if file_paths:
             for file_path in file_paths:
@@ -222,21 +247,80 @@ class MultimodalProcessor:
 
                     print(f"\n📄 准备文件: {file_name} (类型: {file_type})")
 
-                    # 根据文件类型添加内容块（使用base64格式，不需要data:前缀）
-                    if file_type == "image":
+                    # 特殊处理：视频文件需要提取音频
+                    if file_type == "video":
+                        # 处理视频+音频
+                        processor = self.get_audio_processor()
+                        success, result = processor.process_video_with_audio(file_path, text, WHISPER_LANGUAGE)
+
+                        if success:
+                            audio_result = result
+
+                            # 添加视频内容块
+                            video_block = {
+                                "type": "video_url",
+                                "video_url": {
+                                    "url": base64_content
+                                }
+                            }
+                            current_message["content"].append(video_block)
+
+                            # 添加音频转录文本
+                            audio_transcription = result.get("audio_transcription", "")
+                            if audio_transcription:
+                                audio_text = f"\n[视频中的音频内容]\n{audio_transcription}"
+                                current_message["content"].append({
+                                    "type": "text",
+                                    "text": audio_text
+                                })
+                                print(f"\n✅ 已添加视频+音频内容")
+                        else:
+                            print(f"⚠️ 音频处理失败，仅使用视频: {result.get('error', 'unknown error')}")
+                            # 仅添加视频内容
+                            current_message["content"].append({
+                                "type": "video_url",
+                                "video_url": {
+                                    "url": base64_content
+                                }
+                            })
+
+                    # 特殊处理：音频文件
+                    elif file_type == "audio":
+                        # 处理音频文件
+                        processor = self.get_audio_processor()
+                        success, result = processor.process_audio_only(file_path, text, WHISPER_LANGUAGE)
+
+                        if success:
+                            audio_result = result
+                            audio_transcription = result.get("audio_transcription", "")
+
+                            # 添加音频转录文本
+                            if audio_transcription:
+                                audio_text = f"\n[音频内容]\n{audio_transcription}"
+                                current_message["content"].append({
+                                    "type": "text",
+                                    "text": audio_text
+                                })
+                                #print(f"✅ 已添加音频转录内容")
+                        else:
+                            print(f"⚠️ 音频处理失败: {result.get('error', 'unknown error')}")
+                            # 添加错误信息
+                            current_message["content"].append({
+                                "type": "text",
+                                "text": f"\n[音频处理失败: {result.get('error', 'unknown error')}]"
+                            })
+
+                    # 图片类型
+                    elif file_type == "image":
                         content_block = {
                             "type": "image_url",
                             "image_url": {
                                 "url": base64_content  # 直接使用base64，不需要data:前缀
                             }
                         }
-                    elif file_type == "video":
-                        content_block = {
-                            "type": "video_url",
-                            "video_url": {
-                                "url": base64_content  # 直接使用base64，不需要data:前缀
-                            }
-                        }
+                        current_message["content"].append(content_block)
+
+                    # 文本文件类型
                     elif file_type == "text":
                         # 调用新增的解析方法
                         text_content = self.parse_document_to_text(file_path)
@@ -254,6 +338,8 @@ class MultimodalProcessor:
                                 "type": "text",
                                 "text": f"[文件内容: {file_name}]\n{text_content}"
                             }
+                        current_message["content"].append(content_block)
+
                     else:
                         # 其他文件类型使用file_url
                         content_block = {
@@ -263,10 +349,9 @@ class MultimodalProcessor:
                                 "file_name": file_name
                             }
                         }
+                        current_message["content"].append(content_block)
 
-                    current_message["content"].append(content_block)
-
-        # 添加文本内容（在文件后面）
+        # 添加用户文本内容（在所有文件后面）
         if text:
             current_message["content"].append({
                 "type": "text",
@@ -274,7 +359,7 @@ class MultimodalProcessor:
             })
 
         messages.append(current_message)
-        return messages
+        return messages, audio_result
 
     def process_with_files(
             self,
@@ -283,9 +368,10 @@ class MultimodalProcessor:
             history: List[Dict] = None,
             temperature: float = 0.7,
             max_tokens: int = 2000
-    ) -> Tuple[bool, str]:
+    ) -> Tuple[bool, str, Optional[Dict]]:
         """
         使用GLM-4.6v-flash处理多模态输入（使用官方推荐的调用方式）
+        支持视频音频同步处理和单独音频处理
 
         Args:
             text: 用户输入的文本
@@ -295,7 +381,7 @@ class MultimodalProcessor:
             max_tokens: 最大token数
 
         Returns:
-            (success, response_text)
+            (success, response_text, audio_result)
         """
         try:
             # 验证文件
@@ -317,14 +403,14 @@ class MultimodalProcessor:
                     print(f"⚠️  不支持的文件类型，跳过: {os.path.basename(file_path)}")
 
             if not valid_file_paths:
-                return False, "没有有效的支持文件"
+                return False, "没有有效的支持文件", None
 
             #print(f"🔄 正在准备消息...")
             print(f"\n📄 有效文件: {len(valid_file_paths)} 个")
             print(f"\n📊 文件类型分布: {', '.join(set(file_types))}")
 
-            # 准备消息
-            messages = self.prepare_multimodal_messages(text, valid_file_paths, history)
+            # 准备消息（返回消息和音频处理结果）
+            messages, audio_result = self.prepare_multimodal_messages(text, valid_file_paths, history)
 
             # 调试：打印消息结构（前100个字符）
             import json
@@ -347,8 +433,14 @@ class MultimodalProcessor:
 
                 # 解析响应
                 response_text = response.choices[0].message.content
-                print(f"\n✅ 收到响应，长度: {len(response_text)} 字符")
-                return True, response_text
+                #print(f"\n✅ 收到响应，长度: {len(response_text)} 字符")
+
+                # 如果有音频处理结果，清理临时文件
+                if audio_result and self.audio_processor:
+                    audio_processor = self.get_audio_processor()
+                    audio_processor.cleanup_temp_files(older_than_hours=1)
+
+                return True, response_text, audio_result
 
             except Exception as api_error:
                 # 处理API特定错误
@@ -367,14 +459,14 @@ class MultimodalProcessor:
                     if len(file_summary) > 3:
                         error_msg += f" 等{len(file_summary)}个文件"
 
-                return False, f"API调用失败: {error_msg}"
+                return False, f"API调用失败: {error_msg}", audio_result
 
         except Exception as e:
             error_msg = f"处理失败: {str(e)}"
             print(f"❌ {error_msg}")
             import traceback
             traceback.print_exc()
-            return False, error_msg
+            return False, error_msg, None
 
     def is_file_supported(self, file_path: str) -> bool:
         """
@@ -392,6 +484,7 @@ class MultimodalProcessor:
         ext = Path(file_path).suffix.lower()
         allowed_extensions = (
                 self.allowed_image_extensions +
+                self.allowed_audio_extensions +
                 self.allowed_video_extensions +
                 self.allowed_file_extensions
         )

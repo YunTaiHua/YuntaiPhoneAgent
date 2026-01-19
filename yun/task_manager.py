@@ -152,7 +152,7 @@ class TTSManager:
             (success, 最终音频文件路径)
         """
         try:
-            #print(f"📝 开始分段处理文本，总长度: {len(text)} 字符")
+            # print(f"📝 开始分段处理文本，总长度: {len(text)} 字符")
 
             # 清理文本
             cleaned_text = self._clean_text_for_tts(text)
@@ -161,17 +161,17 @@ class TTSManager:
             segments = self._split_text_by_numbered_sections(cleaned_text)
 
             if len(segments) == 1:
-                #print(f"📝 文本较短，使用单次合成")
+                # print(f"📝 文本较短，使用单次合成")
                 # 直接合成
                 return self.synthesize_text(text, ref_audio_path, ref_text_path, auto_play=False)
 
-            #print(f"📝 文本分为 {len(segments)} 个段落进行串行合成")
+            # print(f"📝 文本分为 {len(segments)} 个段落进行串行合成")
 
             # 串行合成每个分段
             segment_files = []
 
             for i, segment in enumerate(segments):
-                #print(f"🎵 开始合成第 {i + 1}/{len(segments)} 段，长度: {len(segment)} 字符")
+                # print(f"🎵 开始合成第 {i + 1}/{len(segments)} 段，长度: {len(segment)} 字符")
 
                 # 使用带重试的合成
                 success, result = self.synthesize_text_with_retry(
@@ -179,7 +179,7 @@ class TTSManager:
                 )
 
                 if success:
-                    #print(f"✅ 第 {i + 1} 段合成成功: {os.path.basename(result)}")
+                    # print(f"✅ 第 {i + 1} 段合成成功: {os.path.basename(result)}")
                     segment_files.append((i, result))
 
                     # 添加延迟避免冲突
@@ -203,11 +203,30 @@ class TTSManager:
             # 按索引排序
             segment_files.sort(key=lambda x: x[0])
 
+            # 修复：只传递音频文件列表，不传递ref_audio_path
+            audio_files_to_merge = [s[1] for s in segment_files]
+
             # 合并音频文件
-            final_audio_path = self._merge_audio_segments([s[1] for s in segment_files])
+            final_audio_path = self._merge_audio_segments(audio_files_to_merge)
+
+            # 如果合并失败，尝试使用更简单的合并方式
+            if not final_audio_path:
+                # 创建新的合并文件名（与普通合成格式一致）
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                ref_audio_name = os.path.splitext(os.path.basename(ref_audio_path))[0]
+                final_audio_path = os.path.join(
+                    self.default_tts_config["output_path"],
+                    f"{ref_audio_name}_merged_{timestamp}.wav"
+                )
+
+                # 简单的音频合并（只复制第一个文件）
+                if audio_files_to_merge and os.path.exists(audio_files_to_merge[0]):
+                    import shutil
+                    shutil.copy2(audio_files_to_merge[0], final_audio_path)
+                    print(f"⚠️  使用简单合并方式，只保留第一段音频")
 
             if final_audio_path:
-                #print(f"✅ 分段合成完成，合并为: {os.path.basename(final_audio_path)}")
+                # print(f"✅ 分段合成完成，合并为: {os.path.basename(final_audio_path)}")
 
                 # 清理临时文件
                 for _, segment_file in segment_files:
@@ -535,8 +554,16 @@ class TTSManager:
             # 清理文本
             cleaned_text = self._clean_text_for_tts(text)
 
-            if not cleaned_text or len(cleaned_text) < 2:
-                return False, "文本内容过短或无效"
+            # 检查清理后的文本质量
+            if not cleaned_text or len(cleaned_text) < 5:
+                print(f"⚠️  清理后的文本过短（长度: {len(cleaned_text) if cleaned_text else 0}），使用默认文本")
+                cleaned_text = "你好，我是小芸，很高兴为您服务"
+
+            # 检查中文字符占比
+            chinese_char_count = len([c for c in cleaned_text if '\u4e00' <= c <= '\u9fff'])
+            if chinese_char_count < 2:
+                print(f"⚠️  文本中文字符过少（{chinese_char_count}个），使用默认文本")
+                cleaned_text = "你好，我是小芸，很高兴为您服务"
 
             # 使用操作系统级别的输出重定向
             if os.name == 'nt':  # Windows
@@ -620,7 +647,10 @@ class TTSManager:
 
                     # 保存音频文件
                     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                    output_wav = os.path.join(self.default_tts_config["output_path"], f"tts_{timestamp}.wav")
+
+                    # 使用参考音频的文件名（去掉后缀）+ 时间戳
+                    ref_audio_name = os.path.splitext(os.path.basename(ref_audio_path))[0]
+                    output_wav = os.path.join(self.default_tts_config["output_path"], f"{ref_audio_name}_{timestamp}.wav")
 
                     # 确保目录存在
                     os.makedirs(os.path.dirname(output_wav), exist_ok=True)
@@ -663,7 +693,7 @@ class TTSManager:
             import numpy as np
             import soundfile as sf
 
-            #print(f"🔊 开始合并 {len(audio_files)} 个音频文件...")
+            # print(f"🔊 开始合并 {len(audio_files)} 个音频文件...")
 
             # 读取所有音频数据
             all_audio_data = []
@@ -674,8 +704,8 @@ class TTSManager:
                     data, samplerate = sf.read(audio_file)
                     all_audio_data.append(data)
                     all_sample_rates.append(samplerate)
-                    #print(
-                        #f"  - 文件 {i + 1}: {os.path.basename(audio_file)}, 采样率: {samplerate}, 长度: {len(data) / samplerate:.2f}秒")
+                    # print(
+                    # f"  - 文件 {i + 1}: {os.path.basename(audio_file)}, 采样率: {samplerate}, 长度: {len(data) / samplerate:.2f}秒")
                 else:
                     print(f"⚠️  文件不存在: {audio_file}")
 
@@ -695,26 +725,46 @@ class TTSManager:
             else:  # 单声道
                 merged_data = np.concatenate(all_audio_data)
 
-            # 保存合并后的音频
+            # 保存合并后的音频 - 使用与普通合成一致的格式
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_wav = os.path.join(self.default_tts_config["output_path"], f"tts_merged_{timestamp}.wav")
+
+            # 从第一个音频文件名中提取参考音频名称
+            first_audio_file = audio_files[0]
+            first_audio_name = os.path.basename(first_audio_file)
+
+            # 提取参考音频名称（去掉时间戳部分）
+            # 格式如: "ref_audio_name_20250119_123456.wav"
+            import re
+            match = re.match(r'(.+)_\d{8}_\d{6}', first_audio_name)
+            if match:
+                ref_audio_base = match.group(1)
+            else:
+                # 如果无法解析，使用默认名称
+                ref_audio_base = "tts_merged"
+
+            output_wav = os.path.join(
+                self.default_tts_config["output_path"],
+                f"{ref_audio_base}_merged_{timestamp}.wav"
+            )
 
             sf.write(output_wav, merged_data, target_samplerate)
-            print(
-                f"\n✅ 音频合并完成: {os.path.basename(output_wav)}, 总长度: {len(merged_data) / target_samplerate:.2f}秒\n")
+            #print(
+                #f"\n✅ 音频合并完成: {os.path.basename(output_wav)}, 总长度: {len(merged_data) / target_samplerate:.2f}秒\n")
 
             return output_wav
 
         except ImportError as e:
             print(f"❌ 音频合并需要soundfile和numpy库: {e}")
             print("💡 请安装: pip install soundfile numpy")
-            return audio_files[0]  # 返回第一个文件作为备选
+            # 返回第一个文件作为备选
+            return audio_files[0]
 
         except Exception as e:
             print(f"❌ 音频合并失败: {e}")
             import traceback
             traceback.print_exc()
-            return audio_files[0]  # 返回第一个文件作为备选
+            # 返回第一个文件作为备选
+            return audio_files[0]
 
     def should_use_segmented_synthesis(self, text: str) -> bool:
         """
@@ -787,8 +837,12 @@ class TTSManager:
 
                             # 分段合成失败，尝试普通合成
                             print("🔄 分段失败，尝试普通合成...")
+                            # 使用清理后的文本，确保质量
+                            fallback_text = self._clean_text_for_tts(text[:500])
+                            if len(fallback_text) < 5 or len([c for c in fallback_text if '\u4e00' <= c <= '\u9fff']) < 2:
+                                fallback_text = "你好，我是小芸，很高兴为您服务"
                             fallback_success, _ = self.synthesize_text(
-                                text[:500], ref_audio, ref_text, auto_play=True
+                                fallback_text, ref_audio, ref_text, auto_play=True
                             )
                             if fallback_success:
                                 print("\n")        #print(f"✅ 普通语音播报完成")
@@ -1098,7 +1152,10 @@ class TTSManager:
 
                     # 保存音频文件
                     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                    output_wav = os.path.join(self.default_tts_config["output_path"], f"tts_{timestamp}.wav")
+
+                    # 使用参考音频的文件名（去掉后缀）+ 时间戳
+                    ref_audio_name = os.path.splitext(os.path.basename(ref_audio_path))[0]
+                    output_wav = os.path.join(self.default_tts_config["output_path"], f"{ref_audio_name}_{timestamp}.wav")
 
                     sf.write(output_wav, audio_data, sampling_rate)
 
@@ -1129,7 +1186,10 @@ class TTSManager:
     def _clean_text_for_tts(self, text: str) -> str:
         """清理文本，但不丢失开头部分"""
         if not text:
-            return "你好，我是小芸"
+            return "你好，我是小芸，很高兴为您服务"
+
+        # 保存原始文本以便后续处理
+        original_text = text
 
         # 1. 移除代码块标记
         text = re.sub(r'```[a-zA-Z]*\n?', '', text)
@@ -1145,7 +1205,20 @@ class TTSManager:
         # 4. 移除多余空格，但保留一个空格
         text = ' '.join(text.split())
 
-        return text.strip()
+        # 5. 检查清理后的文本长度
+        cleaned_text = text.strip()
+
+        # 检查是否主要是英文或特殊字符
+        chinese_char_count = len([c for c in cleaned_text if '\u4e00' <= c <= '\u9fff'])
+        total_char_count = len(cleaned_text)
+
+        # 如果中文字符占比太低或文本太短，使用兜底文本
+        if total_char_count == 0 or (total_char_count > 0 and chinese_char_count / total_char_count < 0.3) or len(cleaned_text) < 3:
+            print(f"⚠️  清理后的文本质量不佳（中文字符占比: {chinese_char_count}/{total_char_count}），使用兜底文本")
+            # 使用更长的兜底文本，确保GPT-SoVITS能正常处理
+            return "你好，我是小芸，很高兴为您服务"
+
+        return cleaned_text
 
     def play_audio_file(self, audio_path: str):
         """播放指定的音频文件"""

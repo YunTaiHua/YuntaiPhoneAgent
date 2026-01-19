@@ -57,6 +57,7 @@ CONNECTION_CONFIG_FILE = os.path.join(PROJECT_ROOT, "connection_config.json")
 # 智谱AI API 密钥
 # ZHIPU_API_KEY = None
 ZHIPU_API_KEY = "替换为个人智谱AI API 密钥"
+
 # API 端点
 ZHIPU_API_BASE_URL = "https://open.bigmodel.cn/api/paas/v4"
 
@@ -66,10 +67,25 @@ ZHIPU_CHAT_MODEL = "glm-4.6v-flash"
 ZHIPU_MULTIMODAL_MODEL = "glm-4.6v-flash"
 
 # 文件上传配置
-MAX_FILE_SIZE = 50 * 1024 * 1024  # 10MB（恢复原来的大小）
+MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB（支持更大的视频/音频文件）
 ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
 ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mov', '.mkv', '.wmv']
-ALLOWED_FILE_EXTENSIONS = ['.txt', '.py', '.csv', '.xls', '.xlsx', '.docx', '.pdf', '.ppt', '.pptx', 'html', 'js']
+ALLOWED_AUDIO_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.flac', '.aac', '.ogg', '.wma']
+ALLOWED_FILE_EXTENSIONS = ['.txt', '.py', '.csv', '.xls', '.xlsx', '.docx', '.pdf', '.ppt', '.pptx', '.html', '.js']
+
+# ==================== 音频处理配置 ====================
+
+# FFmpeg 路径
+FFMPEG_PATH = r"D:\ffmpeg\ffmpeg-master-latest-win64-gpl\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
+
+# Whisper 配置
+WHISPER_MODEL = "small"  # 可选: tiny, base, small, medium, large
+WHISPER_LANGUAGE = "zh"  # 默认语言，None表示自动检测
+WHISPER_DEVICE = "cpu"  # 可选: cpu, cuda
+
+# 繁简转换配置
+WHISPER_CONVERT_TO_SIMPLIFIED = True  # 是否将繁体转换为简体
+# 会自动尝试使用 opencc 或 zhconv
 
 # ==================== 系统配置 ====================
 

@@ -301,7 +301,7 @@ class GUIController:
         # 命令输入框回车事件
         command_input = self.view.get_component("command_input")
         if command_input:
-            command_input.bind("<Return>", lambda e: self.execute_command())
+            command_input.bind("<Return>", lambda _: self.execute_command())
 
         # 清空输出按钮
         clear_btn = self.view.get_component("clear_output_btn")
@@ -387,6 +387,10 @@ class GUIController:
         refresh_btn = self.view.get_component("tts_refresh_btn")
         if refresh_btn:
             refresh_btn.configure(command=self.tts_update_synthesized_list)
+
+        delete_btn = self.view.get_component("tts_delete_btn")
+        if delete_btn:
+            delete_btn.configure(command=self.tts_delete_audio_files)
 
     def _bind_history_events(self):
         """绑定历史页面事件"""
@@ -1405,6 +1409,54 @@ class GUIController:
         else:
             self.tts_add_log("❌ 选择的文件索引无效")
 
+    def tts_delete_audio_files(self):
+        """删除所有历史音频文件"""
+        from tkinter import messagebox
+
+        # 确认对话框
+        result = messagebox.askyesno(
+            "确认删除",
+            "确定要删除所有历史音频文件吗？此操作不可恢复！",
+            icon="warning"
+        )
+
+        if not result:
+            self.tts_add_log("ℹ️ 已取消删除操作")
+            return
+
+        try:
+            output_dir = self.task_manager.tts_manager.default_tts_config["output_path"]
+            if not os.path.exists(output_dir):
+                self.tts_add_log("⚠️ 音频目录不存在")
+                return
+
+            # 获取所有wav文件
+            wav_files = [f for f in os.listdir(output_dir) if f.endswith('.wav')]
+
+            if not wav_files:
+                self.tts_add_log("ℹ️ 没有找到历史音频文件")
+                return
+
+            # 删除所有wav文件
+            deleted_count = 0
+            for wav_file in wav_files:
+                file_path = os.path.join(output_dir, wav_file)
+                try:
+                    os.remove(file_path)
+                    deleted_count += 1
+                except Exception as e:
+                    self.tts_add_log(f"❌ 删除失败 {wav_file}: {str(e)}")
+
+            if deleted_count > 0:
+                self.tts_add_log(f"✅ 已删除 {deleted_count} 个历史音频文件")
+                # 刷新列表
+                self.tts_update_synthesized_list()
+            else:
+                self.tts_add_log("❌ 没有成功删除任何文件")
+
+        except Exception as e:
+            self.tts_add_log(f"❌ 删除音频文件失败: {str(e)}")
+
     def tts_on_audio_double_click(self, event):
         """双击播放音频"""
         self.tts_play_selected_audio()
@@ -1848,8 +1900,8 @@ class GUIController:
 
             #print(f"🔄 正在使用GLM-4.6v-flash分析内容...")
 
-            # 使用GLM-4.6v-flash处理
-            success, response = self.multimodal_processor.process_with_files(
+            # 使用GLM-4.6v-flash处理（支持音频处理）
+            success, response, audio_result = self.multimodal_processor.process_with_files(
                 text=text,
                 file_paths=valid_files,
                 history=history,
@@ -1859,6 +1911,12 @@ class GUIController:
 
             if success:
                 print(f"\n✅ 多模态分析完成")
+
+                # 如果有音频处理结果，打印信息
+                if audio_result:
+                    audio_transcription = audio_result.get("audio_transcription", "")
+                    if audio_transcription:
+                        print()           #print(f"📝 音频转录: {audio_transcription[:100]}...")
 
                 # 保存到对话历史
                 self._save_multimodal_chat_history(text, valid_files, response)
@@ -1877,7 +1935,7 @@ class GUIController:
 
                 return response
             else:
-                error_msg = f"❌ 图片分析失败: {response}"
+                error_msg = f"❌ 多模态分析失败: {response}"
                 print(error_msg)
                 return error_msg
 

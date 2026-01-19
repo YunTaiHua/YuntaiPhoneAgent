@@ -9,7 +9,8 @@ from .main_app import MainApp
 from .agent_core import TerminableContinuousReplyManager
 from .output_capture import SimpleOutputCapture
 from .multimodal_processor import MultimodalProcessor
-from .multimodal_other import MultimodalOther, ImagePreviewWindow, VideoPreviewWindow  # 新增导入
+from .multimodal_other import MultimodalOther, ImagePreviewWindow, VideoPreviewWindow
+from .audio_processor import AudioProcessor
 from .utils import (
     load_synthesized_files,
     get_current_tts_status,
@@ -46,6 +47,14 @@ from .config import (
     ZHIPU_API_BASE_URL,
     ZHIPU_MODEL,
     ZHIPU_CHAT_MODEL,
+    ZHIPU_MULTIMODAL_MODEL,
+
+    # 文件上传配置
+    MAX_FILE_SIZE,
+    ALLOWED_IMAGE_EXTENSIONS,
+    ALLOWED_VIDEO_EXTENSIONS,
+    ALLOWED_AUDIO_EXTENSIONS,
+    ALLOWED_FILE_EXTENSIONS,
 
     # 系统配置
     MAX_HISTORY_LENGTH,
@@ -62,6 +71,16 @@ from .config import (
     TTS_TOP_P,
     TTS_TEMPERATURE,
     TTS_SPEED,
+    TTS_MAX_SEGMENT_LENGTH,
+    TTS_MIN_TEXT_LENGTH,
+    TTS_ENABLE_PARALLEL,
+
+    # 音频处理配置
+    FFMPEG_PATH,
+    WHISPER_MODEL,
+    WHISPER_LANGUAGE,
+    WHISPER_DEVICE,
+    WHISPER_CONVERT_TO_SIMPLIFIED,
 
     # GUI 主题
     ThemeColors,
@@ -75,7 +94,7 @@ from .config import (
 
 )
 
-__version__ = "1.2.3"
+__version__ = "1.2.4"
 __author__ = "Phone Agent Team"
 
 __all__ = [
@@ -112,6 +131,12 @@ __all__ = [
     "ZHIPU_API_BASE_URL",
     "ZHIPU_MODEL",
     "ZHIPU_CHAT_MODEL",
+    "ZHIPU_MULTIMODAL_MODEL",
+    "MAX_FILE_SIZE",
+    "ALLOWED_IMAGE_EXTENSIONS",
+    "ALLOWED_VIDEO_EXTENSIONS",
+    "ALLOWED_AUDIO_EXTENSIONS",
+    "ALLOWED_FILE_EXTENSIONS",
     "MAX_HISTORY_LENGTH",
     "MAX_CYCLE_TIMES",
     "MAX_RETRY_TIMES",
@@ -122,6 +147,9 @@ __all__ = [
     "TTS_TOP_P",
     "TTS_TEMPERATURE",
     "TTS_SPEED",
+    "TTS_MAX_SEGMENT_LENGTH",
+    "TTS_MIN_TEXT_LENGTH",
+    "TTS_ENABLE_PARALLEL",
     "ThemeColors",
     "Color",
     "validate_config",
@@ -129,9 +157,11 @@ __all__ = [
 
     # 多模态处理器
     "MultimodalProcessor",
-
-    # 新增：多模态其他功能
     "MultimodalOther",
     "ImagePreviewWindow",
     "VideoPreviewWindow",
+
+    # 音频处理
+    "AudioProcessor",
 ]
+
