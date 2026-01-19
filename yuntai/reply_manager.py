@@ -14,9 +14,9 @@ from phone_agent.model import ModelConfig
 from phone_agent.agent import AgentConfig
 from pydantic import BaseModel, Field, ValidationError
 
-# 导入修复后的Color类
+# 导入配置
 from yuntai.config import (
-    Color, MAX_CYCLE_TIMES, WAIT_INTERVAL, ZHIPU_CLIENT
+    MAX_CYCLE_TIMES, WAIT_INTERVAL, ZHIPU_CLIENT
 )
 from yuntai.file_manager import FileManager
 
@@ -86,7 +86,7 @@ class SmartContinuousReplyManager:
         核心：让GLM-4.6v-flash直接理解文本，提取消息+位置+颜色，无需正则
         """
         if not record or len(record.strip()) < 10:
-            print(f"\n{Color.GOLD}⚠️  聊天记录为空/过短{Color.RESET}")
+            print(f"\n⚠️  聊天记录为空/过短")
             return []
 
         # ========== 核心：给GLM-4.6v-flash的超精准指令 ==========
@@ -156,7 +156,7 @@ class SmartContinuousReplyManager:
                     })
 
             # ========== 输出结果 ==========
-            print(f"\n{Color.GREEN}✅ GLM-4.6v-flash智能提取到 {len(final_messages)} 条消息{Color.RESET}")
+            print(f"\n✅ GLM-4.6v-flash智能提取到 {len(final_messages)} 条消息")
             for i, msg in enumerate(final_messages):
                 print(f"\n   {i + 1}. 内容：{msg['content'][:50]}")
                 print(f"      位置：{msg['position']}，颜色：{msg['color']}")
@@ -164,11 +164,11 @@ class SmartContinuousReplyManager:
             return final_messages
 
         except json.JSONDecodeError as e:
-            print(f"\n{Color.GOLD}⚠️  JSON解析失败：{str(e)}{Color.RESET}")
+            print(f"\n⚠️  JSON解析失败：{str(e)}")
             print(f"⚠️  GLM-4返回内容：{resp_content[:200]}...")
             return self._emergency_extract(record)  # 终极兜底
         except Exception as e:
-            print(f"\n{Color.RED}❌ 提取失败：{str(e)}{Color.RESET}")
+            print(f"\n❌ 提取失败：{str(e)}")
             return self._emergency_extract(record)  # 终极兜底
 
     # ========== 终极兜底：纯文本拆分（最后防线） ==========
@@ -177,7 +177,7 @@ class SmartContinuousReplyManager:
         终极兜底：当GLM-4.6v-flash也失败时，纯文本拆分（不依赖格式）
         逻辑：提取所有像聊天消息的短句，默认位置/颜色
         """
-        print(f"\n{Color.BLUE}🔧 启动终极兜底提取{Color.RESET}")
+        print(f"\n🔧 启动终极兜底提取")
         # 清理文本
         record_clean = re.sub(r"思考过程:|性能指标:|总推理时间:|首 Token 延迟|思考完成延迟", "", record)
         record_clean = re.sub(r"[^\u4e00-\u9fff\w\s\.,，。！？；：""''💪~]", "", record_clean)
@@ -206,7 +206,7 @@ class SmartContinuousReplyManager:
                         "color": color
                     })
 
-        print(f"\n{Color.GREEN}✅ 兜底提取到 {len(final_messages)} 条消息{Color.RESET}")
+        print(f"\n✅ 兜底提取到 {len(final_messages)} 条消息")
         return final_messages
 
     def standardize_color(self, color: str) -> str:
@@ -245,7 +245,7 @@ class SmartContinuousReplyManager:
                     user_input = input()
                     if user_input.lower() == 's':
                         self.terminate_requested = True
-                        print(f"\n{Color.GOLD}⚠️  收到终止指令，将结束当前循环...{Color.RESET}")
+                        print(f"\n⚠️  收到终止指令，将结束当前循环...")
                         break
                 except:
                     pass
@@ -315,7 +315,7 @@ class SmartContinuousReplyManager:
             return raw_result
 
         except Exception as e:
-            print(f"\n{Color.GREEN}提取聊天记录失败：{str(e)}{Color.RESET}")
+            print(f"\n提取聊天记录失败：{str(e)}")
             return f"提取聊天记录失败：{str(e)}"
 
     def send_reply_message(self, message: str) -> bool:
@@ -370,12 +370,12 @@ class SmartContinuousReplyManager:
             # 发送成功后，将消息加入我方消息列表
             if success:
                 self.my_messages_list.append(message)
-                print(f"\n{Color.GREEN}✅ 已发送并存储到我方消息列表：{message[:30]}...{Color.RESET}")
+                print(f"\n✅ 已发送并存储到我方消息列表：{message[:30]}...")
 
             return success
 
         except Exception as e:
-            print(f"\n{Color.GREEN}发送消息失败：{str(e)}{Color.RESET}")
+            print(f"\n发送消息失败：{str(e)}")
             return False
 
     def determine_message_ownership(self, messages: List[Dict[str, str]]) -> Tuple[List[str], List[str]]:
@@ -398,7 +398,7 @@ class SmartContinuousReplyManager:
                 if self.is_message_similar(content, my_msg, threshold=0.5):
                     is_my_message = True
                     my_messages.append(content)
-                    print(f"{Color.GREEN}📨 识别为我方消息（从列表匹配）: {content[:30]}...{Color.RESET}")
+                    print(f"📨 识别为我方消息（从列表匹配）: {content[:30]}...")
                     break
 
             if is_my_message:
@@ -410,7 +410,7 @@ class SmartContinuousReplyManager:
                 if self.is_message_similar(content, other_msg, threshold=0.5):
                     is_other_message = True
                     other_messages.append(content)
-                    print(f"{Color.GREEN}📨 识别为对方消息（从列表匹配）: {content[:30]}...{Color.RESET}")
+                    print(f"📨 识别为对方消息（从列表匹配）: {content[:30]}...")
                     break
 
             if is_other_message:
@@ -421,22 +421,22 @@ class SmartContinuousReplyManager:
             # 右侧有头像 -> 我方消息
             if position == "左侧有头像":
                 other_messages.append(content)
-                print(f"\n{Color.GREEN}📨 识别为对方消息（左侧有头像）: {content[:30]}...{Color.RESET}")
+                print(f"\n📨 识别为对方消息（左侧有头像）: {content[:30]}...")
             elif position == "右侧有头像":
                 my_messages.append(content)
-                print(f"\n{Color.GREEN}📨 识别为我方消息（右侧有头像）: {content[:30]}...{Color.RESET}")
+                print(f"\n📨 识别为我方消息（右侧有头像）: {content[:30]}...")
             else:
                 # 头像位置不明确，使用颜色作为辅助判断
                 if color == "白色":
                     other_messages.append(content)
-                    print(f"\n{Color.GREEN}📨 识别为对方消息（白色）: {content[:30]}...{Color.RESET}")
+                    print(f"\n📨 识别为对方消息（白色）: {content[:30]}...")
                 elif color in ["红色", "粉色", "粉红色", "蓝色", "绿色", "紫色", "黑色", "灰色", "橙色", "黄色"]:
                     my_messages.append(content)
-                    print(f"\n{Color.GREEN}📨 识别为我方消息（深色）: {content[:30]}...{Color.RESET}")
+                    print(f"\n📨 识别为我方消息（深色）: {content[:30]}...")
                 else:
                     # 无法判断，暂时跳过
                     print(
-                        f"{Color.GOLD}⚠️  无法判断归属: {content[:30]}... (头像位置:{position}, 颜色:{color}){Color.RESET}")
+                        f"⚠️  无法判断归属: {content[:30]}... (头像位置:{position}, 颜色:{color})")
 
         return other_messages, my_messages
 
@@ -488,29 +488,29 @@ class SmartContinuousReplyManager:
                 # 取第一个句号前的部分作为回复
                 reply = reply.split("。")[0] + "。"
 
-            print(f"\n{Color.GREEN}💬 为最新消息生成回复: {reply[:50]}...{Color.RESET}")
+            print(f"\n💬 为最新消息生成回复: {reply[:50]}...")
             return reply
 
         except Exception as e:
-            print(f"\n{Color.GOLD}⚠️  GLM-4生成回复失败: {e}{Color.RESET}")
+            print(f"\n⚠️  GLM-4生成回复失败: {e}")
             return ""
 
     def cleanup_message_lists(self):
         """清空消息列表，为下一次会话做准备"""
         self.other_messages_list = []
         self.my_messages_list = []
-        print(f"\n{Color.GREEN}🧹 已清空消息列表，为下一次会话做准备{Color.RESET}")
+        print(f"\n🧹 已清空消息列表，为下一次会话做准备")
 
     def run_continuous_loop(self):
         """运行持续回复循环（头像位置版本）"""
-        print(f"\n{Color.GREEN}🔄 启动持续回复循环{Color.RESET}")
-        print(f"\n{Color.GREEN}🎯 目标：{self.target_app} -> {self.target_object}{Color.RESET}")
-        print(f"\n{Color.GOLD}💡 输入 's' 终止持续回复模式{Color.RESET}")
+        print(f"\n🔄 启动持续回复循环")
+        print(f"\n🎯 目标：{self.target_app} -> {self.target_object}")
+        print(f"\n💡 输入 's' 终止持续回复模式")
 
         # 打印判断规则
-        print(f"\n{Color.GREEN}📊 判断规则：{Color.RESET}")
-        print(f"\n{Color.GREEN}  • 头像位置为主：左侧有头像 → 对方消息，右侧有头像 → 我方消息{Color.RESET}")
-        print(f"\n{Color.GREEN}  • 颜色为辅：白色 → 对方消息，深色 → 我方消息{Color.RESET}")
+        print(f"\n📊 判断规则：")
+        print(f"\n  • 头像位置为主：左侧有头像 → 对方消息，右侧有头像 → 我方消息")
+        print(f"\n  • 颜色为辅：白色 → 对方消息，深色 → 我方消息")
 
         # 启动终止监听
         self.start_terminate_listener()
@@ -519,52 +519,52 @@ class SmartContinuousReplyManager:
         history_context = self.file_manager.get_recent_conversation_history(self.target_app, self.target_object,
                                                                             limit=5)
         if history_context:
-            print(f"\n{Color.GREEN}📚 加载了 {len(history_context)} 条历史对话记录{Color.RESET}")
+            print(f"\n📚 加载了 {len(history_context)} 条历史对话记录")
 
         while (self.auto_reply and
                not self.terminate_requested and
                self.cycle_count < MAX_CYCLE_TIMES):
 
             self.cycle_count += 1
-            print(f"\n{Color.RESET}{'=' * 60}{Color.RESET}")
-            print(f"\n{Color.RESET}📊 循环轮次 {self.cycle_count}/{MAX_CYCLE_TIMES}{Color.RESET}")
-            print(f"\n{Color.RESET}{'=' * 60}{Color.RESET}")
+            print(f"\n{'=' * 60}")
+            print(f"\n📊 循环轮次 {self.cycle_count}/{MAX_CYCLE_TIMES}")
+            print(f"\n{'=' * 60}")
 
             # 1. 获取最新聊天记录
-            print(f"\n{Color.RESET}📥 正在提取聊天记录...{Color.RESET}")
+            print(f"\n📥 正在提取聊天记录...")
             current_record = self.extract_chat_records()
 
             # 显示原始记录（用于调试）
             if current_record:
-                print(f"\n{Color.GOLD}📋 原始记录片段: {current_record[:200]}...{Color.RESET}")
+                print(f"\n📋 原始记录片段: {current_record[:200]}...")
 
             # 2. 保存原始记录到文件
             filename = self.file_manager.save_record_to_log(self.cycle_count, current_record, self.target_app,
                                                             self.target_object)
             if filename:
-                print(f"\n{Color.GREEN}💾 记录已保存: record_logs/{filename}{Color.RESET}")
+                print(f"\n💾 记录已保存: record_logs/{filename}")
 
             # 3. 解析消息（使用新的GLM-4.6v-flash结构化解析）
             messages = self.parse_messages_simple(current_record)
             if messages:
-                print(f"\n{Color.GREEN}📊 解析到 {len(messages)} 条消息{Color.RESET}")
+                print(f"\n📊 解析到 {len(messages)} 条消息")
 
                 # 显示解析到的消息（只显示前3条）
                 for i, msg in enumerate(messages[:3]):
-                    print(f"\n{Color.GREEN}  {i + 1}. 内容: {msg.get('content', '')[:40]}...")
+                    print(f"\n  {i + 1}. 内容: {msg.get('content', '')[:40]}...")
                     print(
-                        f"     头像位置: {msg.get('position', '未知')}, 颜色: {msg.get('color', '未知')}{Color.RESET}")
+                        f"     头像位置: {msg.get('position', '未知')}, 颜色: {msg.get('color', '未知')}")
 
                 # 4. 判断消息归属
                 other_messages, my_messages = self.determine_message_ownership(messages)
 
                 # 显示解析结果
                 if other_messages:
-                    print(f"\n{Color.GREEN}📨 对方消息 ({len(other_messages)}条):")
+                    print(f"\n📨 对方消息 ({len(other_messages)}条):")
                     for i, msg in enumerate(other_messages[:3]):  # 只显示前3条
                         print(f"\n   {i + 1}. {msg[:50]}...")
                 if my_messages:
-                    print(f"\n{Color.GREEN}📨 我方消息 ({len(my_messages)}条):")
+                    print(f"\n📨 我方消息 ({len(my_messages)}条):")
                     for i, msg in enumerate(my_messages[:3]):  # 只显示前3条
                         print(f"\n   {i + 1}. {msg[:50]}...")
 
@@ -583,7 +583,7 @@ class SmartContinuousReplyManager:
                         for my_msg in self.my_messages_list:
                             if self.is_message_similar(msg, my_msg, threshold=0.5):
                                 is_new = False
-                                print(f"\n{Color.GOLD}⚠️  消息'{msg[:30]}...'识别为我方已发送消息，跳过{Color.RESET}")
+                                print(f"\n⚠️  消息'{msg[:30]}...'识别为我方已发送消息，跳过")
                                 break
 
                     if is_new:
@@ -593,24 +593,24 @@ class SmartContinuousReplyManager:
                 if new_other_messages:
                     # 只取最新的一条消息（列表中的最后一条）
                     latest_message = new_other_messages[-1]
-                    print(f"\n{Color.GREEN}🆕 发现新对方消息，只回复最新一条: {latest_message[:50]}...{Color.RESET}")
+                    print(f"\n🆕 发现新对方消息，只回复最新一条: {latest_message[:50]}...")
 
                     # 历史消息：除了最新消息之外的其他消息
                     history_messages = self.other_messages_list.copy()
 
                     # 使用GLM-4生成回复（只针对最新消息）
-                    print(f"\n{Color.GREEN}🤖 正在为最新消息生成回复...{Color.RESET}")
+                    print(f"\n🤖 正在为最新消息生成回复...")
                     reply_message = self.generate_reply_for_latest_message(latest_message, history_messages)
 
                     if reply_message and len(reply_message) > 2:
-                        print(f"\n{Color.GREEN}💬 生成回复: {reply_message[:50]}...{Color.RESET}")
-                        print(f"\n{Color.GREEN}📤 正在发送回复...{Color.RESET}")
+                        print(f"\n💬 生成回复: {reply_message[:50]}...")
+                        print(f"\n📤 正在发送回复...")
 
                         # 发送回复
                         success = self.send_reply_message(reply_message)
 
                         if success:
-                            print(f"\n{Color.GREEN}✅ 回复发送成功{Color.RESET}")
+                            print(f"\n✅ 回复发送成功")
 
                             # 更新消息列表
                             for msg in new_other_messages:
@@ -634,11 +634,11 @@ class SmartContinuousReplyManager:
                             }
                             self.file_manager.save_conversation_history(session_data)
                         else:
-                            print(f"\n{Color.GREEN}❌ 回复发送失败{Color.RESET}")
+                            print(f"\n❌ 回复发送失败")
                     else:
-                        print(f"\n{Color.GOLD}⚠️  未能生成有效回复{Color.RESET}")
+                        print(f"\n⚠️  未能生成有效回复")
                 else:
-                    print(f"\n{Color.GREEN}⏳ 没有发现新的对方消息{Color.RESET}")
+                    print(f"\n⏳ 没有发现新的对方消息")
 
                 # 7. 更新我方消息列表（将识别为我方的消息加入列表）
                 for msg in my_messages:
@@ -651,7 +651,7 @@ class SmartContinuousReplyManager:
 
                     if not already_exists:
                         self.my_messages_list.append(msg)
-                        print(f"\n{Color.GREEN}📝 将消息加入我方消息列表: {msg[:30]}...{Color.RESET}")
+                        print(f"\n📝 将消息加入我方消息列表: {msg[:30]}...")
 
                 # 限制列表长度，避免无限增长
                 if len(self.other_messages_list) > 50:
@@ -661,29 +661,29 @@ class SmartContinuousReplyManager:
 
                 # 显示当前统计
                 print(
-                    f"\n{Color.GREEN}📊 统计: 对方消息({len(self.other_messages_list)}条), 我方消息({len(self.my_messages_list)}条){Color.RESET}")
+                    f"\n📊 统计: 对方消息({len(self.other_messages_list)}条), 我方消息({len(self.my_messages_list)}条)")
             else:
-                print(f"\n{Color.GOLD}⚠️  未能解析到消息{Color.RESET}")
+                print(f"\n⚠️  未能解析到消息")
                 # 显示更多原始记录用于调试
                 if current_record:
-                    print(f"\n{Color.GOLD}📋 原始记录（前500字符）:{Color.RESET}")
-                    print(f"\n{Color.GOLD}{current_record[:500]}{Color.RESET}")
+                    print(f"\n📋 原始记录（前500字符）:")
+                    print(f"\n{current_record[:500]}")
 
             # 8. 检查终止
             if self.terminate_requested:
                 break
 
             # 9. 等待下一轮
-            print(f"\n{Color.GREEN}⏰ 等待 {WAIT_INTERVAL} 秒后继续...{Color.RESET}")
+            print(f"\n⏰ 等待 {WAIT_INTERVAL} 秒后继续...")
             time.sleep(WAIT_INTERVAL)
 
         # 10. 循环结束后清空消息列表，为下一次会话做准备
         self.cleanup_message_lists()
 
         if self.terminate_requested:
-            print(f"\n{Color.GOLD}🛑 用户主动终止持续回复{Color.RESET}")
+            print(f"\n🛑 用户主动终止持续回复")
         elif self.cycle_count >= MAX_CYCLE_TIMES:
-            print(f"\n{Color.GOLD}⏹️  达到最大循环次数 {MAX_CYCLE_TIMES}{Color.RESET}")
+            print(f"\n⏹️  达到最大循环次数 {MAX_CYCLE_TIMES}")
 
         return True
 
@@ -749,10 +749,10 @@ class SmartContinuousReplyManager:
 
         # 调试输出
         if similarity > 0.3:  # 只在有一定相似度时输出调试信息
-            print(f"\n{Color.GOLD}🔍 相似度比较: {similarity:.2f}")
+            print(f"\n🔍 相似度比较: {similarity:.2f}")
             print(f"\n  消息1 (清理后): {clean_msg1[:30]}")
             print(f"\n  消息2 (清理后): {clean_msg2[:30]}")
             print(f"\n  消息1 (原始): {msg1[:30]}")
-            print(f"\n  消息2 (原始): {msg2[:30]}{Color.RESET}")
+            print(f"\n  消息2 (原始): {msg2[:30]}")
 
         return similarity >= threshold

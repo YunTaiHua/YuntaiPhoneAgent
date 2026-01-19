@@ -5,6 +5,8 @@ multimodal_other.py - 多模态其他功能模块
 
 import os
 import subprocess
+import logging
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 import json
@@ -18,48 +20,57 @@ import customtkinter as ctk
 import webbrowser
 from PIL import Image, ImageTk
 
+# 从统一配置导入
+from .config import (
+    ThemeColors,
+    PROJECT_ROOT,
+    ZHIPU_API_KEY,
+    ZHIPU_API_BASE_URL,
+    ZHIPU_IMAGE_MODEL,
+    ZHIPU_VIDEO_MODEL
+)
 
-class ThemeColors:
-    """GUI 主题颜色"""
-    PRIMARY = "#4361ee"
-    SECONDARY = "#7209b7"
-    ACCENT = "#f72585"
-    SUCCESS = "#4cc9f0"
-    WARNING = "#f8961e"
-    DANGER = "#e63946"
-    BG_DARK = "#121212"
-    BG_CARD = "#1e1e1e"
-    BG_HOVER = "#2d2d2d"
-    TEXT_PRIMARY = "#ffffff"
-    TEXT_SECONDARY = "#b0b0b0"
-    TEXT_DISABLED = "#666666"
+logger = logging.getLogger(__name__)
+
+# 常量定义
+CHUNK_SIZE = 8192
+TIMEOUT = 30
+MAX_IMAGE_COUNT = 2
+INITIAL_DELAY_TEXT = 10
+INITIAL_DELAY_IMAGE = 30
+MAX_ATTEMPTS = 30
+CHECK_INTERVAL = 10
+DOWNLOAD_TIMEOUT = 30
 
 
 class MultimodalOther:
     """多模态其他功能类：处理图像和视频生成"""
 
-    def __init__(self, api_key: str, project_root: str):
+    def __init__(self, api_key: Optional[str] = None, project_root: Optional[str] = None):
         """
         初始化多模态其他功能
 
         Args:
-            api_key: 智谱AI API密钥
-            project_root: 项目根目录
+            api_key: 智谱AI API密钥（可选，从配置获取）
+            project_root: 项目根目录（可选，从配置获取）
         """
-        self.api_key = api_key
-        self.project_root = project_root
+        self.api_key = api_key or ZHIPU_API_KEY
+        self.project_root = project_root or PROJECT_ROOT
 
         # 创建输出目录
-        self.image_output_dir = os.path.join(project_root, "images")
-        self.video_output_dir = os.path.join(project_root, "videos")
+        self.image_output_dir = os.path.join(self.project_root, "images")
+        self.video_output_dir = os.path.join(self.project_root, "videos")
 
         os.makedirs(self.image_output_dir, exist_ok=True)
         os.makedirs(self.video_output_dir, exist_ok=True)
 
         # API端点
-        self.image_api_url = "https://open.bigmodel.cn/api/paas/v4/images/generations"
-        self.video_api_url = "https://open.bigmodel.cn/api/paas/v4/videos/generations"
-        self.async_result_url = "https://open.bigmodel.cn/api/paas/v4/async-result"
+        self.image_api_url = f"{ZHIPU_API_BASE_URL}/images/generations"
+        self.video_api_url = f"{ZHIPU_API_BASE_URL}/videos/generations"
+        self.async_result_url = f"{ZHIPU_API_BASE_URL}/async-result"
+
+        # 线程池
+        self.executor = ThreadPoolExecutor(max_workers=2)
 
         # 支持的图像尺寸
         self.image_sizes = [
@@ -104,7 +115,7 @@ class MultimodalOther:
             }
 
             payload = {
-                "model": "cogview-3-flash",
+                "model": ZHIPU_IMAGE_MODEL,
                 "prompt": prompt,
                 "size": size,
                 "quality": quality
@@ -125,10 +136,17 @@ class MultimodalOther:
                     "message": f"API请求失败: {response.status_code} - {response.text}"
                 }
 
-        except Exception as e:
+        except (requests.RequestException, ValueError, KeyError) as e:
+            logger.error(f"图像生成失败: {e}")
             return {
                 "success": False,
                 "message": f"图像生成失败: {str(e)}"
+            }
+        except Exception as e:
+            logger.exception(f"图像生成未知错误: {e}")
+            return {
+                "success": False,
+                "message": f"图像生成未知错误: {str(e)}"
             }
 
     def download_image(self, image_url: str, filename: str = None) -> str:
@@ -201,13 +219,13 @@ class MultimodalOther:
 
                     # 检查URL格式
                     if not (url.startswith("http://") or url.startswith("https://")):
-                        print(f"⚠️  图片URL格式不正确: {url}")
+                        logger.warning(f"图片URL格式不正确: {url}")
                         continue
 
                     valid_urls.append(url)
 
                 if len(image_urls) != len(valid_urls):
-                    print(f"⚠️  过滤了 {len(image_urls) - len(valid_urls)} 个无效URL")
+                    logger.warning(f"过滤了 {len(image_urls) - len(valid_urls)} 个无效URL")
 
                 image_urls = valid_urls
 
@@ -218,7 +236,7 @@ class MultimodalOther:
 
             # 基础请求体
             payload = {
-                "model": "cogvideox-flash",
+                "model": ZHIPU_VIDEO_MODEL,
                 "prompt": prompt,
                 "quality": quality,
                 "with_audio": with_audio,
@@ -246,8 +264,7 @@ class MultimodalOther:
                         "message": "需要1-2张有效图片"
                     }
 
-            print(f"📤 发送视频生成请求:")
-            print(f"  模型: cogvideox-flash")
+            logger.info(f"发送视频生成请求: 模型 {ZHIPU_VIDEO_MODEL}")
             print(f"  描述: {prompt}")
 
             if image_urls:
@@ -473,7 +490,7 @@ class MultimodalOther:
             print(f"  下载视频: {video_url[:50]}...")
             print(f"  保存到: {video_path}")
 
-            video_response = requests.get(video_url, stream=True, timeout=30)
+            video_response = requests.get(video_url, stream=True, timeout=TIMEOUT)
 
             if video_response.status_code == 200:
                 total_size = int(video_response.headers.get('content-length', 0))
@@ -481,7 +498,7 @@ class MultimodalOther:
 
                 with open(video_path, 'wb') as f:
                     downloaded = 0
-                    for chunk in video_response.iter_content(chunk_size=8192):
+                    for chunk in video_response.iter_content(chunk_size=CHUNK_SIZE):
                         if chunk:
                             f.write(chunk)
                             downloaded += len(chunk)

@@ -7,7 +7,7 @@ from phone_agent import PhoneAgent
 from phone_agent.model import ModelConfig
 from phone_agent.agent import AgentConfig
 
-from yuntai.config import Color
+
 
 
 class AgentExecutor:

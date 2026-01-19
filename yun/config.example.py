@@ -65,6 +65,8 @@ ZHIPU_API_BASE_URL = "https://open.bigmodel.cn/api/paas/v4"
 ZHIPU_MODEL = "autoglm-phone"
 ZHIPU_CHAT_MODEL = "glm-4.6v-flash"
 ZHIPU_MULTIMODAL_MODEL = "glm-4.6v-flash"
+ZHIPU_IMAGE_MODEL = "cogview-3-flash"
+ZHIPU_VIDEO_MODEL = "cogvideox-flash"
 
 # 文件上传配置
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB（支持更大的视频/音频文件）
@@ -147,15 +149,7 @@ class ThemeColors:
     TEXT_DISABLED = "#666666"
 
 
-# ==================== 终端颜色配置 ====================
 
-class Color:
-    """终端输出颜色"""
-    GOLD = "\033[38;5;220m"  # GLM-4.6v-flash 输出颜色
-    GREEN = "\033[32m"  # phone_agent 输出颜色
-    BLUE = "\033[34m"  # 最终结果颜色
-    RED = "\033[91m"  # 错误信息颜色
-    RESET = "\033[0m"  # 重置颜色
 
 
 # ==================== 验证配置 ====================

@@ -9,7 +9,7 @@ import datetime
 from typing import Any, List, Dict
 
 from yuntai.config import (
-    Color, CONVERSATION_HISTORY_FILE, RECORD_LOGS_DIR,
+    CONVERSATION_HISTORY_FILE, RECORD_LOGS_DIR,
     FOREVER_MEMORY_FILE, MAX_HISTORY_LENGTH, CONNECTION_CONFIG_FILE
 )
 
@@ -24,13 +24,13 @@ class FileManager:
             # 创建record_logs目录
             if not os.path.exists(RECORD_LOGS_DIR):
                 os.makedirs(RECORD_LOGS_DIR)
-                print(f"{Color.GREEN}📁 创建目录: {RECORD_LOGS_DIR}{Color.RESET}")
+                print(f"📁 创建目录: {RECORD_LOGS_DIR}")
 
             # 确保conversation_history.json文件存在且格式正确
             if not os.path.exists(CONVERSATION_HISTORY_FILE):
                 with open(CONVERSATION_HISTORY_FILE, 'w', encoding='utf-8') as f:
                     json.dump({"sessions": [], "free_chats": []}, f, ensure_ascii=False, indent=2)
-                print(f"{Color.GREEN}📁 创建文件: {CONVERSATION_HISTORY_FILE}{Color.RESET}")
+                print(f"📁 创建文件: {CONVERSATION_HISTORY_FILE}")
             else:
                 # 检查文件是否为空或格式错误
                 try:
@@ -40,7 +40,7 @@ class FileManager:
                             # 文件为空，重新创建
                             with open(CONVERSATION_HISTORY_FILE, 'w', encoding='utf-8') as f:
                                 json.dump({"sessions": [], "free_chats": []}, f, ensure_ascii=False, indent=2)
-                            print(f"{Color.GREEN}📁 重建空文件: {CONVERSATION_HISTORY_FILE}{Color.RESET}")
+                            print(f"📁 重建空文件: {CONVERSATION_HISTORY_FILE}")
                         else:
                             # 尝试解析JSON
                             json.loads(content)
@@ -48,10 +48,10 @@ class FileManager:
                     # JSON格式错误，备份并重新创建
                     backup_file = f"{CONVERSATION_HISTORY_FILE}.backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
                     shutil.copy2(CONVERSATION_HISTORY_FILE, backup_file)
-                    print(f"{Color.GOLD}⚠️  JSON文件格式错误，已备份到: {backup_file}{Color.RESET}")
+                    print(f"⚠️  JSON文件格式错误，已备份到: {backup_file}")
                     with open(CONVERSATION_HISTORY_FILE, 'w', encoding='utf-8') as f:
                         json.dump({"sessions": [], "free_chats": []}, f, ensure_ascii=False, indent=2)
-                    print(f"{Color.GREEN}📁 重建JSON文件: {CONVERSATION_HISTORY_FILE}{Color.RESET}")
+                    print(f"📁 重建JSON文件: {CONVERSATION_HISTORY_FILE}")
 
             # 确保连接配置文件存在
             if not os.path.exists(CONNECTION_CONFIG_FILE):
@@ -63,7 +63,7 @@ class FileManager:
                         "usb_device_id": ""
                     }, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"{Color.GOLD}⚠️  文件系统初始化失败: {e}{Color.RESET}")
+            print(f"⚠️  文件系统初始化失败: {e}")
 
     def cleanup_record_files(self):
         """清理record文件"""
@@ -73,9 +73,9 @@ class FileManager:
                     if filename.startswith("record_") and filename.endswith(".txt"):
                         file_path = os.path.join(RECORD_LOGS_DIR, filename)
                         os.remove(file_path)
-                print(f"{Color.GREEN}🧹 已清理 {RECORD_LOGS_DIR} 中的record文件{Color.RESET}")
+                print(f"🧹 已清理 {RECORD_LOGS_DIR} 中的record文件")
         except Exception as e:
-            print(f"{Color.GOLD}⚠️  清理文件失败: {e}{Color.RESET}")
+            print(f"⚠️  清理文件失败: {e}")
 
     def read_forever_memory(self) -> str:
         """读取永久记忆文件内容"""
@@ -101,7 +101,7 @@ class FileManager:
                 else:
                     return ""
         except Exception as e:
-            print(f"{Color.GOLD}⚠️  读取永久记忆失败: {e}{Color.RESET}")
+            print(f"⚠️  读取永久记忆失败: {e}")
             return ""
 
     def save_record_to_log(self, cycle_count: int, record: str, target_app: str, target_object: str) -> str:
@@ -121,7 +121,7 @@ class FileManager:
 
             return filename
         except Exception as e:
-            print(f"{Color.GOLD}⚠️  保存record失败: {e}{Color.RESET}")
+            print(f"⚠️  保存record失败: {e}")
             return ""
 
     def safe_read_json_file(self, filepath: str, default_value: Any) -> Any:
@@ -136,7 +136,7 @@ class FileManager:
                     return default_value
                 return json.loads(content)
         except (json.JSONDecodeError, UnicodeDecodeError, Exception) as e:
-            print(f"{Color.GOLD}⚠️  读取JSON文件失败 {filepath}: {e}{Color.RESET}")
+            print(f"⚠️  读取JSON文件失败 {filepath}: {e}")
             return default_value
 
     def safe_write_json_file(self, filepath: str, data: Any):
@@ -154,7 +154,7 @@ class FileManager:
             shutil.move(temp_filepath, filepath)
             return True
         except Exception as e:
-            print(f"{Color.GOLD}⚠️  写入JSON文件失败 {filepath}: {e}{Color.RESET}")
+            print(f"⚠️  写入JSON文件失败 {filepath}: {e}")
             return False
 
     def save_conversation_history(self, session_data: Dict[str, Any]):
@@ -178,10 +178,10 @@ class FileManager:
             # 保存文件
             success = self.safe_write_json_file(CONVERSATION_HISTORY_FILE, history)
             if not success:
-                print(f"{Color.GOLD}⚠️  保存对话历史失败，但程序继续运行{Color.RESET}")
+                print(f"⚠️  保存对话历史失败，但程序继续运行")
 
         except Exception as e:
-            print(f"{Color.GOLD}⚠️  保存对话历史失败: {e}{Color.RESET}")
+            print(f"⚠️  保存对话历史失败: {e}")
 
     def get_recent_conversation_history(self, target_app: str, target_object: str, limit: int = 5) -> List[Dict]:
         """获取最近的对话历史"""
@@ -201,7 +201,7 @@ class FileManager:
             return relevant_sessions[:limit]
 
         except Exception as e:
-            print(f"{Color.GOLD}⚠️  读取对话历史失败: {e}{Color.RESET}")
+            print(f"⚠️  读取对话历史失败: {e}")
             return []
 
     def get_recent_free_chats(self, limit: int = 5) -> List[Dict]:
@@ -215,5 +215,5 @@ class FileManager:
 
             return free_chats[:limit]
         except Exception as e:
-            print(f"{Color.GOLD}⚠️  读取自由聊天历史失败: {e}{Color.RESET}")
+            print(f"⚠️  读取自由聊天历史失败: {e}")
             return []

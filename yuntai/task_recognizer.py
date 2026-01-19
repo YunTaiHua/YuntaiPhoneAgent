@@ -6,7 +6,7 @@ import re
 import json
 from typing import Dict, Any, Optional
 
-from yuntai.config import Color, SHORTCUTS, ZHIPU_CLIENT
+from yuntai.config import SHORTCUTS, ZHIPU_CLIENT
 
 
 class TaskRecognizer:
@@ -387,7 +387,7 @@ class TaskRecognizer:
             }
 
         except Exception as e:
-            print(f"\n{Color.GOLD}⚠️  任务识别失败: {e}{Color.RESET}")
+            print(f"\n⚠️  任务识别失败: {e}")
             return {
                 "task_type": "free_chat",
                 "target_app": "",

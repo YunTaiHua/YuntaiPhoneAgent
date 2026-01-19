@@ -60,6 +60,12 @@ import sys
 import os
 import atexit
 import warnings
+import logging
+from typing import NoReturn
+
+# 配置日志
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # 过滤冗余警告
 warnings.filterwarnings('ignore')
@@ -94,7 +100,7 @@ def main():
         os.chdir(original_cwd)
 
     except Exception as e:
-        print(f"应用启动失败: {e}")
+        logger.error(f"应用启动失败: {e}")
         import traceback
         traceback.print_exc()
 

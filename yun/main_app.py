@@ -11,7 +11,13 @@ import customtkinter as ctk
 import threading
 import time
 import atexit
-from typing import Optional
+import logging
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from customtkinter import CTk
+
+logger = logging.getLogger(__name__)
 
 # 重构模块
 from .gui_controller import GUIController
@@ -24,10 +30,10 @@ from .config import PROJECT_ROOT, SCRCPY_PATH, validate_config, print_config_sum
 class MainApp:
     """主应用程序 - 协调所有组件"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # 验证配置
         if not validate_config():
-            print("⚠️ 配置验证失败，程序可能无法正常运行")
+            logger.warning("配置验证失败，程序可能无法正常运行")
 
         # 打印配置摘要
         print_config_summary()
@@ -55,27 +61,27 @@ class MainApp:
         self.root.after(500, self.check_initial_connection)
 
 
-    def check_initial_connection(self):
+    def check_initial_connection(self) -> None:
         """检查初始连接"""
         self.controller.check_initial_connection()
 
-    def run(self):
+    def run(self) -> None:
         """运行应用程序"""
         try:
             self.root.mainloop()
         except Exception as e:
-            print(f"GUI运行错误: {e}")
+            logger.error(f"GUI运行错误: {e}")
             import traceback
             traceback.print_exc()
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """清理资源"""
-        print("🧹 正在清理应用程序资源...")
+        logger.info("正在清理应用程序资源...")
 
         # 清理控制器资源
         self.controller.cleanup_on_exit()
 
-    def on_closing(self):
+    def on_closing(self) -> None:
         """窗口关闭事件"""
         self.cleanup()
         self.root.quit()

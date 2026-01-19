@@ -85,12 +85,9 @@ from .config import (
     # GUI 主题
     ThemeColors,
 
-    # 终端颜色
-    Color,
-
     # 工具函数
     validate_config,
-    print_config_summary,
+    print_config_summary, ZHIPU_IMAGE_MODEL, ZHIPU_VIDEO_MODEL,
 
 )
 
@@ -132,6 +129,8 @@ __all__ = [
     "ZHIPU_MODEL",
     "ZHIPU_CHAT_MODEL",
     "ZHIPU_MULTIMODAL_MODEL",
+    "ZHIPU_IMAGE_MODEL",
+    "ZHIPU_VIDEO_MODEL",
     "MAX_FILE_SIZE",
     "ALLOWED_IMAGE_EXTENSIONS",
     "ALLOWED_VIDEO_EXTENSIONS",
@@ -151,7 +150,6 @@ __all__ = [
     "TTS_MIN_TEXT_LENGTH",
     "TTS_ENABLE_PARALLEL",
     "ThemeColors",
-    "Color",
     "validate_config",
     "print_config_summary",
 

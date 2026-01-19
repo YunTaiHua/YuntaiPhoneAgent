@@ -7,7 +7,14 @@ import datetime
 import time
 import re
 import threading
+import logging
 from typing import Dict, Any, List, Tuple, Optional
+
+logger = logging.getLogger(__name__)
+
+# 常量定义
+SIMILARITY_THRESHOLD = 0.6
+MAX_MESSAGE_LIST_LENGTH = 50
 from yuntai.reply_manager import SmartContinuousReplyManager
 
 
@@ -26,11 +33,11 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
         # 第一轮标志
         self.is_first_round = True
 
-    def set_terminate_flag(self):
+    def set_terminate_flag(self) -> None:
         """设置终止标志"""
         self.terminate_flag.set()
         self.should_terminate = True
-        print("🛑 终止标志已设置")
+        logger.info("终止标志已设置")
 
     def check_termination(self):
         """检查是否应该终止"""
@@ -38,7 +45,7 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
             return self.terminate_flag.is_set() or self.should_terminate
         return self.should_terminate
 
-    def is_message_similar(self, msg1, msg2, threshold=0.6):
+    def is_message_similar(self, msg1: str, msg2: str, threshold: float = 0.6) -> bool:
         """判断两条消息是否相似"""
         if not msg1 or not msg2:
             return False
@@ -95,7 +102,7 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
 
         return similarity >= threshold
 
-    def determine_message_ownership_fixed(self, messages):
+    def determine_message_ownership_fixed(self, messages: List[Dict[str, Any]]) -> Tuple[List[str], List[str]]:
         """修复的消息归属判断方法"""
         other_messages = []  # 对方消息
         my_messages = []  # 我方消息
@@ -116,7 +123,7 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
             # 1. 首先检查是否是我方已发送的消息（使用相似度比较）
             is_my_message = False
             for my_msg in self.my_messages_list:
-                if self.is_message_similar(content, my_msg, threshold=0.6):
+                if self.is_message_similar(content, my_msg, threshold=SIMILARITY_THRESHOLD):
                     is_my_message = True
                     my_messages.append(content)
                     break
@@ -127,7 +134,7 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
             # 2. 然后检查是否是对方案已记录的消息
             is_other_message = False
             for other_msg in self.other_messages_list:
-                if self.is_message_similar(content, other_msg, threshold=0.6):
+                if self.is_message_similar(content, other_msg, threshold=SIMILARITY_THRESHOLD):
                     is_other_message = True
                     other_messages.append(content)
                     break
@@ -154,10 +161,10 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
                     self.my_messages_list.append(content)
 
         # 限制列表长度，避免无限增长
-        if len(self.other_messages_list) > 50:
-            self.other_messages_list = self.other_messages_list[-50:]
-        if len(self.my_messages_list) > 50:
-            self.my_messages_list = self.my_messages_list[-50:]
+        if len(self.other_messages_list) > MAX_MESSAGE_LIST_LENGTH:
+            self.other_messages_list = self.other_messages_list[-MAX_MESSAGE_LIST_LENGTH:]
+        if len(self.my_messages_list) > MAX_MESSAGE_LIST_LENGTH:
+            self.my_messages_list = self.my_messages_list[-MAX_MESSAGE_LIST_LENGTH:]
 
         return other_messages, my_messages
 
@@ -196,7 +203,7 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
             for i, msg in enumerate(history_messages[-3:]):  # 只取最近3条历史
                 context += f"{i + 1}. {msg[:50]}...\n"
 
-        print(f"{context}")
+
 
         # 调用父类方法生成回复
         reply = super().generate_reply_for_latest_message(latest_message, history_messages)
@@ -219,9 +226,9 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
         cycle = 1
         previous_latest_message = None
 
-        print(f"\n🔄 启动持续回复循环（可终止）")
-        print(f"\n🎯 目标：{self.target_app} -> {self.target_object}")
-        print(f"\n📊 最大循环次数：{max_cycle_times}，等待间隔：{wait_interval}秒")
+        logger.info(f"启动持续回复循环（可终止）")
+        logger.info(f"目标：{self.target_app} -> {self.target_object}")
+        logger.info(f"最大循环次数：{max_cycle_times}，等待间隔：{wait_interval}秒")
 
         while cycle <= max_cycle_times:
             # 检查终止标志（在每次循环开始时检查）
@@ -271,7 +278,7 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
                     # 检查是否是新消息
                     is_new_message = True
                     if previous_latest_message:
-                        if self.is_message_similar(previous_latest_message, latest_other_message, threshold=0.6):
+                        if self.is_message_similar(previous_latest_message, latest_other_message, threshold=SIMILARITY_THRESHOLD):
                             is_new_message = False
                             print(f"🔁 消息相似，不是新消息")
 

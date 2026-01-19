@@ -21,7 +21,7 @@ from zhipuai import ZhipuAI
 
 # 项目模块
 from yuntai.config import (
-    Color, SHORTCUTS, ZHIPU_API_KEY,
+    SHORTCUTS, ZHIPU_API_KEY,
     CONVERSATION_HISTORY_FILE, RECORD_LOGS_DIR, FOREVER_MEMORY_FILE,
     CONNECTION_CONFIG_FILE
 )

@@ -12,17 +12,30 @@ import traceback
 import queue
 from typing import Optional, Dict, Any, Tuple, List, Callable
 import warnings
+import logging
 import pyaudio
 import torch
 import soundfile as sf
 import re
 import wave
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+logger = logging.getLogger(__name__)
+
+# 常量定义
+DEFAULT_TTS_CONFIG_KEY = "default_tts_config"
+SIMILARITY_THRESHOLD = 0.6
+MIN_CHINESE_RATIO = 0.3
+MAX_LIST_LENGTH = 50
+AUDIO_CHUNK_SIZE = 1024
+AUDIO_FORMAT_WIDTH = 2
+AUDIO_CHANNELS = 1
+DEFAULT_SAMPLE_RATE = 22050
 
 # 第三方库
 from zhipuai import ZhipuAI
 
 # 项目模块
-from yuntai.config import Color, SHORTCUTS  # 保留 yuntai 中的快捷键
 from yuntai.connection_manager import ConnectionManager
 from yuntai.file_manager import FileManager
 from yuntai.task_recognizer import TaskRecognizer
@@ -46,7 +59,13 @@ from .config import (
     MAX_RETRY_TIMES,
     WAIT_INTERVAL,
     TTS_REF_LANGUAGE,
-    TTS_TARGET_LANGUAGE
+    TTS_TARGET_LANGUAGE,
+    SHORTCUTS,
+    TTS_MAX_SEGMENT_LENGTH,
+    TTS_MIN_TEXT_LENGTH,
+    TTS_TOP_P,
+    TTS_TEMPERATURE,
+    TTS_SPEED
 )
 
 
@@ -106,6 +125,9 @@ class TTSManager:
         self.audio_player = None
         self.audio_play_lock = threading.Lock()
 
+        # 线程池执行器
+        self.executor = ThreadPoolExecutor(max_workers=3)
+
         # TTS文件数据库
         self.tts_files_database = {
             "gpt": {},  # {文件名: 正确绝对路径}
@@ -114,6 +136,10 @@ class TTSManager:
             "text": {}  # {文件名: 正确绝对路径}
         }
 
+        # 缓存
+        self._text_cache = {}  # {文件路径: 文本内容}
+        self._cache_lock = threading.Lock()
+
         # 过滤冗余警告
         warnings.filterwarnings('ignore')
 
@@ -121,7 +147,7 @@ class TTSManager:
         self._init_audio_player()
 
         # 新增：分段合成相关
-        self.max_text_length = 500  # 单个文本片段最大长度
+        self.max_text_length = TTS_MAX_SEGMENT_LENGTH  # 单个文本片段最大长度
         self.tts_segments = []  # 存储分段音频路径
         self.tts_segments_lock = threading.Lock()
 
@@ -135,9 +161,22 @@ class TTSManager:
             import soundfile
             return True
         except ImportError:
-            print("⚠️  音频合并功能需要额外依赖:")
-            print("💡 请安装: pip install numpy soundfile")
+            logger.warning("音频合并功能需要额外依赖: pip install numpy soundfile")
             return False
+
+    def _get_cached_text(self, file_path: str) -> str:
+        """获取缓存的文本内容"""
+        with self._cache_lock:
+            if file_path in self._text_cache:
+                return self._text_cache[file_path]
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                self._text_cache[file_path] = content
+                return content
+            except IOError as e:
+                logger.error(f"读取文本文件失败: {file_path}, {e}")
+                raise
 
     def synthesize_long_text_serial(self, text: str, ref_audio_path: str, ref_text_path: str) -> tuple[bool, str]:
         """
@@ -294,8 +333,6 @@ class TTSManager:
 
         # 使用最佳模式分段
         if best_pattern and best_matches:
-            #print(f"📝 使用分段模式: {best_pattern}，找到 {len(best_matches)} 个分段点")
-
             # 从第一个分段点开始
             start_pos = 0
             last_end_pos = 0
@@ -325,10 +362,8 @@ class TTSManager:
             if segments and len(segments) >= 2:
                 avg_length = sum(len(s) for s in segments) / len(segments)
                 if 50 <= avg_length <= self.max_text_length * 2:
-                    #print(f"📝 按序号模式分成 {len(segments)} 段，平均长度: {avg_length:.0f} 字符")
                     return segments
                 else:
-                    #print(f"📝 分段长度不合理(平均{avg_length:.0f}字符)，尝试其他分段方式")
                     segments = []
 
         # 如果没有找到合适的序号分段，尝试按段落分段
@@ -355,7 +390,6 @@ class TTSManager:
                     merged.append(buffer)
 
                 if len(merged) >= 2:
-                    #print(f"📝 按空行分成 {len(merged)} 段")
                     return merged
 
         # 最后尝试按标点分段
@@ -540,9 +574,8 @@ class TTSManager:
             return False, f"参考文本文件不存在: {ref_text_path}"
 
         try:
-            # 读取参考文本
-            with open(ref_text_path, "r", encoding="utf-8") as f:
-                ref_text_content = f.read().strip()
+            # 读取参考文本（使用缓存）
+            ref_text_content = self._get_cached_text(ref_text_path)
 
             if not ref_text_content:
                 return False, "参考文本内容为空"
@@ -748,8 +781,6 @@ class TTSManager:
             )
 
             sf.write(output_wav, merged_data, target_samplerate)
-            #print(
-                #f"\n✅ 音频合并完成: {os.path.basename(output_wav)}, 总长度: {len(merged_data) / target_samplerate:.2f}秒\n")
 
             return output_wav
 
@@ -831,9 +862,8 @@ class TTSManager:
                         if success and audio_path:
                             # 播放合并后的音频
                             self.play_audio_file(audio_path)
-                            #print(f"✅ 分段语音播报完成")
                         else:
-                            print(f"❌ 分段语音合成失败: {audio_path}")
+                            logger.error(f"分段语音合成失败: {audio_path}")
 
                             # 分段合成失败，尝试普通合成
                             print("🔄 分段失败，尝试普通合成...")
@@ -845,24 +875,22 @@ class TTSManager:
                                 fallback_text, ref_audio, ref_text, auto_play=True
                             )
                             if fallback_success:
-                                print("\n")        #print(f"✅ 普通语音播报完成")
+                                print("\n")
                     except Exception as e:
                         print(f"❌ 分段语音合成异常: {e}")
 
                 # 异步执行分段合成
-                threading.Thread(target=async_synthesize, daemon=True).start()
+                self.executor.submit(async_synthesize)
                 return True
 
             else:
-                #print(f"📝 文本较短({len(text)}字符)，使用普通合成...")
-
                 def async_synthesize():
                     try:
                         success, _ = self.synthesize_text(
                             text, ref_audio, ref_text, auto_play=True
                         )
                         if success:
-                            print("\n")        #print(f"\n✅ 语音播报完成\n")
+                            print("\n")
                     except Exception as e:
                         print(f"❌ 语音合成异常: {e}\n")
 
@@ -1060,9 +1088,8 @@ class TTSManager:
             return False, "TTS模块不可用"
 
         try:
-            # 读取参考文本
-            with open(ref_text_path, "r", encoding="utf-8") as f:
-                ref_text_content = f.read().strip()
+            # 读取参考文本（使用缓存）
+            ref_text_content = self._get_cached_text(ref_text_path)
 
             # 检查函数是否可用
             if 'get_tts_wav' not in self.tts_modules:
@@ -1163,13 +1190,12 @@ class TTSManager:
                     with self.tts_synthesized_files_lock:
                         self.tts_synthesized_files.append((output_wav, os.path.basename(output_wav)))
 
-                    # 自动播放
-                    if auto_play:
-                        def play_thread_func():
-                            self.play_audio_file(output_wav)
+                        # 自动播放
+                        if auto_play:
+                            def play_thread_func():
+                                self.play_audio_file(output_wav)
 
-                        play_thread = threading.Thread(target=play_thread_func, daemon=True)
-                        play_thread.start()
+                            self.executor.submit(play_thread_func)
 
                     with self.is_tts_synthesizing_lock:
                         self.is_tts_synthesizing = False

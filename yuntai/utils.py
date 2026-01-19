@@ -8,7 +8,7 @@ import subprocess
 import openai
 from typing import Tuple
 
-from yuntai.config import Color
+
 
 
 class Utils:
@@ -25,10 +25,10 @@ class Utils:
                 pass
 
     def check_system_requirements(self) -> bool:
-        print(f"{Color.GOLD}🔍 检查系统要求...{Color.RESET}")
+        print(f"🔍 检查系统要求...")
         all_passed = True
 
-        print(f"{Color.GOLD}1. 检查ADB安装...{Color.RESET}", end=" ")
+        print(f"1. 检查ADB安装...", end=" ")
         if shutil.which("adb") is None:
             print("❌ 失败")
             all_passed = False
@@ -54,7 +54,7 @@ class Utils:
         return all_passed
 
     def check_model_api(self, base_url: str, model_name: str, api_key: str = "EMPTY") -> bool:
-        print(f"{Color.GOLD}🔍 检查模型API...{Color.RESET}")
+        print(f"🔍 检查模型API...")
         try:
             client = openai.OpenAI(base_url=base_url, api_key=api_key, timeout=30.0)
             response = client.chat.completions.create(

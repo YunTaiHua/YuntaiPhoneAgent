@@ -7,7 +7,7 @@ import json
 import os
 from typing import List, Tuple, Dict
 
-from yuntai.config import Color, CONNECTION_CONFIG_FILE
+from yuntai.config import CONNECTION_CONFIG_FILE
 
 
 class ConnectionManager:
@@ -33,7 +33,7 @@ class ConnectionManager:
                             config[key] = default_config[key]
                     return config
         except Exception as e:
-            print(f"{Color.GOLD}⚠️  读取连接配置失败: {e}{Color.RESET}")
+            print(f"⚠️  读取连接配置失败: {e}")
 
         return default_config
 
@@ -43,7 +43,7 @@ class ConnectionManager:
             with open(CONNECTION_CONFIG_FILE, 'w', encoding='utf-8') as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"{Color.GOLD}⚠️  保存连接配置失败: {e}{Color.RESET}")
+            print(f"⚠️  保存连接配置失败: {e}")
 
     def get_available_devices(self) -> List[str]:
         """获取可用的ADB设备列表"""
@@ -66,24 +66,24 @@ class ConnectionManager:
 
             return devices
         except Exception as e:
-            print(f"{Color.GOLD}⚠️  获取设备列表失败: {e}{Color.RESET}")
+            print(f"⚠️  获取设备列表失败: {e}")
             return []
 
     def interactive_setup_connection(self) -> Dict[str, str]:
         """交互式设置连接方式"""
-        print(f"\n{Color.GOLD}📱 手机连接设置{Color.RESET}")
-        print(f"{Color.GOLD}════════════════════════════════════════{Color.RESET}")
+        print(f"\n📱 手机连接设置")
+        print(f"════════════════════════════════════════")
 
         # 加载现有配置
         config = self.load_connection_config()
 
         # 选择连接方式
-        print(f"\n{Color.GOLD}请选择连接方式:{Color.RESET}")
-        print(f"{Color.GOLD}1. USB调试（通过USB数据线连接）{Color.RESET}")
-        print(f"{Color.GOLD}2. 无线调试（通过Wi-Fi连接）{Color.RESET}")
+        print(f"\n请选择连接方式:")
+        print(f"1. USB调试（通过USB数据线连接）")
+        print(f"2. 无线调试（通过Wi-Fi连接）")
 
         while True:
-            choice = input(f"{Color.GOLD}请选择 (1/2): {Color.RESET}").strip()
+            choice = input(f"请选择 (1/2): ").strip()
             if choice == "1":
                 config["connection_type"] = "usb"
                 break
@@ -91,46 +91,46 @@ class ConnectionManager:
                 config["connection_type"] = "wireless"
                 break
             else:
-                print(f"{Color.GOLD}⚠️  请输入1或2{Color.RESET}")
+                print(f"⚠️  请输入1或2")
 
         # USB连接设置
         if config["connection_type"] == "usb":
-            print(f"\n{Color.GOLD}🔌 USB调试设置:{Color.RESET}")
+            print(f"\n🔌 USB调试设置:")
 
             # 检查USB设备
             devices = self.get_available_devices()
             usb_devices = [d for d in devices if ":" not in d]  # USB设备通常没有冒号
 
             if usb_devices:
-                print(f"{Color.GREEN}✅ 检测到以下USB设备:{Color.RESET}")
+                print(f"✅ 检测到以下USB设备:")
                 for i, device in enumerate(usb_devices, 1):
-                    print(f"{Color.GREEN}  {i}. {device}{Color.RESET}")
+                    print(f"  {i}. {device}")
 
                 if len(usb_devices) == 1:
                     config["usb_device_id"] = usb_devices[0]
-                    print(f"{Color.GREEN}✅ 已自动选择设备: {config['usb_device_id']}{Color.RESET}")
+                    print(f"✅ 已自动选择设备: {config['usb_device_id']}")
                 else:
-                    print(f"\n{Color.GOLD}请选择要连接的设备:{Color.RESET}")
+                    print(f"\n请选择要连接的设备:")
                     for i, device in enumerate(usb_devices, 1):
-                        print(f"{Color.GOLD}  {i}. {device}{Color.RESET}")
+                        print(f"  {i}. {device}")
 
                     while True:
                         try:
-                            choice = int(input(f"{Color.GOLD}请选择 (1-{len(usb_devices)}): {Color.RESET}").strip())
+                            choice = int(input(f"请选择 (1-{len(usb_devices)}): ").strip())
                             if 1 <= choice <= len(usb_devices):
                                 config["usb_device_id"] = usb_devices[choice - 1]
                                 break
                             else:
-                                print(f"{Color.GOLD}⚠️  请输入有效的数字{Color.RESET}")
+                                print(f"⚠️  请输入有效的数字")
                         except ValueError:
-                            print(f"{Color.GOLD}⚠️  请输入数字{Color.RESET}")
+                            print(f"⚠️  请输入数字")
             else:
-                print(f"{Color.GOLD}⚠️  未检测到USB设备{Color.RESET}")
-                print(f"{Color.GOLD}请确保:{Color.RESET}")
-                print(f"{Color.GOLD}  1. 手机已通过USB连接到电脑{Color.RESET}")
-                print(f"{Color.GOLD}  2. 手机已开启USB调试模式{Color.RESET}")
-                print(f"{Color.GOLD}  3. 已授权电脑进行调试{Color.RESET}")
-                print(f"\n{Color.GOLD}按回车键重新检测，或输入任意字符手动输入设备ID:{Color.RESET}")
+                print(f"⚠️  未检测到USB设备")
+                print(f"请确保:")
+                print(f"  1. 手机已通过USB连接到电脑")
+                print(f"  2. 手机已开启USB调试模式")
+                print(f"  3. 已授权电脑进行调试")
+                print(f"\n按回车键重新检测，或输入任意字符手动输入设备ID:")
 
                 if input().strip() == "":
                     devices = self.get_available_devices()
@@ -138,18 +138,18 @@ class ConnectionManager:
                     if usb_devices:
                         config["usb_device_id"] = usb_devices[0]
                     else:
-                        config["usb_device_id"] = input(f"{Color.GOLD}请输入设备ID: {Color.RESET}").strip()
+                        config["usb_device_id"] = input(f"请输入设备ID: ").strip()
                 else:
-                    config["usb_device_id"] = input(f"{Color.GOLD}请输入设备ID: {Color.RESET}").strip()
+                    config["usb_device_id"] = input(f"请输入设备ID: ").strip()
 
         # 无线连接设置
         else:
-            print(f"\n{Color.GOLD}📶 无线调试设置:{Color.RESET}")
+            print(f"\n📶 无线调试设置:")
 
             # 检查现有配置
             if config.get("wireless_ip"):
-                print(f"{Color.GOLD}当前配置的IP地址: {config['wireless_ip']}{Color.RESET}")
-                use_existing = input(f"{Color.GOLD}是否使用此IP？(y/n): {Color.RESET}").strip().lower()
+                print(f"当前配置的IP地址: {config['wireless_ip']}")
+                use_existing = input(f"是否使用此IP？(y/n): ").strip().lower()
                 if use_existing != 'y':
                     config["wireless_ip"] = ""
 
@@ -159,11 +159,11 @@ class ConnectionManager:
                 wireless_devices = [d for d in devices if ":" in d]  # 无线设备通常包含冒号和端口
 
                 if wireless_devices:
-                    print(f"{Color.GREEN}✅ 检测到以下无线设备:{Color.RESET}")
+                    print(f"✅ 检测到以下无线设备:")
                     for i, device in enumerate(wireless_devices, 1):
-                        print(f"{Color.GREEN}  {i}. {device}{Color.RESET}")
+                        print(f"  {i}. {device}")
 
-                    choice = input(f"{Color.GOLD}是否连接这些设备？(y/n): {Color.RESET}").strip().lower()
+                    choice = input(f"是否连接这些设备？(y/n): ").strip().lower()
                     if choice == 'y':
                         if len(wireless_devices) == 1:
                             device_parts = wireless_devices[0].split(":")
@@ -171,14 +171,14 @@ class ConnectionManager:
                             if len(device_parts) > 1:
                                 config["wireless_port"] = device_parts[1]
                         else:
-                            print(f"\n{Color.GOLD}请选择要连接的设备:{Color.RESET}")
+                            print(f"\n请选择要连接的设备:")
                             for i, device in enumerate(wireless_devices, 1):
-                                print(f"{Color.GOLD}  {i}. {device}{Color.RESET}")
+                                print(f"  {i}. {device}")
 
                             while True:
                                 try:
                                     choice = int(
-                                        input(f"{Color.GOLD}请选择 (1-{len(wireless_devices)}): {Color.RESET}").strip())
+                                        input(f"请选择 (1-{len(wireless_devices)}): ").strip())
                                     if 1 <= choice <= len(wireless_devices):
                                         device_parts = wireless_devices[choice - 1].split(":")
                                         config["wireless_ip"] = device_parts[0]
@@ -186,17 +186,17 @@ class ConnectionManager:
                                             config["wireless_port"] = device_parts[1]
                                         break
                                     else:
-                                        print(f"{Color.GOLD}⚠️  请输入有效的数字{Color.RESET}")
+                                        print(f"⚠️  请输入有效的数字")
                                 except ValueError:
-                                    print(f"{Color.GOLD}⚠️  请输入数字{Color.RESET}")
+                                    print(f"⚠️  请输入数字")
 
                 if not config.get("wireless_ip"):
                     # 手动输入IP地址
-                    print(f"\n{Color.GOLD}请手动输入手机IP地址:{Color.RESET}")
-                    print(f"{Color.GOLD}格式: IP地址或IP:端口 (例如: 192.168.1.100 或 192.168.1.100:5555){Color.RESET}")
+                    print(f"\n请手动输入手机IP地址:")
+                    print(f"格式: IP地址或IP:端口 (例如: 192.168.1.100 或 192.168.1.100:5555)")
 
                     while True:
-                        ip_input = input(f"{Color.GOLD}请输入: {Color.RESET}").strip()
+                        ip_input = input(f"请输入: ").strip()
                         if ip_input:
                             if ":" in ip_input:
                                 ip_parts = ip_input.split(":")
@@ -207,7 +207,7 @@ class ConnectionManager:
                                 config["wireless_ip"] = ip_input
                             break
                         else:
-                            print(f"{Color.GOLD}⚠️  IP地址不能为空{Color.RESET}")
+                            print(f"⚠️  IP地址不能为空")
 
         # 保存配置
         self.save_connection_config(config)

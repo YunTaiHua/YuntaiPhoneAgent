@@ -4,7 +4,7 @@
 """
 
 # ==================== 核心配置 ====================
-ZHIPU_API_KEY = "替换为个人智谱AI API 密钥"
+ZHIPU_API_KEY = "替换为你的智谱 API key"
 ZHIPU_CLIENT = None  # 将在主文件中初始化
 
 # 文件配置
@@ -29,10 +29,3 @@ SHORTCUTS = {
     'm': '打开QQ音乐'
 }
 
-# 颜色定义
-class Color:
-    GOLD = "\033[38;5;220m"  # GLM-4.6v-flash输出颜色
-    GREEN = "\033[32m"  # phone_agent输出颜色
-    BLUE = "\033[34m"  # 最终结果颜色
-    RESET = "\033[0m"
-    RED = '\033[91m'
