@@ -54,6 +54,8 @@ Thumbs.db
 *.log
 /tmp/
 screenshots/
+connection_config.json
+conversation_history.json
 
 # 过渡阶段保留的旧文件
 call_model.py
