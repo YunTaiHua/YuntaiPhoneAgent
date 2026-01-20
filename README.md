@@ -1,8 +1,8 @@
 Phone Agent Pro - Intelligent Multi-Modal Control Agent
 
-Version: 1.2.4
+Version: 1.2.5
 
-## Phone Agent 智能版 v1.2.4 代码分析
+## Phone Agent 智能版 v1.2.5 代码分析
 
 ### 📊 项目概述
 
@@ -98,8 +98,8 @@ YuntaiPhoneAgent/
 
 ```python
 # yun/config.py:17-59
-GPT_SOVITS_ROOT = r"E:\PyCode\GPT-SoVITS-main"
-SCRCPY_PATH = r"E:\scrcpy\scrcpy-win64-v3.3.4\..."
+GPT_SOVITS_ROOT = r"GPT-SoVITS实际根目录"
+SCRCPY_PATH = r"scrcpy实际根目录"
 ZHIPU_API_KEY = "替换为你的API key"
 MAX_CYCLE_TIMES = 30
 WAIT_INTERVAL = 1 s

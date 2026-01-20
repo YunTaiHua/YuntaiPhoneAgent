@@ -5,8 +5,14 @@ GUIView - 纯界面构建模块
 
 import tkinter as tk
 import customtkinter as ctk
-from tkinter import scrolledtext, Listbox, END
+from tkinter import Listbox, END
+import tkinter.scrolledtext as scrolledtext
 import os
+
+
+
+from .config import APP_VERSION
+
 
 
 class ThemeColors:
@@ -30,7 +36,7 @@ class GUIView:
 
     def __init__(self, root):
         self.root = root
-        self.root.title("Phone Agent - 智能移动助手 v1.2.4")
+        self.root.title(f"Phone Agent - 智能移动助手 v{APP_VERSION}")
         self.root.geometry("1400x900")
 
         # 存储UI组件引用
@@ -137,7 +143,7 @@ class GUIView:
         # 版本信息
         ctk.CTkLabel(
             info_frame,
-            text="Version 1.2.4",
+            text=f"Version {APP_VERSION}",
             font=("Microsoft YaHei", 10),
             text_color=ThemeColors.TEXT_SECONDARY
         ).pack(anchor="w", pady=(5, 0))
@@ -582,7 +588,7 @@ class GUIView:
         ).pack(anchor="w", pady=(0, 10))
 
         # 创建日志文本框
-        self.components["tts_log_text"] = scrolledtext.Text(
+        self.components["tts_log_text"] = scrolledtext.ScrolledText(
             log_frame,
             wrap="word",
             font=("Consolas", 11),

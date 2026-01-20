@@ -45,8 +45,6 @@ TTS_OUTPUT_DIR = os.path.join(PROJECT_ROOT, "tts_output_audio")
 
 # Scrcpy 可执行文件路径 - 通过环境变量配置
 SCRCPY_PATH = os.getenv('SCRCPY_PATH')
-if not SCRCPY_PATH:
-    SCRCPY_PATH = r"E:\scrcpy\scrcpy-win64-v3.3.4\scrcpy-win64-v3.3.4\scrcpy.exe"
 
 # ==================== AI 配置 ====================
 # 智谱AI相关配置，用于多模态AI功能
@@ -80,8 +78,6 @@ ALLOWED_FILE_EXTENSIONS = ['.txt', '.py', '.csv', '.xls', '.xlsx', '.docx', '.pd
 
 # FFmpeg 可执行文件路径 - 通过环境变量配置
 FFMPEG_PATH = os.getenv('FFMPEG_PATH')
-if not FFMPEG_PATH:
-    FFMPEG_PATH = r"D:\ffmpeg\ffmpeg-master-latest-win64-gpl\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
 
 # Whisper 配置
 WHISPER_MODEL = "small"  # 可选: tiny, base, small, medium, large
@@ -141,6 +137,10 @@ TTS_ENABLE_PARALLEL = True    # 启用并行合成
 
 # ==================== GUI 主题配置 ====================
 # 图形用户界面主题颜色配置
+
+# ---------------- Version ----------------
+# 应用版本号，统一放在配置中，方便统一更新
+APP_VERSION = "1.2.5"
 
 class ThemeColors:
     """
