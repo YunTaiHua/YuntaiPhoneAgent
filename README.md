@@ -7,7 +7,7 @@ Version: 1.2.5
 ### 📊 项目概述
 
 **项目名称**: Phone Agent 智能版  
-**版本**: v1.2.4（第721次迭代）
+**版本**: v1.2.5（第721次迭代）
 
 ### 🏗️ 架构设计
 
@@ -31,23 +31,66 @@ Version: 1.2.5
 #### 目录结构
 ```
 YuntaiPhoneAgent/
-├── phone_agent/        # 核心手机操作代理
-│   ├── agent.py        # PhoneAgent主类
-│   ├── actions/        # 操作处理器
-│   ├── adb/           # ADB连接和操作
-│   ├── config/        # 配置和提示词
-│   └── model/         # AI模型客户端
-├── yun/               # 重构业务逻辑模块
-│   ├── agent_core.py   # 智能代理核心
-│   ├── task_manager.py # 任务调度管理
-│   ├── gui_controller.py # GUI控制器
-│   ├── gui_view.py     # GUI视图
-│   └── multimodal_*.py # 多模态处理
-├── yuntai/            # 原有业务逻辑
-│   ├── agent_executor.py
-│   ├── connection_manager.py
-│   └── reply_manager.py
-└── main.py            # 程序入口
+├── yuntai/  # 核心模块
+│   ├── __init__.py
+│   ├── agent_core.py  # 代理核心
+│   ├── agent_executor.py  # 执行器
+│   ├── audio_processor.py  # 音频处理
+│   ├── config.py  # 配置
+│   ├── connection_manager.py  # 连接管理
+│   ├── file_manager.py  # 文件管理
+│   ├── gui_controller.py  # GUI控制器
+│   ├── gui_view.py  # GUI视图
+│   ├── main_app.py  # 主应用
+│   ├── multimodal_other.py  # 多模态其他
+│   ├── multimodal_processor.py  # 多模态处理器
+│   ├── output_capture.py  # 输出捕获
+│   ├── reply_manager.py  # 回复管理
+│   ├── task_manager.py  # 任务管理
+│   ├── task_recognizer.py  # 任务识别
+│   └── utils.py  # 工具函数
+├── scripts/  # 脚本和示例消息
+│   ├── check_deployment_cn.py
+│   ├── check_deployment_en.py
+│   ├── sample_messages.json
+│   └── sample_messages_en.json
+├── resources/  # 资源文件（图片、文档等）
+│   ├── logo.svg
+│   ├── privacy_policy.txt
+│   ├── privacy_policy_en.txt
+│   ├── screenshot-20251209-181423.png
+│   ├── screenshot-20251210-120416.png
+│   ├── screenshot-20251210-120630.png
+│   ├── setting.png
+│   ├── wechat.jpeg
+│   └── WECHAT.md
+├── requirements/  # 依赖和安装文件
+│   ├── dev_requirements.txt
+│   ├── environment.yml
+│   ├── install_guide.txt
+│   ├── optional_requirements.txt
+│   ├── quick_install.bat
+│   ├── requirements.txt
+│   ├── tts_requirements.txt
+│   ├── version_check.py
+│   └── windows_requirements.txt
+├── phone_agent/  # 代理模块
+│   ├── agent.py
+│   └── model/
+│       └── client.py
+├── examples/  # 示例代码
+│   ├── __init__.py
+│   ├── basic_usage.py
+│   └── demo_thinking.py
+├── .gitignore
+├── .pre-commit-config.yaml
+├── LICENSE
+├── README_en.md
+├── __init__.py
+├── forever.txt
+├── main.py  # 主入口
+├── requirements.txt
+└── setup.py
 ```
 
 ### 🎯 核心功能模块
@@ -143,4 +186,76 @@ GLM-4.6v-flash (任务分类)
 - v1.1: 集成TTS、GUI、投屏
 - v1.2: 升级GLM-4.6v-flash多模态、引入双AI辅助系统
 
-项目展现了AI Agent、多模态、自动化技术的深度整合，是一个功能完善的智能手机操作代理系统。
+ 项目展现了AI Agent、多模态、自动化技术的深度整合，是一个功能完善的智能手机操作代理系统。
+
+## 🚀 使用方法
+
+### 环境要求
+
+#### 1. Python 环境
+需要 Python 3.10 及以上版本。
+
+#### 2. ADB (Android Debug Bridge)
+1. 下载官方 ADB [安装包](https://developer.android.com/tools/releases/platform-tools?hl=zh-cn)
+2. 解压并配置环境变量（Windows 添加到 PATH）。
+
+#### 3. 安卓设备配置
+- Android 7.0+ 设备或模拟器
+- 启用开发者模式和 USB 调试
+- 安装 ADB Keyboard APK
+
+#### 4. 安装依赖
+```bash
+pip install -r requirements.txt
+```
+
+### 运行程序
+
+#### 命令行
+```bash
+# 交互模式
+python main.py --base-url <模型API地址> --model <模型名称>
+
+# 执行指定任务
+python main.py --base-url <模型API地址> "打开美团搜索附近的火锅店"
+
+# 使用 API Key 认证
+python main.py --apikey YOUR_API_KEY
+
+# 指定设备
+python main.py --device-id 192.168.1.100:5555 --base-url <模型API地址> "打开抖音刷视频"
+```
+
+#### Python API
+```python
+from phone_agent import PhoneAgent
+from phone_agent.model import ModelConfig
+
+# 配置模型
+model_config = ModelConfig(
+    base_url="<模型API地址>",
+    model_name="<模型名称>",
+)
+
+# 创建 Agent
+agent = PhoneAgent(model_config=model_config)
+
+# 执行任务
+result = agent.run("打开淘宝搜索无线耳机")
+print(result)
+```
+
+### 环境变量
+| 变量                        | 描述               | 默认值                        |
+|---------------------------|------------------|----------------------------|
+| `PHONE_AGENT_BASE_URL`    | 模型 API 地址        | `http://localhost:8000/v1` |
+| `PHONE_AGENT_MODEL`       | 模型名称             | `autoglm-phone-9b`         |
+| `PHONE_AGENT_API_KEY`     | API Key          | `EMPTY`                    |
+| `PHONE_AGENT_MAX_STEPS`   | 每个任务最大步数         | `100`                      |
+| `PHONE_AGENT_DEVICE_ID`   | ADB 设备 ID        | (自动检测)                     |
+| `PHONE_AGENT_LANG`        | 语言 (`cn`/`en`)   | `cn`                       |
+
+### 常见问题
+- 设备未找到：检查 USB 调试和数据线
+- 无法点击：启用 USB 调试（安全设置）
+- 文本输入不工作：确保 ADB Keyboard 已安装并启用

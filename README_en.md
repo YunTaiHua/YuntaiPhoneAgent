@@ -7,7 +7,7 @@ Version: 1.2.5
 ### 📊 Project Overview
 
 **Project Name**: Phone Agent Intelligent Edition  
-**Version**: v1.2.4 (721st iteration)
+**Version**: v1.2.5 (721st iteration)
 
 ### 🏗️ Architecture Design
 
@@ -31,23 +31,66 @@ Version: 1.2.5
 #### Directory Structure
 ```
 YuntaiPhoneAgent/
-├── phone_agent/        # Core phone operation agent
-│   ├── agent.py        # PhoneAgent main class
-│   ├── actions/        # Operation handlers
-│   ├── adb/           # ADB connection and operations
-│   ├── config/        # Configuration and prompts
-│   └── model/         # AI model clients
-├── yun/               # Refactored business logic module
-│   ├── agent_core.py   # Intelligent agent core
-│   ├── task_manager.py # Task scheduling management
-│   ├── gui_controller.py # GUI controller
-│   ├── gui_view.py     # GUI view
-│   └── multimodal_*.py # Multimodal processing
-├── yuntai/            # Original business logic
-│   ├── agent_executor.py
-│   ├── connection_manager.py
-│   └── reply_manager.py
-└── main.py            # Program entry point
+├── yuntai/  # Core modules
+│   ├── __init__.py
+│   ├── agent_core.py  # Agent core
+│   ├── agent_executor.py  # Executor
+│   ├── audio_processor.py  # Audio processing
+│   ├── config.py  # Configuration
+│   ├── connection_manager.py  # Connection management
+│   ├── file_manager.py  # File management
+│   ├── gui_controller.py  # GUI controller
+│   ├── gui_view.py  # GUI view
+│   ├── main_app.py  # Main app
+│   ├── multimodal_other.py  # Multimodal other
+│   ├── multimodal_processor.py  # Multimodal processor
+│   ├── output_capture.py  # Output capture
+│   ├── reply_manager.py  # Reply manager
+│   ├── task_manager.py  # Task manager
+│   ├── task_recognizer.py  # Task recognizer
+│   └── utils.py  # Utilities
+├── scripts/  # Scripts and sample messages
+│   ├── check_deployment_cn.py
+│   ├── check_deployment_en.py
+│   ├── sample_messages.json
+│   └── sample_messages_en.json
+├── resources/  # Resource files (images, docs, etc.)
+│   ├── logo.svg
+│   ├── privacy_policy.txt
+│   ├── privacy_policy_en.txt
+│   ├── screenshot-20251209-181423.png
+│   ├── screenshot-20251210-120416.png
+│   ├── screenshot-20251210-120630.png
+│   ├── setting.png
+│   ├── wechat.jpeg
+│   └── WECHAT.md
+├── requirements/  # Dependencies and installation files
+│   ├── dev_requirements.txt
+│   ├── environment.yml
+│   ├── install_guide.txt
+│   ├── optional_requirements.txt
+│   ├── quick_install.bat
+│   ├── requirements.txt
+│   ├── tts_requirements.txt
+│   ├── version_check.py
+│   └── windows_requirements.txt
+├── phone_agent/  # Agent modules
+│   ├── agent.py
+│   └── model/
+│       └── client.py
+├── examples/  # Example code
+│   ├── __init__.py
+│   ├── basic_usage.py
+│   └── demo_thinking.py
+├── .gitignore
+├── .pre-commit-config.yaml
+├── LICENSE
+├── README.md
+├── __init__.py
+├── forever.txt
+├── main.py  # Main entry
+├── requirements.txt
+└── setup.py
 ```
 
 ### 🎯 Core Function Modules
@@ -143,4 +186,76 @@ GLM-4.6v-flash (Task Classification)
 - v1.1: Integrated TTS, GUI, screen mirroring
 - v1.2: Upgraded GLM-4.6v-flash multimodal, introduced dual AI assistant system
 
-The project demonstrates the deep integration of AI Agent, multimodal, and automation technologies, and is a fully functional smartphone operation proxy system.
+ The project demonstrates the deep integration of AI Agent, multimodal, and automation technologies, and is a fully functional smartphone operation proxy system.
+
+## 🚀 Usage
+
+### Prerequisites
+
+#### 1. Python Environment
+Python 3.10 or higher is required.
+
+#### 2. ADB (Android Debug Bridge)
+1. Download the official ADB [installation package](https://developer.android.com/tools/releases/platform-tools)
+2. Extract and configure environment variables (add to PATH on Windows).
+
+#### 3. Android Device Setup
+- Android 7.0+ device or emulator
+- Developer Mode and USB Debugging enabled
+- Install ADB Keyboard APK
+
+#### 4. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### Running the Program
+
+#### Command Line
+```bash
+# Interactive mode
+python main.py --base-url <MODEL_API_URL> --model <MODEL_NAME>
+
+# Execute specific task
+python main.py --base-url <MODEL_API_URL> "Open Chrome browser"
+
+# Use API key authentication
+python main.py --apikey YOUR_API_KEY
+
+# Specify device
+python main.py --device-id 192.168.1.100:5555 --base-url <MODEL_API_URL> "Open TikTok"
+```
+
+#### Python API
+```python
+from phone_agent import PhoneAgent
+from phone_agent.model import ModelConfig
+
+# Configure model
+model_config = ModelConfig(
+    base_url="<MODEL_API_URL>",
+    model_name="<MODEL_NAME>",
+)
+
+# Create Agent
+agent = PhoneAgent(model_config=model_config)
+
+# Execute task
+result = agent.run("Open eBay and search for wireless earbuds")
+print(result)
+```
+
+### Environment Variables
+| Variable                  | Description               | Default                      |
+|---------------------------|---------------------------|------------------------------|
+| `PHONE_AGENT_BASE_URL`    | Model API URL             | `http://localhost:8000/v1`   |
+| `PHONE_AGENT_MODEL`       | Model name                | `autoglm-phone-9b`           |
+| `PHONE_AGENT_API_KEY`     | API key                   | `EMPTY`                      |
+| `PHONE_AGENT_MAX_STEPS`   | Max steps per task        | `100`                        |
+| `PHONE_AGENT_DEVICE_ID`   | ADB device ID             | (auto-detect)                |
+| `PHONE_AGENT_LANG`        | Language (`cn`/`en`)      | `cn`                         |
+
+### Troubleshooting
+- Device not found: Check USB debugging and cable
+- Cannot tap: Enable USB Debugging (Security Settings)
+- Text input not working: Ensure ADB Keyboard is installed and enabled
