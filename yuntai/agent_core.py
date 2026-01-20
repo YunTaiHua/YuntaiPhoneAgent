@@ -9,6 +9,7 @@ import re
 import threading
 import logging
 from typing import Dict, Any, List, Tuple, Optional
+from difflib import SequenceMatcher
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
         return self.should_terminate
 
     def is_message_similar(self, msg1: str, msg2: str, threshold: float = 0.6) -> bool:
-        """判断两条消息是否相似"""
+        """判断两条消息是否相似（使用 difflib.SequenceMatcher 提高效率）"""
         if not msg1 or not msg2:
             return False
 
@@ -67,38 +68,8 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
         if not clean_msg1 or not clean_msg2:
             return msg1 == msg2 or msg1 in msg2 or msg2 in msg1
 
-        # 完全相同
-        if clean_msg1 == clean_msg2:
-            return True
-
-        # 包含关系
-        if clean_msg1 in clean_msg2 or clean_msg2 in clean_msg1:
-            return True
-
-        # 计算最长公共子序列相似度
-        def lcs_similarity(s1, s2):
-            """计算最长公共子序列相似度"""
-            m, n = len(s1), len(s2)
-            if m == 0 or n == 0:
-                return 0
-
-            # 创建DP表
-            dp = [[0] * (n + 1) for _ in range(m + 1)]
-
-            for i in range(1, m + 1):
-                for j in range(1, n + 1):
-                    if s1[i - 1] == s2[j - 1]:
-                        dp[i][j] = dp[i - 1][j - 1] + 1
-                    else:
-                        dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
-
-            lcs_len = dp[m][n]
-            max_len = max(m, n)
-
-            return lcs_len / max_len if max_len > 0 else 0
-
-        # 计算相似度
-        similarity = lcs_similarity(clean_msg1, clean_msg2)
+        # 使用 difflib.SequenceMatcher 计算相似度
+        similarity = SequenceMatcher(None, clean_msg1, clean_msg2).ratio()
 
         return similarity >= threshold
 
@@ -264,12 +235,12 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
                     cycle += 1
                     continue
 
-                print(f"📊 解析到 {len(messages)} 条消息")
+                print(f"\n📊 解析到 {len(messages)} 条消息")
 
                 # 判断消息归属
                 other_messages, my_messages = self.determine_message_ownership_fixed(messages)
 
-                print(f"📋 消息归属：对方消息 {len(other_messages)} 条，我方消息 {len(my_messages)} 条")
+                print(f"\n📋 消息归属：对方消息 {len(other_messages)} 条，我方消息 {len(my_messages)} 条")
 
                 # 只关注最新的对方消息
                 if other_messages:
@@ -280,12 +251,12 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
                     if previous_latest_message:
                         if self.is_message_similar(previous_latest_message, latest_other_message, threshold=SIMILARITY_THRESHOLD):
                             is_new_message = False
-                            print(f"🔁 消息相似，不是新消息")
+                            print(f"\n🔁 消息相似，不是新消息")
 
                     # 第一轮总是回复最新的对方消息
                     if cycle == 1:
                         is_new_message = True
-                        print(f"🚀 第一轮，强制视为新消息")
+                        print(f"\n🚀 第一轮，强制视为新消息")
 
                     if is_new_message:
                         # 检查终止标志
@@ -333,9 +304,9 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
                         # 更新最新消息记录
                         previous_latest_message = latest_other_message
                     else:
-                        print(f"⏭️  没有新消息，跳过回复")
+                        print(f"\n⏭️  没有新消息，跳过回复")
                 else:
-                    print(f"⏭️  没有对方消息，跳过回复")
+                    print(f"\n⏭️  没有对方消息，跳过回复")
 
                 # 检查终止标志
                 if self.check_termination():

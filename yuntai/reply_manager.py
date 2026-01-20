@@ -8,6 +8,7 @@ import threading
 import datetime
 import json
 from typing import List, Dict, Any, Tuple
+from difflib import SequenceMatcher
 from zhipuai import ZhipuAI
 from phone_agent import PhoneAgent
 from phone_agent.model import ModelConfig
@@ -689,10 +690,10 @@ class SmartContinuousReplyManager:
 
     def is_message_similar(self, msg1: str, msg2: str, threshold: float = 0.5) -> bool:
         """
-        判断两条消息是否相似
+        判断两条消息是否相似（使用 difflib.SequenceMatcher 提高效率和准确性）
         threshold: 相似度阈值，0-1之间
 
-        修复：提高消息相似度判断的鲁棒性，处理标点、空格、表情符号等差异
+        修复：使用 Python 标准库 difflib.SequenceMatcher 替换自定义 LCS 算法
         """
         if not msg1 or not msg2:
             return False
@@ -722,30 +723,8 @@ class SmartContinuousReplyManager:
         if clean_msg1 in clean_msg2 or clean_msg2 in clean_msg1:
             return True
 
-        # 计算最长公共子序列相似度
-        def lcs_similarity(s1, s2):
-            """计算最长公共子序列相似度"""
-            m, n = len(s1), len(s2)
-            if m == 0 or n == 0:
-                return 0
-
-            # 创建DP表
-            dp = [[0] * (n + 1) for _ in range(m + 1)]
-
-            for i in range(1, m + 1):
-                for j in range(1, n + 1):
-                    if s1[i - 1] == s2[j - 1]:
-                        dp[i][j] = dp[i - 1][j - 1] + 1
-                    else:
-                        dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
-
-            lcs_len = dp[m][n]
-            max_len = max(m, n)
-
-            return lcs_len / max_len if max_len > 0 else 0
-
-        # 计算相似度
-        similarity = lcs_similarity(clean_msg1, clean_msg2)
+        # 使用 difflib.SequenceMatcher 计算相似度
+        similarity = SequenceMatcher(None, clean_msg1, clean_msg2).ratio()
 
         # 调试输出
         if similarity > 0.3:  # 只在有一定相似度时输出调试信息
