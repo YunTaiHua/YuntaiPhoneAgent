@@ -97,3 +97,6 @@ yuntai/task_recognizer（原始）.py
 # Record logs
 record_logs/
 
+# 废案文件夹
+废案/
+
