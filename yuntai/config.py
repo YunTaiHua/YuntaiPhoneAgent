@@ -20,8 +20,6 @@ PROJECT_ROOT = os.path.abspath(os.path.dirname(CURRENT_DIR))
 
 # GPT-SoVITS 根目录 - 通过环境变量配置
 GPT_SOVITS_ROOT = os.getenv('GPT_SOVITS_ROOT')
-if not GPT_SOVITS_ROOT:
-    GPT_SOVITS_ROOT = r"E:\PyCode\GPT-SoVITS-main"  # 默认值
 
 # GPT-SoVITS 模型路径
 GPT_MODEL_DIR = os.path.join(GPT_SOVITS_ROOT, "GPT_weights_v2Pro")
@@ -98,8 +96,6 @@ RECORD_LOGS_DIR = os.path.join(PROJECT_ROOT, "record_logs")
 
 # 永久记忆文件 - 通过环境变量配置，支持自定义路径
 FOREVER_MEMORY_FILE = os.getenv('FOREVER_MEMORY_FILE')
-if not FOREVER_MEMORY_FILE:
-    FOREVER_MEMORY_FILE = os.path.join(PROJECT_ROOT, "forever.txt")
 
 # 连接配置文件 - 相对路径
 CONNECTION_CONFIG_FILE = os.path.join(PROJECT_ROOT, "connection_config.json")
