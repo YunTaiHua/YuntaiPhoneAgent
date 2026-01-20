@@ -94,3 +94,6 @@ yun/gui_view（原始）.py
 yuntai/reply_manager（原始）.py
 yuntai/task_recognizer（原始）.py
 
+# Record logs
+record_logs/
+
