@@ -1,5 +1,16 @@
-Pillow>=12.0.0
-openai>=2.9.0
+customtkinter==5.2.2
+openai==2.9.0
+pandas==2.3.3
+Pillow==12.0.0
+PyAudio==0.2.14
+PyPDF2==3.0.1
+pydantic==2.12.5
+python-docx==1.2.0
+python-dotenv==1.2.1
+python-pptx==1.0.2
+soundfile==0.12.1
+torch==2.5.1+cu121
+zhipuai==2.1.5.20250825
 
 # For Model Deployment
 
