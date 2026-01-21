@@ -100,3 +100,6 @@ record_logs/
 # 废案文件夹
 废案/
 
+# requirements文件夹
+requirements/
+
