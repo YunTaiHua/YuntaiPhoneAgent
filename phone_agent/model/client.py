@@ -5,8 +5,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-#from openai import OpenAI
-import openai
+from openai import OpenAI
 
 from phone_agent.config.i18n import get_message
 
@@ -49,7 +48,7 @@ class ModelClient:
 
     def __init__(self, config: ModelConfig | None = None):
         self.config = config or ModelConfig()
-        self.client = openai.OpenAI(base_url=self.config.base_url, api_key=self.config.api_key)
+        self.client = OpenAI(base_url=self.config.base_url, api_key=self.config.api_key)
 
     def request(self, messages: list[dict[str, Any]]) -> ModelResponse:
         """
