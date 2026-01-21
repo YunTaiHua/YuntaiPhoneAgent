@@ -72,6 +72,9 @@ class GUIController:
         self.active_threads = []
         self.active_subprocesses = []
 
+        # 设备类型（默认Android）
+        self.device_type = "android"
+
         # 初始化UI事件绑定
         self._bind_ui_events()
 
@@ -90,6 +93,9 @@ class GUIController:
 
         # 多模态其他功能处理器（动态页面）
         self.multimodal_other = None  # 多模态其他功能处理器
+
+        # 设置设备类型变化回调
+        self._setup_device_type_callback()
 
 
     def _bind_ui_events(self):
@@ -307,6 +313,16 @@ class GUIController:
         clear_btn = self.view.get_component("clear_output_btn")
         if clear_btn:
             clear_btn.configure(command=self.clear_output)
+
+    def _setup_device_type_callback(self):
+        """设置设备类型变化回调"""
+        def on_device_type_change(device_type: str):
+            self.device_type = device_type
+            self.task_manager.set_device_type(device_type)
+            self.task_manager.agent_executor.set_device_type(device_type)
+            print(f"📱 设备类型已切换为: {device_type}")
+
+        self.view._device_type_callback = on_device_type_change
 
     def _bind_connection_events(self):
         """绑定连接页面事件"""

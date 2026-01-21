@@ -1453,6 +1453,11 @@ class TaskManager:
 
         self.task_args = Args()
 
+    def set_device_type(self, device_type: str):
+        """设置设备类型"""
+        self.connection_manager.set_device_type(device_type)
+        print(f"📱 TaskManager设备类型已切换为: {device_type}")
+
     # ========== 连接管理方法 ==========
 
     def check_initial_connection(self):

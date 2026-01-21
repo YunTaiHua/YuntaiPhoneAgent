@@ -100,6 +100,18 @@ FOREVER_MEMORY_FILE = os.getenv('FOREVER_MEMORY_FILE')
 # 连接配置文件 - 相对路径
 CONNECTION_CONFIG_FILE = os.path.join(PROJECT_ROOT, "connection_config.json")
 
+# ==================== 设备类型配置 ====================
+# 设备类型常量
+DEVICE_TYPE_ANDROID = "android"
+DEVICE_TYPE_HARMONY = "harmony"
+DEVICE_TYPE_IOS = "ios"
+
+# 默认设备类型
+DEFAULT_DEVICE_TYPE = os.getenv('PHONE_AGENT_DEVICE_TYPE', DEVICE_TYPE_ANDROID)
+
+# iOS WebDriverAgent 配置
+IOS_WDA_URL = os.getenv('PHONE_AGENT_WDA_URL', 'http://localhost:8100')
+
 # ==================== 系统配置 ====================
 # 系统运行时的各种参数配置
 

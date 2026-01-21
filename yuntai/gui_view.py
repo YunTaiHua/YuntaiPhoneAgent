@@ -1244,6 +1244,81 @@ class GUIView:
             font=("Microsoft YaHei", 16, "bold")
         ).pack(anchor="w", padx=20, pady=20)
 
+        # 设备类型选择
+        device_type_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        device_type_frame.pack(fill="x", padx=20, pady=(0, 20))
+
+        ctk.CTkLabel(
+            device_type_frame,
+            text="设备类型:",
+            font=("Microsoft YaHei", 13)
+        ).pack(anchor="w", pady=(0, 10))
+
+        self.components["device_type_var"] = ctk.StringVar(value="android")
+
+        android_option = ctk.CTkRadioButton(
+            device_type_frame,
+            text="Android (ADB)",
+            variable=self.components["device_type_var"],
+            value="android",
+            font=("Microsoft YaHei", 13),
+            command=lambda: self._on_device_type_change("android")
+        )
+        android_option.pack(anchor="w", pady=5, padx=(0, 20))
+
+        harmony_option = ctk.CTkRadioButton(
+            device_type_frame,
+            text="鸿蒙 (HDC)",
+            variable=self.components["device_type_var"],
+            value="harmony",
+            font=("Microsoft YaHei", 13),
+            command=lambda: self._on_device_type_change("harmony")
+        )
+        harmony_option.pack(anchor="w", pady=5, padx=(0, 20))
+
+        ios_option = ctk.CTkRadioButton(
+            device_type_frame,
+            text="iOS",
+            variable=self.components["device_type_var"],
+            value="ios",
+            font=("Microsoft YaHei", 13),
+            command=lambda: self._on_device_type_change("ios")
+        )
+        ios_option.pack(anchor="w", pady=5)
+
+        # iOS WDA URL (仅iOS显示)
+        self.components["wda_frame"] = ctk.CTkFrame(form_frame, fg_color="transparent")
+
+        ctk.CTkLabel(
+            self.components["wda_frame"],
+            text="WebDriverAgent URL:",
+            font=("Microsoft YaHei", 13)
+        ).pack(anchor="w", padx=20, pady=(0, 5))
+
+        self.components["wda_entry"] = ctk.CTkEntry(
+            self.components["wda_frame"],
+            placeholder_text="例如: http://localhost:8100",
+            font=("Microsoft YaHei", 13),
+            height=40
+        )
+        self.components["wda_entry"].insert(0, "http://localhost:8100")
+        self.components["wda_entry"].pack(fill="x", padx=20, pady=(0, 10))
+
+        # iOS提示信息
+        self.components["ios_hint_frame"] = ctk.CTkFrame(form_frame, fg_color="transparent")
+
+        ios_hint = ctk.CTkLabel(
+            self.components["ios_hint_frame"],
+            text="🍎 iOS设备需要安装WebDriverAgent，请确保:\n"
+                 "  1. Xcode已安装且WebDriverAgent已配置\n"
+                 "  2. 设备已连接并信任此电脑\n"
+                 "  3. WDA正在目标设备上运行",
+            font=("Microsoft YaHei", 12),
+            text_color=ThemeColors.TEXT_SECONDARY,
+            justify="left"
+        )
+        ios_hint.pack(anchor="w", padx=20, pady=10)
+
         # 连接方式选择
         conn_type_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
         conn_type_frame.pack(fill="x", padx=20, pady=(0, 20))
@@ -1285,7 +1360,7 @@ class GUIView:
 
         self.components["usb_entry"] = ctk.CTkEntry(
             self.components["usb_frame"],
-            placeholder_text="通过 adb devices 查看",
+            placeholder_text="通过 adb devices / hdc list targets / idevice_id -l 查看",
             font=("Microsoft YaHei", 13),
             height=40
         )
@@ -1371,6 +1446,11 @@ class GUIView:
                     btn.configure(fg_color=ThemeColors.BG_HOVER)
                 else:
                     btn.configure(fg_color="transparent")
+
+    def _on_device_type_change(self, device_type: str):
+        """设备类型改变时的回调"""
+        if hasattr(self, '_device_type_callback'):
+            self._device_type_callback(device_type)
 
     def get_component(self, name):
         """获取UI组件"""
