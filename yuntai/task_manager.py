@@ -66,7 +66,8 @@ from .config import (
     TTS_TOP_P,
     TTS_TEMPERATURE,
     TTS_SPEED,
-    ZHIPU_CHAT_MODEL
+    ZHIPU_CHAT_MODEL,
+    ZHIPU_MULTIMODAL_MODEL
 )
 
 
@@ -1669,7 +1670,7 @@ class TaskManager:
             ]
 
             response = self.zhipu_client.chat.completions.create(
-                model=ZHIPU_CHAT_MODEL,
+                model=ZHIPU_MULTIMODAL_MODEL,
                 messages=messages,
                 temperature=0.7,
                 max_tokens=2000
@@ -1695,7 +1696,7 @@ class TaskManager:
                 "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "user_input": task,
                 "assistant_reply": reply,
-                "model_used": ZHIPU_CHAT_MODEL,
+                "model_used": ZHIPU_MULTIMODAL_MODEL,
                 "used_forever_memory": forever_memory_content != ""
             }
             self.file_manager.save_conversation_history(session_data)

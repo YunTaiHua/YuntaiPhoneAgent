@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 # 导入配置
 from yuntai.config import (
-    MAX_CYCLE_TIMES, WAIT_INTERVAL, ZHIPU_CLIENT,ZHIPU_CHAT_MODEL
+    MAX_CYCLE_TIMES, WAIT_INTERVAL, ZHIPU_CLIENT,ZHIPU_CHAT_MODEL,ZHIPU_MULTIMODAL_MODEL
 )
 from yuntai.file_manager import FileManager
 
@@ -119,7 +119,7 @@ class SmartContinuousReplyManager:
         try:
             # ========== 调用GLM-4.7-flash（强制精准输出） ==========
             response = self.zhipu_client.chat.completions.create(
-                model=ZHIPU_CHAT_MODEL,
+                model=ZHIPU_MULTIMODAL_MODEL,     #暂时用4.6vflash替代，目前4.7flash不稳定
                 messages=[
                     {"role": "system", "content": "你必须只输出符合要求的JSON，不要加任何额外文字！"},
                     {"role": "user", "content": prompt_text}
@@ -476,7 +476,7 @@ class SmartContinuousReplyManager:
             ]
 
             response = self.zhipu_client.chat.completions.create(
-                model=ZHIPU_CHAT_MODEL,
+                model=ZHIPU_MULTIMODAL_MODEL,     #暂时用4.6vflash替代4.7flash
                 messages=messages,
                 temperature=0.7,
                 max_tokens=2000
