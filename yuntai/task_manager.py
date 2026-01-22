@@ -66,8 +66,7 @@ from .config import (
     TTS_TOP_P,
     TTS_TEMPERATURE,
     TTS_SPEED,
-    ZHIPU_CHAT_MODEL,
-    ZHIPU_MULTIMODAL_MODEL
+    ZHIPU_CHAT_MODEL
 )
 
 
@@ -1575,7 +1574,7 @@ class TaskManager:
                 print(f"📋 识别为快捷键: {letter} -> {SHORTCUTS[letter]}\n")
                 return self._handle_basic_operation(SHORTCUTS[letter], args, device_id)
 
-        # 1. 使用glm-4.7-flash进行任务识别
+        # 1. 使用glm-4.6v-flash进行任务识别
         task_info = self.task_recognizer.recognize_task_intent(user_input)
         task_type = task_info["task_type"]
         target_app = task_info["target_app"]
@@ -1584,7 +1583,7 @@ class TaskManager:
 
         print(f"📋 识别结果：任务类型={task_type}, APP={target_app}, 对象={target_object}, 持续={is_auto}\n")
 
-        # 2. 如果glm-4.7-flash没有提取到APP和对象，尝试简单提取
+        # 2. 如果glm-4.6v-flash没有提取到APP和对象，尝试简单提取
         if task_type in ["single_reply", "continuous_reply", "basic_operation", "complex_operation"] and not target_app:
             target_app = self.task_recognizer.extract_target_app_simple(user_input)
 
@@ -1670,7 +1669,7 @@ class TaskManager:
             ]
 
             response = self.zhipu_client.chat.completions.create(
-                model=ZHIPU_MULTIMODAL_MODEL,
+                model=ZHIPU_CHAT_MODEL,
                 messages=messages,
                 temperature=0.7,
                 max_tokens=2000
@@ -1696,7 +1695,7 @@ class TaskManager:
                 "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "user_input": task,
                 "assistant_reply": reply,
-                "model_used": ZHIPU_MULTIMODAL_MODEL,
+                "model_used": ZHIPU_CHAT_MODEL,
                 "used_forever_memory": forever_memory_content != ""
             }
             self.file_manager.save_conversation_history(session_data)

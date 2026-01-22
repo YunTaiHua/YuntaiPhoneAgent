@@ -59,7 +59,7 @@ ZHIPU_API_BASE_URL = "https://open.bigmodel.cn/api/paas/v4"
 
 # 模型名称
 ZHIPU_MODEL = "autoglm-phone"
-ZHIPU_CHAT_MODEL = "glm-4.7-flash"
+ZHIPU_CHAT_MODEL = "glm-4.6v-flash"
 ZHIPU_MULTIMODAL_MODEL = "glm-4.6v-flash"
 ZHIPU_IMAGE_MODEL = "cogview-3-flash"
 ZHIPU_VIDEO_MODEL = "cogvideox-flash"

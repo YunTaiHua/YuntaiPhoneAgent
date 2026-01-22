@@ -178,7 +178,7 @@ class TaskRecognizer:
 
     def recognize_task_intent(self, user_input: str) -> Dict[str, Any]:
         """
-        使用glm-4.7-flash智能识别任务意图
+        使用glm-4.6v-flash智能识别任务意图
         返回任务类型、目标APP、目标对象等信息
         """
         try:
@@ -206,7 +206,7 @@ class TaskRecognizer:
                         "specific_content": ""
                     }
 
-            # 使用glm-4.7-flash进行任务识别
+            # 使用glm-4.6v-flash进行任务识别
             messages = [
                 {"role": "system", "content": self.TASK_RECOGNITION_PROMPT},
                 {"role": "user", "content": f"请分析以下用户指令并返回JSON格式的任务识别结果：\n\n用户指令：{user_input}"}

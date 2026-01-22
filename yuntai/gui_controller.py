@@ -1942,9 +1942,9 @@ class GUIController:
             # 获取历史对话（修复后的方法）
             history = self._get_chat_history_for_multimodal()
 
-            #print(f"🔄 正在使用glm-4.7-flash分析内容...")
+            #print(f"🔄 正在使用glm-4.6v-flash分析内容...")
 
-            # 使用glm-4.7-flash处理（支持音频处理）
+            # 使用glm-4.6v-flash处理（支持音频处理）
             success, response, audio_result = self.multimodal_processor.process_with_files(
                 text=text,
                 file_paths=valid_files,
