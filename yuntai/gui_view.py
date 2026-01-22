@@ -207,11 +207,28 @@ class GUIView:
         output_frame = ctk.CTkFrame(content_frame, corner_radius=10)
         output_frame.pack(fill="both", expand=True, pady=(0, 20))
 
+        # 标题行：执行输出标签 + 模拟回车按钮
+        output_header_frame = ctk.CTkFrame(output_frame, fg_color="transparent")
+        output_header_frame.pack(fill="x", padx=15, pady=10)
+
         ctk.CTkLabel(
-            output_frame,
+            output_header_frame,
             text="执行输出:",
             font=("Microsoft YaHei", 14, "bold")
-        ).pack(anchor="w", padx=15, pady=10)
+        ).pack(side="left")
+
+        # 模拟回车按钮
+        self.components["enter_button"] = ctk.CTkButton(
+            output_header_frame,
+            text="↵ 模拟回车",
+            font=("Microsoft YaHei", 12),
+            width=100,
+            height=30,
+            fg_color=ThemeColors.PRIMARY,
+            hover_color="#3451b2",
+            corner_radius=6
+        )
+        self.components["enter_button"].pack(side="right")
 
         # 输出文本框
         self.components["output_text"] = ctk.CTkTextbox(

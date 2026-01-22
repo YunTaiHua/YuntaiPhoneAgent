@@ -314,6 +314,34 @@ class GUIController:
         if clear_btn:
             clear_btn.configure(command=self.clear_output)
 
+        # 模拟回车按钮
+        enter_btn = self.view.get_component("enter_button")
+        if enter_btn:
+            enter_btn.configure(command=self.simulate_enter)
+
+    def simulate_enter(self):
+        """模拟回车键效果"""
+        print("\n[用户点击模拟回车按钮]")
+
+        # 调用 agent_executor 的用户确认方法
+        try:
+            from yuntai.agent_executor import AgentExecutor
+            AgentExecutor.user_confirm()
+            print("✅ 已发送用户确认信号")
+        except Exception as e:
+            print(f"⚠️  发送确认信号失败: {e}")
+
+        # 更新输出框显示
+        output_text = self.view.get_component("output_text")
+        if output_text:
+            try:
+                output_text.configure(state="normal")
+                output_text.insert("end", "\n[用户已确认]\n")
+                output_text.see("end")
+                output_text.configure(state="disabled")
+            except Exception:
+                pass
+
     def _setup_device_type_callback(self):
         """设置设备类型变化回调"""
         def on_device_type_change(device_type: str):
@@ -2170,10 +2198,30 @@ class GUIController:
                 output_text.insert("end", text)
                 output_text.see("end")
                 output_text.configure(state="disabled")
+
+                # 检测是否需要用户确认（按回车）
+                if "Press Enter" in text or "请按回车" in text or "请登录" in text or "需要您协助" in text:
+                    self._highlight_enter_button()
             except tk.TclError:
                 pass
         else:
             print(text, end="")
+
+    def _highlight_enter_button(self):
+        """高亮显示模拟回车按钮"""
+        enter_btn = self.view.get_component("enter_button")
+        if enter_btn:
+            # 闪烁按钮效果
+            enter_btn.configure(
+                fg_color="#ff6b6b",  # 醒目的红色
+                hover_color="#ff4757"
+            )
+            # 3秒后恢复原色
+            self.root.after(3000, lambda: enter_btn.configure(
+                fg_color=ThemeColors.PRIMARY,
+                hover_color="#3451b2"
+            ))
+            print("💡 提示：请点击右上角的'模拟回车'按钮继续")
 
     def _disable_execute_button(self):
         """禁用执行按钮"""
