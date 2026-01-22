@@ -37,7 +37,7 @@ from .gui_view import GUIView, ThemeColors
 from .task_manager import TaskManager
 
 # 使用新的统一配置
-from .config import SCRCPY_PATH, validate_config, print_config_summary
+from .config import SCRCPY_PATH, validate_config, print_config_summary,ZHIPU_CHAT_MODEL
 
 
 class GUIController:
@@ -187,7 +187,7 @@ class GUIController:
     def show_dynamic_panel(self):
         """显示动态功能页面"""
         try:
-            print("🎨 加载动态功能页面...")
+            #print("🎨 加载动态功能页面...")
             self.view.create_dynamic_page()
 
             # 绑定事件
@@ -199,7 +199,7 @@ class GUIController:
                 from .config import ZHIPU_API_KEY, PROJECT_ROOT
                 self.multimodal_other = MultimodalOther(ZHIPU_API_KEY, PROJECT_ROOT)
 
-            print("✅ 动态功能页面已加载")
+            #print("✅ 动态功能页面已加载")
 
             self.show_toast("动态功能页面已加载", "success")
 
@@ -1914,9 +1914,9 @@ class GUIController:
             # 获取历史对话（修复后的方法）
             history = self._get_chat_history_for_multimodal()
 
-            #print(f"🔄 正在使用GLM-4.6v-flash分析内容...")
+            #print(f"🔄 正在使用glm-4.7-flash分析内容...")
 
-            # 使用GLM-4.6v-flash处理（支持音频处理）
+            # 使用glm-4.7-flash处理（支持音频处理）
             success, response, audio_result = self.multimodal_processor.process_with_files(
                 text=text,
                 file_paths=valid_files,
@@ -2011,7 +2011,7 @@ class GUIController:
                 "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "user_input": text,
                 "assistant_reply": reply,
-                "model_used": "glm-4.6v-flash",
+                "model_used": ZHIPU_CHAT_MODEL,
                 "attached_files": file_names  # 额外字段记录附件
             }
 

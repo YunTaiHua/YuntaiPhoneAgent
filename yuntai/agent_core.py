@@ -297,9 +297,9 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
                                 }
                                 self.file_manager.save_conversation_history(session_data)
 
-                                print(f"✅ 回复已发送")
+                                print(f"\n✅ 回复已发送")
                             else:
-                                print(f"❌ 回复发送失败")
+                                print(f"\n❌ 回复发送失败")
 
                         # 更新最新消息记录
                         previous_latest_message = latest_other_message

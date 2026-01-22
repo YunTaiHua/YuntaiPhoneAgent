@@ -65,7 +65,8 @@ from .config import (
     TTS_MIN_TEXT_LENGTH,
     TTS_TOP_P,
     TTS_TEMPERATURE,
-    TTS_SPEED
+    TTS_SPEED,
+    ZHIPU_CHAT_MODEL
 )
 
 
@@ -1573,7 +1574,7 @@ class TaskManager:
                 print(f"📋 识别为快捷键: {letter} -> {SHORTCUTS[letter]}\n")
                 return self._handle_basic_operation(SHORTCUTS[letter], args, device_id)
 
-        # 1. 使用GLM-4.6v-flash进行任务识别
+        # 1. 使用glm-4.7-flash进行任务识别
         task_info = self.task_recognizer.recognize_task_intent(user_input)
         task_type = task_info["task_type"]
         target_app = task_info["target_app"]
@@ -1582,7 +1583,7 @@ class TaskManager:
 
         print(f"📋 识别结果：任务类型={task_type}, APP={target_app}, 对象={target_object}, 持续={is_auto}\n")
 
-        # 2. 如果GLM-4.6v-flash没有提取到APP和对象，尝试简单提取
+        # 2. 如果glm-4.7-flash没有提取到APP和对象，尝试简单提取
         if task_type in ["single_reply", "continuous_reply", "basic_operation", "complex_operation"] and not target_app:
             target_app = self.task_recognizer.extract_target_app_simple(user_input)
 
@@ -1668,7 +1669,7 @@ class TaskManager:
             ]
 
             response = self.zhipu_client.chat.completions.create(
-                model="glm-4.6v-flash",
+                model=ZHIPU_CHAT_MODEL,
                 messages=messages,
                 temperature=0.7,
                 max_tokens=2000
@@ -1694,7 +1695,7 @@ class TaskManager:
                 "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "user_input": task,
                 "assistant_reply": reply,
-                "model_used": "glm-4.6v-flash",
+                "model_used": ZHIPU_CHAT_MODEL,
                 "used_forever_memory": forever_memory_content != ""
             }
             self.file_manager.save_conversation_history(session_data)
@@ -1834,13 +1835,11 @@ class TaskManager:
 
                                 threading.Timer(0.5, speak_reply).start()
 
-                            print(f"✅ 回复已发送：{reply_message[:50]}...\n")
-                            print()
-                            return f"✅ 回复已发送：{reply_message[:50]}..."
+                            print(f"\n✅ 回复已发送：{reply_message[:50]}...\n")
+                            return f"\n✅ 回复已发送：{reply_message[:50]}..."
                         else:
-                            print(f"❌ 回复发送失败\n")
-                            print()
-                            return f"❌ 回复发送失败"
+                            print(f"\n❌ 回复发送失败\n")
+                            return f"\n❌ 回复发送失败"
                     else:
                         return f"⚠️  未能生成有效回复"
                 else:
