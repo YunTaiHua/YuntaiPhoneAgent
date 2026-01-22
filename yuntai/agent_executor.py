@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
 Agent执行器模块
-支持Android (PhoneAgent)、鸿蒙 (PhoneAgent) 和 iOS (IOSPhoneAgent)
+仅支持Android (PhoneAgent)
 """
 import re
 from phone_agent import PhoneAgent
 from phone_agent.model import ModelConfig
 from phone_agent.agent import AgentConfig
-from phone_agent.agent_ios import IOSPhoneAgent, IOSAgentConfig
-from yuntai.config import DEVICE_TYPE_ANDROID, DEVICE_TYPE_HARMONY, DEVICE_TYPE_IOS, IOS_WDA_URL
+from yuntai.config import DEVICE_TYPE_ANDROID
 
 
 class AgentExecutor:
@@ -17,7 +16,7 @@ class AgentExecutor:
         初始化Agent执行器
 
         Args:
-            device_type: 设备类型 (android/harmony/ios)
+            device_type: 设备类型 (android)
         """
         self.device_type = device_type
 
@@ -26,7 +25,7 @@ class AgentExecutor:
         self.device_type = device_type
 
     def phone_agent_exec(self, task: str, args, task_type: str, device_id: str) -> tuple[str, list]:
-        """phone_agent执行 - 根据设备类型选择不同的Agent"""
+        """phone_agent执行 - 仅支持Android设备"""
         try:
             model_config = ModelConfig(
                 base_url=args.base_url,
@@ -35,16 +34,13 @@ class AgentExecutor:
                 lang=args.lang,
             )
 
-            if self.device_type == DEVICE_TYPE_IOS:
-                return self._exec_ios_agent(task, model_config, device_id, args)
-            else:
-                return self._exec_android_agent(task, model_config, device_id, args)
+            return self._exec_android_agent(task, model_config, device_id, args)
 
         except Exception as e:
             return f"任务执行失败：{str(e)}", [str(e)]
 
     def _exec_android_agent(self, task: str, model_config: ModelConfig, device_id: str, args) -> tuple[str, list]:
-        """执行Android/鸿蒙Agent"""
+        """执行Android Agent"""
         agent_config = AgentConfig(
             max_steps=args.max_steps,
             device_id=device_id,
@@ -53,18 +49,6 @@ class AgentExecutor:
         )
         phone_agent = PhoneAgent(model_config=model_config, agent_config=agent_config)
         return self._execute_agent(task, phone_agent)
-
-    def _exec_ios_agent(self, task: str, model_config: ModelConfig, device_id: str, args) -> tuple[str, list]:
-        """执行iOS Agent"""
-        agent_config = IOSAgentConfig(
-            max_steps=args.max_steps,
-            wda_url=getattr(args, 'wda_url', IOS_WDA_URL),
-            device_id=device_id,
-            verbose=False,
-            lang=args.lang,
-        )
-        ios_agent = IOSPhoneAgent(model_config=model_config, agent_config=agent_config)
-        return self._execute_agent(task, ios_agent)
 
     def _execute_agent(self, task: str, agent) -> tuple[str, list]:
         """通用Agent执行逻辑"""
