@@ -327,9 +327,9 @@ class GUIController:
         try:
             from yuntai.agent_executor import AgentExecutor
             AgentExecutor.user_confirm()
-            print("✅ 已发送用户确认信号")
+            #print("✅ 已发送用户确认信号")
         except Exception as e:
-            print(f"⚠️  发送确认信号失败: {e}")
+            print(f"\n⚠️  发送确认信号失败: {e}")
 
         # 更新输出框显示
         output_text = self.view.get_component("output_text")
@@ -2210,7 +2210,7 @@ class GUIController:
     def _highlight_enter_button(self):
         """高亮显示模拟回车按钮"""
         enter_btn = self.view.get_component("enter_button")
-        if enter_btn:
+        if enter_btn and enter_btn.winfo_ismapped():
             # 闪烁按钮效果
             enter_btn.configure(
                 fg_color="#ff6b6b",  # 醒目的红色
@@ -2232,6 +2232,7 @@ class GUIController:
                 fg_color=ThemeColors.TEXT_DISABLED,
                 text="执行中..."
             )
+        self.view.show_enter_button()
 
     def _enable_execute_button(self):
         """启用执行按钮"""
@@ -2242,6 +2243,7 @@ class GUIController:
                 fg_color=ThemeColors.PRIMARY,
                 text="执行命令"
             )
+        self.view.hide_enter_button()
 
     def _enable_terminate_button(self):
         """启用终止按钮"""
@@ -2925,6 +2927,7 @@ TTS相关目录:
                 fg_color=ThemeColors.TEXT_DISABLED,
                 text="执行中..."
             )
+        self.view.show_enter_button()
 
     def _enable_execute_button(self):
         """启用执行按钮"""
@@ -2935,6 +2938,7 @@ TTS相关目录:
                 fg_color=ThemeColors.PRIMARY,
                 text="执行命令"
             )
+        self.view.hide_enter_button()
 
     def _disable_terminate_button(self):
         """禁用终止按钮"""

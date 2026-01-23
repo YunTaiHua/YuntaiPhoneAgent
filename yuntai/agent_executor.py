@@ -69,9 +69,9 @@ class AgentExecutor:
             try:
                 os.write(cls._stdin_write, b'\n')
                 sys.stdout.flush()
-                print("✅ 已发送确认信号")
+                #print("✅ 已发送确认信号")
             except Exception as e:
-                print(f"⚠️  发送确认信号失败: {e}")
+                print(f"\n⚠️  发送确认信号失败: {e}")
         cls._user_confirmation_event.set()
         cls._is_waiting_for_confirmation.clear()
 

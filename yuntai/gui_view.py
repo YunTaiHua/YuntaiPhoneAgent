@@ -228,7 +228,7 @@ class GUIView:
             hover_color="#3451b2",
             corner_radius=6
         )
-        self.components["enter_button"].pack(side="right")
+        self.hide_enter_button()
 
         # 输出文本框
         self.components["output_text"] = ctk.CTkTextbox(
@@ -1432,3 +1432,15 @@ class GUIView:
                         # 对于某些属性需要使用configure方法
                         if hasattr(component, 'configure'):
                             component.configure(**{key: value})
+
+    def show_enter_button(self):
+        """显示模拟回车按钮"""
+        enter_btn = self.components.get("enter_button")
+        if enter_btn:
+            enter_btn.pack(side="right")
+
+    def hide_enter_button(self):
+        """隐藏模拟回车按钮"""
+        enter_btn = self.components.get("enter_button")
+        if enter_btn:
+            enter_btn.pack_forget()
