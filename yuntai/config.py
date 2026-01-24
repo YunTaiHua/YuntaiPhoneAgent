@@ -80,7 +80,7 @@ FFMPEG_PATH = os.getenv('FFMPEG_PATH')
 # Whisper 配置
 WHISPER_MODEL = "small"  # 可选: tiny, base, small, medium, large
 WHISPER_LANGUAGE = "zh"  # 默认语言，None表示自动检测
-WHISPER_DEVICE = "cpu"  # 可选: cpu, cuda
+WHISPER_DEVICE = "cuda"  # 可选: cpu, cuda
 
 # 繁简转换配置
 WHISPER_CONVERT_TO_SIMPLIFIED = True  # 是否将繁体转换为简体
