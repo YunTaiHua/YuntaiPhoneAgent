@@ -344,14 +344,14 @@ class GUIView:
 
         filetypes = [
             ("所有支持的文件",
-             "*.jpg *.jpeg *.png *.bmp *.webp "  # 图片
-             "*.mp4 *.avi *.mov *.mkv *.wmv "  # 视频
-             "*.mp3 *.wav *.m4a *.flac *.aac *.ogg *.wma" #音频
-             "*.txt *.py *.csv *.xls *.xlsx *.docx *.pdf *.ppt *.pptx *.html *.js "),  # 文件
+              "*.jpg *.jpeg *.png *.bmp *.webp "  # 图片
+              "*.mp4 *.avi *.mov *.mkv *.wmv "  # 视频
+              "*.mp3 *.wav *.m4a *.flac *.aac *.ogg *.wma "  # 音频
+              "*.txt *.py *.csv *.xls *.xlsx *.docx *.pdf *.ppt *.pptx *.html *.js *.htm *.rss *.atom *.json *.xml *.java *.ipynb"),  # 文件
             ("图片文件", "*.jpg *.jpeg *.png *.bmp *.webp"),
             ("视频文件", "*.mp4 *.avi *.mov *.mkv *.wmv"),
             ("音频文件","*.mp3 *.wav *.m4a *.flac *.aac *.ogg *.wma"),
-            ("文档文件", "*.txt *.py *.csv *.xls *.xlsx *.docx *.pdf *.ppt *.pptx *.html *.js "),
+            ("文档文件", "*.txt *.py *.csv *.xls *.xlsx *.docx *.pdf *.ppt *.pptx *.html *.js *.htm *.rss *.atom *.json *.xml *.java *.ipynb"),
             ("所有文件", "*.*")
         ]
 

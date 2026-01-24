@@ -13,10 +13,7 @@ from pathlib import Path
 from zhipuai import ZhipuAI
 
 # 第三方库（解析文档专用，按需求导入）
-import pandas as pd  # Excel解析
-from docx import Document  # Word(.docx)解析
-import PyPDF2  # PDF解析
-from pptx import Presentation  # PPT(.pptx)解析
+# 使用 markitdown 统一处理文档转换
 
 from .config import (
     ZHIPU_API_KEY, ZHIPU_MULTIMODAL_MODEL, MAX_FILE_SIZE,
@@ -66,48 +63,19 @@ class MultimodalProcessor:
 
     def parse_document_to_text(self, file_path: str) -> Optional[str]:
         """
-        解析Excel/Word/PDF/PPT为文本
+        使用 markitdown 解析文档为文本
+        支持所有 markitdown 支持的格式
         """
-        ext = Path(file_path).suffix.lower()
-        text_content = ""
-
         try:
-            # PDF解析
-            if ext == '.pdf':
-                import PyPDF2
-                with open(file_path, 'rb') as f:
-                    reader = PyPDF2.PdfReader(f)
-                    for page in reader.pages:
-                        page_text = page.extract_text() or ""
-                        text_content += page_text + "\n"
+            from markitdown import MarkItDown
 
-            # Word解析 (.docx)
-            elif ext == '.docx':
-                from docx import Document
-                doc = Document(file_path)
-                for para in doc.paragraphs:
-                    text_content += para.text + "\n"
+            # 初始化 markitdown (可以复用实例)
+            if not hasattr(self, '_markitdown'):
+                self._markitdown = MarkItDown()
 
-            # Excel解析 (.xlsx/.xls)
-            elif ext in ['.xlsx', '.xls']:
-                import pandas as pd
-                df = pd.read_excel(file_path)
-                # 转为字符串（保留表头和内容）
-                text_content = df.to_string(index=False)
-
-            # PPT解析 (.pptx)
-            elif ext == '.pptx':
-                from pptx import Presentation
-                prs = Presentation(file_path)
-                for slide in prs.slides:
-                    for shape in slide.shapes:
-                        if hasattr(shape, "text"):
-                            text_content += shape.text + "\n"
-
-            # 纯文本/CSV
-            elif ext in ['.txt', '.py', '.csv', '.html']:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    text_content = f.read()
+            # 使用 markitdown 转换
+            result = self._markitdown.convert(file_path)
+            text_content = result.text_content
 
             # 截断过长内容（避免token超限）
             if len(text_content) > 10000:
@@ -116,7 +84,7 @@ class MultimodalProcessor:
             return text_content
 
         except Exception as e:
-            print(f"❌ 解析文档失败 {file_path}: {e}")
+            print(f"❌ markitdown 解析文档失败 {file_path}: {e}")
             return None
 
     def encode_file_to_base64(self, file_path: str) -> Optional[str]:
@@ -172,7 +140,7 @@ class MultimodalProcessor:
             return "video", mime_type
 
         # 可解析的文档类型（统一归为text）
-        elif ext in ['.txt', '.py', '.csv', '.xls', '.xlsx', '.docx', '.pdf', '.ppt', '.pptx', '.html', '.js']:
+        elif ext in ['.txt', '.py', '.csv', '.xls', '.xlsx', '.docx', '.pdf', '.ppt', '.pptx', '.html', '.js', '.htm', '.rss', '.atom', '.json', '.xml', '.java', '.ipynb']:
             return "text", "text/plain"
 
 

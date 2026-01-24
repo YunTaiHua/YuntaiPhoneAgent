@@ -69,7 +69,7 @@ MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB（支持更大的视频/音频文件�
 ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
 ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mov', '.mkv', '.wmv']
 ALLOWED_AUDIO_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.flac', '.aac', '.ogg', '.wma']
-ALLOWED_FILE_EXTENSIONS = ['.txt', '.py', '.csv', '.xls', '.xlsx', '.docx', '.pdf', '.ppt', '.pptx', '.html', '.js']
+ALLOWED_FILE_EXTENSIONS = ['.txt', '.py', '.csv', '.xls', '.xlsx', '.docx', '.pdf', '.ppt', '.pptx', '.html', '.js', '.htm', '.rss', '.atom', '.json', '.xml', '.java', '.ipynb']
 
 # ==================== 音频处理配置 ====================
 # 音频处理相关配置，包括Whisper语音识别
