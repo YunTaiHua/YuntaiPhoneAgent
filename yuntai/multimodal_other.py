@@ -933,6 +933,9 @@ class VideoPreviewWindow:
                 subprocess.run(["open", video_path])
             elif platform.system() == "Linux":
                 subprocess.run(["xdg-open", video_path])
+
+            # 视频播放成功后自动关闭预览窗口
+            self.window.destroy()
         except Exception as e:
             from tkinter import messagebox
             messagebox.showerror("错误", f"无法播放视频: {str(e)}")

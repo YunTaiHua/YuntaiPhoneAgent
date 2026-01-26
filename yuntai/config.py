@@ -144,7 +144,7 @@ TTS_ENABLE_PARALLEL = True    # 启用并行合成
 
 # ---------------- Version ----------------
 # 应用版本号，统一放在配置中，方便统一更新
-APP_VERSION = "1.2.5"
+APP_VERSION = "1.2.6"
 
 class ThemeColors:
     """
