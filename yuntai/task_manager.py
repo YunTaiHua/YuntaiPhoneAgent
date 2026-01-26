@@ -66,7 +66,9 @@ from .config import (
     TTS_TOP_P,
     TTS_TEMPERATURE,
     TTS_SPEED,
-    ZHIPU_CHAT_MODEL
+    ZHIPU_MODEL,
+    ZHIPU_CHAT_MODEL,
+    ZHIPU_API_BASE_URL
 )
 
 
@@ -1240,7 +1242,7 @@ class TTSManager:
         total_char_count = len(cleaned_text)
 
         # 如果中文字符占比太低或文本太短，使用兜底文本
-        if total_char_count == 0 or (total_char_count > 0 and chinese_char_count / total_char_count < 0.3) or len(cleaned_text) < 3:
+        if total_char_count == 0 or (total_char_count > 0 and chinese_char_count / total_char_count < 0.1) or len(cleaned_text) < 2:
             print(f"⚠️  清理后的文本质量不佳（中文字符占比: {chinese_char_count}/{total_char_count}），使用兜底文本")
             # 使用更长的兜底文本，确保GPT-SoVITS能正常处理
             return "你好，我是小芸，很高兴为您服务"
@@ -1438,8 +1440,8 @@ class TaskManager:
 
         class Args:
             def __init__(self):
-                self.base_url = "https://open.bigmodel.cn/api/paas/v4"
-                self.model = "autoglm-phone"
+                self.base_url = ZHIPU_API_BASE_URL
+                self.model = ZHIPU_MODEL
                 self.apikey = ZHIPU_API_KEY
                 self.max_steps = 100
                 self.device_id = None
@@ -1574,7 +1576,7 @@ class TaskManager:
                 print(f"📋 识别为快捷键: {letter} -> {SHORTCUTS[letter]}\n")
                 return self._handle_basic_operation(SHORTCUTS[letter], args, device_id)
 
-        # 1. 使用glm-4.6v-flash进行任务识别
+        # 1. 使用ZHIPU_JUDGEMENT_MODEL进行任务识别
         task_info = self.task_recognizer.recognize_task_intent(user_input)
         task_type = task_info["task_type"]
         target_app = task_info["target_app"]
@@ -1583,7 +1585,7 @@ class TaskManager:
 
         print(f"📋 识别结果：任务类型={task_type}, APP={target_app}, 对象={target_object}, 持续={is_auto}\n")
 
-        # 2. 如果glm-4.6v-flash没有提取到APP和对象，尝试简单提取
+        # 2. 如果ZHIPU_CHAT_MODEL没有提取到APP和对象，尝试简单提取
         if task_type in ["single_reply", "continuous_reply", "basic_operation", "complex_operation"] and not target_app:
             target_app = self.task_recognizer.extract_target_app_simple(user_input)
 

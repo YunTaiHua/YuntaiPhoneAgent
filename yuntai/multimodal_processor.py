@@ -1,7 +1,7 @@
 """
 多模态处理器模块 - 使用zhipuai库的正确调用方式
 支持图像、视频、音频、文件上传和处理
-使用glm-4.6v-flash模型
+使用ZHIPU_MULTIMODAL_MODEL模型
 支持 FFmpeg 和 Whisper 进行音频处理
 """
 
@@ -338,7 +338,7 @@ class MultimodalProcessor:
             max_tokens: int = 2000
     ) -> Tuple[bool, str, Optional[Dict]]:
         """
-        使用glm-4.6v-flash处理多模态输入（使用官方推荐的调用方式）
+        使用ZHIPU_MULTIMODAL_MODEL处理多模态输入（使用官方推荐的调用方式）
         支持视频音频同步处理和单独音频处理
 
         Args:
@@ -385,7 +385,7 @@ class MultimodalProcessor:
             messages_str = json.dumps(messages, ensure_ascii=False)
             #print(f"📨 消息结构预览: {messages_str[:200]}...")
 
-            #print(f"🔄 发送请求到glm-4.6v-flash...")
+            #print(f"🔄 发送请求到ZHIPU_MULTIMODAL_MODEL...")
 
             try:
                 # 使用zhipuai库的正确调用方式

@@ -37,7 +37,7 @@ from .gui_view import GUIView, ThemeColors
 from .task_manager import TaskManager
 
 # 使用新的统一配置
-from .config import SCRCPY_PATH, validate_config, print_config_summary,ZHIPU_CHAT_MODEL
+from .config import SCRCPY_PATH, validate_config, print_config_summary,ZHIPU_CHAT_MODEL,ZHIPU_MODEL,ZHIPU_API_BASE_URL
 
 
 class GUIController:
@@ -1942,9 +1942,9 @@ class GUIController:
             # 获取历史对话（修复后的方法）
             history = self._get_chat_history_for_multimodal()
 
-            #print(f"🔄 正在使用glm-4.6v-flash分析内容...")
+            #print(f"🔄 正在使用ZHIPU_CHAT_MODEL分析内容...")
 
-            # 使用glm-4.6v-flash处理（支持音频处理）
+            # 使用ZHIPU_CHAT_MODEL处理（支持音频处理）
             success, response, audio_result = self.multimodal_processor.process_with_files(
                 text=text,
                 file_paths=valid_files,
@@ -2556,8 +2556,8 @@ class GUIController:
 
                 # 检查模型API
                 api_result = self.task_manager.utils.check_model_api(
-                    "https://open.bigmodel.cn/api/paas/v4",
-                    "autoglm-phone",
+                    ZHIPU_API_BASE_URL,
+                    ZHIPU_MODEL,
                     ZHIPU_API_KEY
                 )
 
@@ -2566,7 +2566,7 @@ class GUIController:
                 result_text.insert("end", "=" * 60 + "\n")
                 if api_result:
                     result_text.insert("end", "✅ 模型API检查通过\n")
-                    result_text.insert("end", f"  模型: autoglm-phone\n")
+                    result_text.insert("end", f"  模型: {ZHIPU_MODEL}\n")
                     result_text.insert("end", f"  密钥: {ZHIPU_API_KEY[:10]}...\n\n")
                 else:
                     result_text.insert("end", "❌ 模型API检查失败\n")

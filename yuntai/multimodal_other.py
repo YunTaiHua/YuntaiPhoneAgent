@@ -1,6 +1,6 @@
 """
 multimodal_other.py - 多模态其他功能模块
-集成CogView-3-Flash和CogVideoX-Flash功能
+集成ZHIPU_IMAGE_MODEL和ZHIPU_VIDEO_MODEL功能
 """
 
 import os
@@ -98,7 +98,7 @@ class MultimodalOther:
     def generate_image(self, prompt: str, size: str = "1280x1280",
                        quality: str = "standard") -> Dict[str, Any]:
         """
-        使用CogView-3-Flash生成图像
+        使用ZHIPU_IMAGE_MODEL生成图像
 
         Args:
             prompt: 图像描述
@@ -187,7 +187,7 @@ class MultimodalOther:
                        size: str = "1920x1080", fps: int = 30,
                        quality: str = "quality", with_audio: bool = True) -> Dict[str, Any]:
         """
-        使用CogVideoX-Flash生成视频
+        使用ZHIPU_VIDEO_MODEL生成视频
 
         Args:
             prompt: 视频描述

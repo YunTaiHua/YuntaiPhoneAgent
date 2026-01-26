@@ -83,14 +83,14 @@ class SmartContinuousReplyManager:
 
     def parse_messages_simple(self, record: str) -> List[Dict[str, str]]:
         """
-        纯glm-4.6v-flash智能提取：适配任意格式的自然语言聊天记录描述
-        核心：让glm-4.6v-flash直接理解文本，提取消息+位置+颜色，无需正则
+        纯ZHIPU_CHAT_MODEL智能提取：适配任意格式的自然语言聊天记录描述
+        核心：让ZHIPU_CHAT_MODEL直接理解文本，提取消息+位置+颜色，无需正则
         """
         if not record or len(record.strip()) < 10:
             print(f"\n⚠️  聊天记录为空/过短")
             return []
 
-        # ========== 核心：给glm-4.6v-flash的超精准指令 ==========
+        # ========== 核心：给ZHIPU_CHAT_MODEL的超精准指令 ==========
         prompt_text = f"""
     你的唯一任务是：从以下文本中提取聊天消息，并按要求输出JSON。
     严格遵守以下规则（违反任何一条都会导致解析失败）：
@@ -113,11 +113,11 @@ class SmartContinuousReplyManager:
     }}
 
     需要处理的文本：
-    {record[:2000]}  # 限制长度，避免glm-4.6v-flash上下文超限
+    {record[:2000]}  # 限制长度，避免ZHIPU_CHAT_MODEL上下文超限
     """
 
         try:
-            # ========== 调用glm-4.6v-flash（强制精准输出） ==========
+            # ========== 调用ZHIPU_CHAT_MODEL（强制精准输出） ==========
             response = self.zhipu_client.chat.completions.create(
                 model=ZHIPU_CHAT_MODEL,     
                 messages=[
@@ -126,12 +126,12 @@ class SmartContinuousReplyManager:
                 ],
                 temperature=0.0,  # 0温度=绝对精准，无随机性
                 max_tokens=2000,
-                response_format={"type": "json_object"}  # 强制JSON格式（glm-4.6v-flash支持）
+                response_format={"type": "json_object"}  # 强制JSON格式（ZHIPU_CHAT_MODEL支持）
             )
 
-            # ========== 解析glm-4.6v-flash返回结果（容错处理） ==========
+            # ========== 解析ZHIPU_CHAT_MODEL返回结果（容错处理） ==========
             resp_content = response.choices[0].message.content.strip()
-            # 容错：去掉可能的代码块标记（防止glm-4.6v-flash违规输出）
+            # 容错：去掉可能的代码块标记（防止ZHIPU_CHAT_MODEL违规输出）
             if resp_content.startswith("```"):
                 resp_content = resp_content.replace("```json", "").replace("```", "").strip()
 
@@ -175,7 +175,7 @@ class SmartContinuousReplyManager:
     # ========== 终极兜底：纯文本拆分（最后防线） ==========
     def _emergency_extract(self, record: str) -> List[Dict[str, str]]:
         """
-        终极兜底：当glm-4.6v-flash也失败时，纯文本拆分（不依赖格式）
+        终极兜底：当ZHIPU_CHAT_MODEL也失败时，纯文本拆分（不依赖格式）
         逻辑：提取所有像聊天消息的短句，默认位置/颜色
         """
         print(f"\n🔧 启动终极兜底提取")
@@ -545,7 +545,7 @@ class SmartContinuousReplyManager:
             if filename:
                 print(f"\n💾 记录已保存: record_logs/{filename}")
 
-            # 3. 解析消息（使用新的glm-4.6v-flash结构化解析）
+            # 3. 解析消息（使用新的ZHIPU_CHAT_MODEL结构化解析）
             messages = self.parse_messages_simple(current_record)
             if messages:
                 print(f"\n📊 解析到 {len(messages)} 条消息")

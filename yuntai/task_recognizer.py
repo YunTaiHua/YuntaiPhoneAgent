@@ -6,7 +6,7 @@ import re
 import json
 from typing import Dict, Any, Optional
 
-from yuntai.config import SHORTCUTS, ZHIPU_CLIENT,ZHIPU_CHAT_MODEL
+from yuntai.config import SHORTCUTS, ZHIPU_CLIENT,ZHIPU_JUDGEMENT_MODEL
 
 
 class TaskRecognizer:
@@ -128,7 +128,7 @@ class TaskRecognizer:
             ]
 
             response = self.zhipu_client.chat.completions.create(
-                model=ZHIPU_CHAT_MODEL,
+                model=ZHIPU_JUDGEMENT_MODEL,
                 messages=messages,
                 temperature=0.1,
                 max_tokens=100,
@@ -178,7 +178,7 @@ class TaskRecognizer:
 
     def recognize_task_intent(self, user_input: str) -> Dict[str, Any]:
         """
-        使用glm-4.6v-flash智能识别任务意图
+        使用ZHIPU_JUDGEMENT_MODEL智能识别任务意图
         返回任务类型、目标APP、目标对象等信息
         """
         try:
@@ -206,14 +206,14 @@ class TaskRecognizer:
                         "specific_content": ""
                     }
 
-            # 使用glm-4.6v-flash进行任务识别
+            # 使用ZHIPU_JUDGEMENT_MODEL进行任务识别
             messages = [
                 {"role": "system", "content": self.TASK_RECOGNITION_PROMPT},
                 {"role": "user", "content": f"请分析以下用户指令并返回JSON格式的任务识别结果：\n\n用户指令：{user_input}"}
             ]
 
             response = self.zhipu_client.chat.completions.create(
-                model=ZHIPU_CHAT_MODEL,
+                model=ZHIPU_JUDGEMENT_MODEL,
                 messages=messages,
                 temperature=0.1,
                 max_tokens=300,
