@@ -56,6 +56,7 @@ Phone Agent  - 智能版 v1.2.7  -第861次迭代
 --------------------3.点击播放视频后自动关闭弹窗
 1.2.7  （2026.01.27）1.重构 gui_controller.py 文件，将原来的3000行缩减为800行，相关函数移动到 yuntai/handlers
 --------------------2.重构 gui_view.py 文件，相关函数移动到 yuntai/views
+--------------------3.重构 task_manager.py 文件，相关函数移到 yuntai/managers
 
 """
 

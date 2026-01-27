@@ -32,6 +32,29 @@ Version: 1.2.7
 ```
 YuntaiPhoneAgent/
 ├── yuntai/  # 核心模块
+│   ├── handlers/ #存放GUI控制器（gui_controller.py）所需的函数
+│   │      ├──__init__.py
+│   │      ├──connection_handler.py
+│   │      ├──dynamic_handler.py
+│   │      ├──system_handler.py
+│   │      └──tts_handler.py
+│   ├── managers/ #存放任务管理（task_manager.py）所需的函数
+│   │      ├──__init__.py
+│   │      ├──task_logic.py
+│   │      ├──tts_audio.py
+│   │      ├──tts_database.py
+│   │      ├──tts_engine.py
+│   │      └──tts_text.py
+│   ├──views/ #存放GUI视图（gui_view.py）所需的函数
+│   │      ├──__init__.py
+│   │      ├──connection.py
+│   │      ├──dashboard.py
+│   │      ├──dynamic.py
+│   │      ├──history.py
+│   │      ├──pages.py
+│   │      ├──settings.py
+│   │      ├──theme.py
+│   │      └──tts.py
 │   ├── __init__.py
 │   ├── agent_core.py  # 代理核心
 │   ├── agent_executor.py  # 执行器
@@ -49,39 +72,10 @@ YuntaiPhoneAgent/
 │   ├── task_manager.py  # 任务管理
 │   ├── task_recognizer.py  # 任务识别
 │   └── utils.py  # 工具函数
-├── scripts/  # 脚本和示例消息
-│   ├── check_deployment_cn.py
-│   ├── check_deployment_en.py
-│   ├── sample_messages.json
-│   └── sample_messages_en.json
-├── resources/  # 资源文件（图片、文档等）
-│   ├── logo.svg
-│   ├── privacy_policy.txt
-│   ├── privacy_policy_en.txt
-│   ├── screenshot-20251209-181423.png
-│   ├── screenshot-20251210-120416.png
-│   ├── screenshot-20251210-120630.png
-│   ├── setting.png
-│   ├── wechat.jpeg
-│   └── WECHAT.md
-├── requirements/  # 依赖和安装文件
-│   ├── dev_requirements.txt
-│   ├── environment.yml
-│   ├── install_guide.txt
-│   ├── optional_requirements.txt
-│   ├── quick_install.bat
-│   ├── requirements.txt
-│   ├── tts_requirements.txt
-│   ├── version_check.py
-│   └── windows_requirements.txt
 ├── phone_agent/  # 代理模块
 │   ├── agent.py
 │   └── model/
 │       └── client.py
-├── examples/  # 示例代码
-│   ├── __init__.py
-│   ├── basic_usage.py
-│   └── demo_thinking.py
 ├── .gitignore
 ├── .pre-commit-config.yaml
 ├── LICENSE

@@ -276,7 +276,7 @@ class TerminableContinuousReplyManager(SmartContinuousReplyManager):
                                 print(f"\n🛑 检测到终止信号，停止持续回复")
                                 return False
 
-                            print(f"📤 准备发送回复: {reply_message[:50]}...")
+                            print(f"\n📤 准备发送回复: {reply_message[:50]}...")
 
                             # 发送回复
                             success = self.send_reply_message_fixed(reply_message)

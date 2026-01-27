@@ -30,65 +30,60 @@ Version: 1.2.7
 
 #### Directory Structure
 ```
+
 YuntaiPhoneAgent/
-├── yuntai/  # Core modules
+├── yuntai/  # Core Module
+│   ├── handlers/ # Functions needed for GUI controller (gui_controller.py)
+│   │      ├──__init__.py
+│   │      ├──connection_handler.py
+│   │      ├──dynamic_handler.py
+│   │      ├──system_handler.py
+│   │      └──tts_handler.py
+│   ├── managers/ # Functions needed for task management (task_manager.py)
+│   │      ├──__init__.py
+│   │      ├──task_logic.py
+│   │      ├──tts_audio.py
+│   │      ├──tts_database.py
+│   │      ├──tts_engine.py
+│   │      └──tts_text.py
+│   ├──views/ # Functions needed for GUI view (gui_view.py)
+│   │      ├──__init__.py
+│   │      ├──connection.py
+│   │      ├──dashboard.py
+│   │      ├──dynamic.py
+│   │      ├──history.py
+│   │      ├──pages.py
+│   │      ├──settings.py
+│   │      ├──theme.py
+│   │      └──tts.py
 │   ├── __init__.py
-│   ├── agent_core.py  # Agent core
+│   ├── agent_core.py  # Agent Core
 │   ├── agent_executor.py  # Executor
-│   ├── audio_processor.py  # Audio processing
+│   ├── audio_processor.py  # Audio Processing
 │   ├── config.py  # Configuration
-│   ├── connection_manager.py  # Connection management
-│   ├── file_manager.py  # File management
-│   ├── gui_controller.py  # GUI controller
-│   ├── gui_view.py  # GUI view
-│   ├── main_app.py  # Main app
-│   ├── multimodal_other.py  # Multimodal other
-│   ├── multimodal_processor.py  # Multimodal processor
-│   ├── output_capture.py  # Output capture
-│   ├── reply_manager.py  # Reply manager
-│   ├── task_manager.py  # Task manager
-│   ├── task_recognizer.py  # Task recognizer
-│   └── utils.py  # Utilities
-├── scripts/  # Scripts and sample messages
-│   ├── check_deployment_cn.py
-│   ├── check_deployment_en.py
-│   ├── sample_messages.json
-│   └── sample_messages_en.json
-├── resources/  # Resource files (images, docs, etc.)
-│   ├── logo.svg
-│   ├── privacy_policy.txt
-│   ├── privacy_policy_en.txt
-│   ├── screenshot-20251209-181423.png
-│   ├── screenshot-20251210-120416.png
-│   ├── screenshot-20251210-120630.png
-│   ├── setting.png
-│   ├── wechat.jpeg
-│   └── WECHAT.md
-├── requirements/  # Dependencies and installation files
-│   ├── dev_requirements.txt
-│   ├── environment.yml
-│   ├── install_guide.txt
-│   ├── optional_requirements.txt
-│   ├── quick_install.bat
-│   ├── requirements.txt
-│   ├── tts_requirements.txt
-│   ├── version_check.py
-│   └── windows_requirements.txt
-├── phone_agent/  # Agent modules
+│   ├── connection_manager.py  # Connection Management
+│   ├── file_manager.py  # File Management
+│   ├── gui_controller.py  # GUI Controller
+│   ├── gui_view.py  # GUI View
+│   ├── main_app.py  # Main Application
+│   ├── multimodal_other.py  # Multimodal Other
+│   ├── multimodal_processor.py  # Multimodal Processor
+│   ├── output_capture.py  # Output Capture
+│   ├── reply_manager.py  # Reply Management
+│   ├── task_manager.py  # Task Management
+│   ├── task_recognizer.py  # Task Recognition
+│   └── utils.py  # Utility Functions
+├── phone_agent/  # Agent Module
 │   ├── agent.py
 │   └── model/
 │       └── client.py
-├── examples/  # Example code
-│   ├── __init__.py
-│   ├── basic_usage.py
-│   └── demo_thinking.py
 ├── .gitignore
 ├── .pre-commit-config.yaml
 ├── LICENSE
-├── README.md
+├── README_en.md
 ├── __init__.py
 ├── forever.txt
-├── main.py  # Main entry
+├── main.py  # Main Entry
 ├── requirements.txt
 └── setup.py
 ```
