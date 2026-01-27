@@ -99,7 +99,7 @@ YuntaiPhoneAgent/
 - Automatically determine task type (free chat, phone operation, single/continuous reply, complex operation)
 - Support shortcut keys to quickly launch apps (WeChat, QQ, TikTok, etc.)
 
-#### 2. Phone Automation (phone_agent/agent.py:43-256)
+#### 2. Phone Automation (phone_agent/agent.py)
 - Use VLM to understand screen content and decide operations
 - Support various operations: tap, input, swipe, long press, double tap, back, home
 - Coordinate system: (0,0) top-left → (999,999) bottom-right
@@ -110,7 +110,7 @@ YuntaiPhoneAgent/
 - Similarity comparison: Use longest common subsequence algorithm to avoid duplicate replies
 - Loop detection: Check for new messages each round, maximum 30 rounds
 
-#### 4. TTS Speech Synthesis (task_manager.py:53-100)
+#### 4. TTS Speech Synthesis (task_manager.py)
 - Integrate GPT-SoVITS model
 - Support segmented synthesis (maximum 500 characters/segment)
 - Parallel synthesis for efficiency

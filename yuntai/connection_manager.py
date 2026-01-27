@@ -106,7 +106,7 @@ class ConnectionManager:
         if connection_type == "usb":
             devices = self._get_android_devices()
             if device_id in devices:
-                return True, device_id, f"✅ USB设备已连接: {device_id}"
+                return True, device_id, f" USB设备已连接: {device_id}"
             else:
                 try:
                     result = subprocess.run(
