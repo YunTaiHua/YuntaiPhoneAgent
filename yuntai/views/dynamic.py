@@ -69,7 +69,7 @@ class DynamicBuilder:
         self.components["image_prompt_text"] = ctk.CTkTextbox(
             main_frame,
             font=("Microsoft YaHei", 13),
-            height=100
+            height=180
         )
         self.components["image_prompt_text"].pack(fill="x", pady=(0, 20))
 
@@ -152,7 +152,7 @@ class DynamicBuilder:
         self.components["image_log_text"] = ctk.CTkTextbox(
             output_frame,
             font=("Consolas", 11),
-            height=150
+            height=80
         )
         self.components["image_log_text"].pack(fill="both", expand=True, padx=10, pady=(0, 10))
         self.components["image_log_text"].configure(state="disabled")
@@ -173,7 +173,7 @@ class DynamicBuilder:
         self.components["video_prompt_text"] = ctk.CTkTextbox(
             main_frame,
             font=("Microsoft YaHei", 13),
-            height=80
+            height=150
         )
         self.components["video_prompt_text"].pack(fill="x", pady=(0, 20))
 
@@ -212,13 +212,13 @@ class DynamicBuilder:
         params_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
         params_frame.pack(fill="x", pady=(0, 20))
 
-        # 第一行参数
-        param_row1 = ctk.CTkFrame(params_frame, fg_color="transparent")
-        param_row1.pack(fill="x", pady=(0, 15))
+        # 参数行
+        row1 = ctk.CTkFrame(params_frame, fg_color="transparent")
+        row1.pack(fill="x", pady=(0, 15))
 
         # 尺寸选择
         size_label = ctk.CTkLabel(
-            param_row1,
+            row1,
             text="视频尺寸:",
             font=("Microsoft YaHei", 13),
             width=80
@@ -227,7 +227,7 @@ class DynamicBuilder:
 
         self.components["video_size_var"] = ctk.StringVar(value="1920x1080")
         self.components["video_size_menu"] = ctk.CTkOptionMenu(
-            param_row1,
+            row1,
             variable=self.components["video_size_var"],
             values=["1920x1080", "1080x1920", "1280x720", "720x1280", "1024x1024"],
             font=("Microsoft YaHei", 12),
@@ -237,7 +237,7 @@ class DynamicBuilder:
 
         # 帧率选择
         fps_label = ctk.CTkLabel(
-            param_row1,
+            row1,
             text="帧率:",
             font=("Microsoft YaHei", 13),
             width=50
@@ -246,21 +246,17 @@ class DynamicBuilder:
 
         self.components["video_fps_var"] = ctk.StringVar(value="30")
         self.components["video_fps_menu"] = ctk.CTkOptionMenu(
-            param_row1,
+            row1,
             variable=self.components["video_fps_var"],
             values=["30", "60"],
             font=("Microsoft YaHei", 12),
             width=100
         )
-        self.components["video_fps_menu"].pack(side="left")
-
-        # 第二行参数
-        param_row2 = ctk.CTkFrame(params_frame, fg_color="transparent")
-        param_row2.pack(fill="x", pady=(0, 15))
+        self.components["video_fps_menu"].pack(side="left", padx=(0, 20))
 
         # 质量选择
         quality_label = ctk.CTkLabel(
-            param_row2,
+            row1,
             text="生成质量:",
             font=("Microsoft YaHei", 13),
             width=80
@@ -269,7 +265,7 @@ class DynamicBuilder:
 
         self.components["video_quality_var"] = ctk.StringVar(value="quality")
         self.components["video_quality_menu"] = ctk.CTkOptionMenu(
-            param_row2,
+            row1,
             variable=self.components["video_quality_var"],
             values=["quality", "speed"],
             font=("Microsoft YaHei", 12),
@@ -280,7 +276,7 @@ class DynamicBuilder:
         # 音效开关
         self.components["video_audio_var"] = ctk.BooleanVar(value=True)
         self.components["video_audio_check"] = ctk.CTkCheckBox(
-            param_row2,
+            row1,
             text="生成音效",
             variable=self.components["video_audio_var"],
             font=("Microsoft YaHei", 13)
@@ -289,7 +285,7 @@ class DynamicBuilder:
 
         # 按钮区域
         button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        button_frame.pack(fill="x", pady=(20, 0))
+        button_frame.pack(fill="x", pady=(10, 0))
 
         self.components["generate_video_btn"] = ctk.CTkButton(
             button_frame,
@@ -298,7 +294,7 @@ class DynamicBuilder:
             height=45,
             fg_color=ThemeColors.ACCENT
         )
-        self.components["generate_video_btn"].pack(side="left", padx=(0, 10))
+        self.components["generate_video_btn"].pack(side="left", padx=(0, 20))
 
         self.components["preview_video_btn"] = ctk.CTkButton(
             button_frame,
@@ -311,7 +307,7 @@ class DynamicBuilder:
 
         # 输出区域
         output_frame = ctk.CTkFrame(main_frame, corner_radius=10)
-        output_frame.pack(fill="both", expand=True, pady=(20, 0))
+        output_frame.pack(fill="both", expand=True, pady=(10, 0))
 
         ctk.CTkLabel(
             output_frame,
