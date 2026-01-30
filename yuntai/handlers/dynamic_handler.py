@@ -28,14 +28,38 @@ class DynamicHandler:
                 # 修复导入路径
                 self.controller.multimodal_other = MultimodalOther(ZHIPU_API_KEY, PROJECT_ROOT)
 
-            self.controller.show_toast("动态功能页面已加载", "success")
-
         except Exception as e:
             print(f"❌ 加载动态功能页面失败: {e}")
             self.controller.show_toast(f"加载动态功能页面失败: {str(e)}", "error")
             traceback.print_exc()
 
     def _bind_events(self):
+        """绑定动态功能页面事件"""
+        generate_image_btn = self.view.get_component("generate_image_btn")
+        if generate_image_btn:
+            generate_image_btn.configure(command=self.generate_image)
+
+        image_prompt_text = self.view.get_component("image_prompt_text")
+        if image_prompt_text:
+            image_prompt_text.bind("<Return>", lambda e: self._handle_image_generation_enter(e))
+
+        preview_image_btn = self.view.get_component("preview_image_btn")
+        if preview_image_btn:
+            preview_image_btn.configure(command=self.preview_latest_image)
+
+        generate_video_btn = self.view.get_component("generate_video_btn")
+        if generate_video_btn:
+            generate_video_btn.configure(command=self.generate_video)
+
+        video_prompt_text = self.view.get_component("video_prompt_text")
+        if video_prompt_text:
+            video_prompt_text.bind("<Return>", lambda e: self._handle_video_generation_enter(e))
+
+        preview_video_btn = self.view.get_component("preview_video_btn")
+        if preview_video_btn:
+            preview_video_btn.configure(command=self.preview_latest_video)
+
+    def _handle_image_generation_enter(self, event):
         """绑定动态功能页面事件"""
         generate_image_btn = self.view.get_component("generate_image_btn")
         if generate_image_btn:
@@ -274,14 +298,6 @@ class DynamicHandler:
                         # 修复导入路径
                         self.controller.multimodal_other = MultimodalOther(ZHIPU_API_KEY, PROJECT_ROOT)
 
-                    print(f"\n🎬 开始视频生成:")
-                    print(f"  描述: {prompt}")
-                    print(f"  图片数量: {len(image_urls)}")
-                    print(f"  尺寸: {size}")
-                    print(f"  帧率: {fps}")
-                    print(f"  质量: {quality}")
-                    print(f"  音效: {with_audio}")
-
                     # 调用视频生成API
                     result = self.controller.multimodal_other.generate_video(
                         prompt, image_urls, size, fps, quality, with_audio
@@ -314,21 +330,7 @@ class DynamicHandler:
                             else:
                                 # 正常提交成功
                                 log_text.insert("end", f"✅ 视频生成任务已提交！\n")
-                                log_text.insert("end", f"📋 任务ID: {task_id}\n")
-                                log_text.insert("end", f"📊 初始状态: {task_status}\n")
-
-                                if image_urls:
-                                    if len(image_urls) == 1:
-                                        log_text.insert("end", f"🖼️ 单图生成视频\n")
-                                    elif len(image_urls) == 2:
-                                        log_text.insert("end", f"🖼️ 双图生成视频（首尾帧）\n")
-                                    log_text.insert("end", f"  使用图片: {len(image_urls)}张\n")
-                                else:
-                                    log_text.insert("end", f"📝 文字生成视频\n")
-
                                 log_text.insert("end", f"📏 视频尺寸: {size}\n")
-                                log_text.insert("end", f"🎞️ 帧率: {fps} FPS\n")
-                                log_text.insert("end", f"🎵 音效: {'开启' if with_audio else '关闭'}\n")
 
                                 # 根据图片数量设置不同的首次延迟提示
                                 image_count = len(image_urls)
@@ -337,7 +339,6 @@ class DynamicHandler:
                                 else:
                                     log_text.insert("end", f"⏰ 图片生成视频，首次状态检查将在30秒后开始\n")
 
-                                log_text.insert("end", f"🔁 后续每10秒自动检查一次\n")
                                 log_text.insert("end", f"⏳ 请耐心等待结果...\n")
 
                                 self.controller.show_toast("视频生成任务已提交", "success")
@@ -392,25 +393,51 @@ class DynamicHandler:
             try:
                 log_text = self.view.get_component("video_log_text")
                 if not log_text:
-                    print("❌ 视频日志组件未找到")
                     return
 
-                # 直接在日志中显示延迟信息
-                log_text.configure(state="normal")
-                if image_count == 0:
-                    log_text.insert("end", f"\n⏰ 文字生成视频，首次状态检查将在10秒后开始...\n")
-                else:
-                    log_text.insert("end", f"\n⏰ 图片生成视频，首次状态检查将在30秒后开始...\n")
-                log_text.insert("end", f"🔁 后续每10秒自动检查一次\n")
-                log_text.configure(state="disabled")
-                log_text.see("end")
+                # 在线程内部定义回调函数，可以访问 log_text
+                def polling_callback(event_type, attempt, task_id, status, interval):
+                    """视频轮询的回调函数"""
+                    if not log_text or not log_text.winfo_exists():
+                        return
 
-                # 等待视频生成完成
+                    log_text.configure(state="normal")
+
+                    if event_type == "START":
+                        log_text.insert("end", f"🎬 视频生成任务已提交\n")
+                        log_text.insert("end", "-" * 50 + "\n")
+
+                    elif event_type == "WAIT":
+                        wait_text = f"⏳ 等待10-30秒后检查..."
+                        if attempt == 1:
+                            wait_text = f"⏰ 首次检查在{interval}秒后开始"
+                        log_text.insert("end", f"{wait_text}\n")
+
+                    elif event_type == "CHECK":
+                        log_text.insert("end", f"📊 第{attempt}/30次检查: 任务ID={task_id}, 状态={status}\n")
+                        log_text.see("end")
+
+                    elif event_type == "SUCCESS":
+                        log_text.insert("end", f"🎉 第{attempt}/30次检查成功！\n")
+                        log_text.insert("end", "-" * 50 + "\n")
+
+                    elif event_type == "FAIL":
+                        log_text.insert("end", f"❌ 第{attempt}/30次检查失败: {status}\n")
+                        log_text.insert("end", "-" * 50 + "\n")
+
+                    elif event_type == "TIMEOUT":
+                        log_text.insert("end", f"⚠️ 达到最大尝试次数(30次)，停止轮询\n")
+                        log_text.insert("end", "-" * 50 + "\n")
+
+                    log_text.configure(state="disabled")
+
+                # 等待视频生成完成（传递回调函数）
                 result = self.controller.multimodal_other.wait_for_video_completion(
                     task_id,
                     image_count=image_count,
                     interval=10,
-                    max_attempts=30
+                    max_attempts=30,
+                    callback=polling_callback
                 )
 
                 # 结果处理

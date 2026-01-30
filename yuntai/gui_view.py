@@ -32,8 +32,14 @@ class GUIView:
         # 创建页面构建器
         self.page_builder = PageBuilder(self)
 
+        # 当前页面索引
+        self.current_page_index = -1  # 初始无页面
+
         # 创建界面
         self._setup_main_layout()
+
+        # Frame字典
+        self.content_frames = {}
 
     def _setup_main_layout(self):
         """设置主布局"""
@@ -149,6 +155,15 @@ class GUIView:
         )
         self.components["content_card"].grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
+        # 创建6个页面容器，按顺序排列（所有页面内容）
+        self.content_pages = []
+        for i in range(6):
+            page_frame = ctk.CTkFrame(self.components["content_card"], fg_color="transparent")
+            page_frame.pack(fill="both", expand=True)
+            page_frame.grid_propagate(False)
+            self.content_pages.append(page_frame)
+            page_frame.pack_forget()  # 初始隐藏
+
     def _create_status_bar(self):
         """创建底部状态栏"""
         self.components["status_bar"] = ctk.CTkFrame(self.root, height=30)
@@ -164,29 +179,67 @@ class GUIView:
 
     # ========== 页面创建方法（委托给PageBuilder）==========
 
+    def show_page(self, page_index: int):
+        """显示指定页面（使用独立Frame容器）"""
+        # 1. 隐藏当前页面（如果有）
+        if 0 <= self.current_page_index < 6:
+            current_frame = self.content_pages[self.current_page_index]
+            if current_frame:
+                current_frame.pack_forget()
+
+        # 2. 显示目标页面（如果需要）
+        if 0 <= page_index < 6:
+            target_frame = self.content_pages[page_index]
+            if target_frame:
+                target_frame.pack(fill="both", expand=True)
+
+        # 3. 更新当前页面索引
+        self.current_page_index = page_index
+
+        # 4. 高亮导航按钮
+        self._highlight_nav_button(page_index)
+
+        # 5. 调用页面的初始化回调（只执行一次）
+        self._call_page_init_callback(page_index)
+
+    def _call_page_init_callback(self, page_index: int):
+        """调用页面的初始化回调（只执行一次）"""
+        if page_index == 0:
+            self.page_builder.create_dashboard_page()
+        elif page_index == 1:
+            self.page_builder.create_tts_page(self.page_builder.tts_manager)
+        elif page_index == 2:
+            self.page_builder.create_connection_page()
+        elif page_index == 3:
+            self.page_builder.create_history_page()
+        elif page_index == 4:
+            self.page_builder.create_dynamic_page()
+        elif page_index == 5:
+            self.page_builder.create_settings_page()
+
     def create_dashboard_page(self):
-        """创建控制中心页面"""
-        self.page_builder.create_dashboard_page()
+        """创建控制中心页面（委托给show_page）"""
+        self.show_page(0)
 
     def create_tts_page(self, tts_manager):
-        """创建TTS语音合成页面"""
-        self.page_builder.create_tts_page(tts_manager)
+        """创建TTS语音合成页面（委托给show_page）"""
+        self.show_page(1)
 
     def create_connection_page(self):
-        """创建设备管理页面"""
-        self.page_builder.create_connection_page()
+        """创建设备管理页面（委托给show_page）"""
+        self.show_page(2)
 
     def create_history_page(self):
-        """创建历史记录页面"""
-        self.page_builder.create_history_page()
-
-    def create_settings_page(self):
-        """创建系统设置页面"""
-        self.page_builder.create_settings_page()
+        """创建历史记录页面（委托给show_page）"""
+        self.show_page(3)
 
     def create_dynamic_page(self):
-        """创建动态功能页面"""
-        self.page_builder.create_dynamic_page()
+        """创建动态功能页面（委托给show_page）"""
+        self.show_page(4)
+
+    def create_settings_page(self):
+        """创建系统设置页面（委托给show_page）"""
+        self.show_page(5)
 
     # ========== 辅助方法 ==========
 

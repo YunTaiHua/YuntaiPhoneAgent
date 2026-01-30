@@ -14,11 +14,10 @@ class DashboardBuilder:
         self.components = view_instance.components
 
     def create_page(self):
-        """创建控制中心页面"""
-        self.view._clear_content_card()
+        """创建控制中心页面（只执行一次）"""
         self.view._highlight_nav_button(0)
 
-        content_frame = ctk.CTkFrame(self.components["content_card"], fg_color="transparent")
+        content_frame = ctk.CTkFrame(self.view.content_pages[0], fg_color="transparent")
         content_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
         # 顶部标题

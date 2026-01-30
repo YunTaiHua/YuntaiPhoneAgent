@@ -251,12 +251,12 @@ class MultimodalOther:
                 if image_count == 1:
                     # 单张图片：使用image_url字段（字符串）
                     payload["image_url"] = image_urls[0]
-                    print(f"🖼️ 单图生成：使用 image_url 字段")
+                    #print(f"🖼️ 单图生成：使用 image_url 字段")
 
                 elif image_count == 2:
                     # 两张图片：使用image_urls字段（列表）
                     payload["image_urls"] = image_urls  # 注意这里是 image_urls（复数）
-                    print(f"🖼️ 双图生成：使用 image_urls 字段")
+                    #print(f"🖼️ 双图生成：使用 image_urls 字段")
 
                 else:
                     return {
@@ -265,33 +265,16 @@ class MultimodalOther:
                     }
 
             logger.info(f"发送视频生成请求: 模型 {ZHIPU_VIDEO_MODEL}")
-            print(f"  描述: {prompt}")
 
             if image_urls:
-                print(f"  图片数量: {len(image_urls)}")
-                for i, url in enumerate(image_urls, 1):
-                    print(f"  图片{i}: {url}")
+                pass
             else:
-                print(f"  文字生成视频")
-
-            print(f"  尺寸: {size}")
-            print(f"  帧率: {fps}")
-            print(f"  质量: {quality}")
-            print(f"  音效: {with_audio}")
-
-            # 调试：打印完整请求体
-            import json
-            print(f"📋 完整请求体:")
-            print(json.dumps(payload, ensure_ascii=False, indent=2))
+                pass
 
             response = requests.post(self.video_api_url, json=payload, headers=headers)
 
-            print(f"📥 收到响应状态: {response.status_code}")
-
             if response.status_code == 200:
                 result = response.json()
-                print(f"📊 响应数据:")
-                print(json.dumps(result, ensure_ascii=False, indent=2))
 
                 # 提取任务ID
                 task_id = result.get("id") or result.get("request_id")
@@ -305,16 +288,11 @@ class MultimodalOther:
 
                 task_status = result.get("task_status", "PROCESSING")
 
-                print(f"✅ 任务提交成功:")
-                print(f"  任务ID: {task_id}")
-                print(f"  任务状态: {task_status}")
-
                 # 如果立即失败，提取错误信息
                 if task_status == "FAIL":
                     error_info = result.get("error", {})
                     error_msg = error_info.get("message", "未知错误")
                     error_code = error_info.get("code", "未知错误码")
-                    print(f"❌ 任务立即失败: {error_code} - {error_msg}")
 
                     return {
                         "success": False,
@@ -380,33 +358,18 @@ class MultimodalOther:
                 "Authorization": f"Bearer {self.api_key}"
             }
 
-            print(f"🔍 查询视频结果: {task_id}")
-
             response = requests.get(url, headers=headers)
-
-            print(f"  响应状态: {response.status_code}")
 
             if response.status_code == 200:
                 result = response.json()
 
-                # 调试：打印响应
-                import json
-                print(f"📊 完整响应:")
-                print(json.dumps(result, ensure_ascii=False, indent=2))
-
                 task_status = result.get("task_status", "UNKNOWN")
-
-                print(f"  任务状态: {task_status}")
 
                 if task_status == "SUCCESS":
                     video_result = result.get("video_result", [{}])
                     if video_result and len(video_result) > 0:
                         cover_url = video_result[0].get("cover_image_url")
                         video_url = video_result[0].get("url")
-
-                        print(f"✅ 视频生成成功")
-                        print(f"  封面URL: {cover_url}")
-                        print(f"  视频URL: {video_url}")
 
                         return {
                             "success": True,
@@ -424,7 +387,6 @@ class MultimodalOther:
                         }
 
                 elif task_status == "PROCESSING":
-                    print(f"⏳ 视频处理中...")
                     return {
                         "success": False,
                         "status": task_status,
@@ -433,14 +395,12 @@ class MultimodalOther:
                 elif task_status == "FAIL":
                     error_info = result.get("error", {})
                     error_msg = error_info.get("message", "未知错误")
-                    print(f"❌ 视频生成失败: {error_msg}")
                     return {
                         "success": False,
                         "status": task_status,
                         "message": f"视频生成失败: {error_msg}"
                     }
                 else:
-                    print(f"❓ 未知状态: {task_status}")
                     return {
                         "success": False,
                         "status": task_status,
@@ -448,7 +408,6 @@ class MultimodalOther:
                     }
             else:
                 error_msg = f"查询失败: {response.status_code} - {response.text}"
-                print(f"❌ {error_msg}")
                 return {
                     "success": False,
                     "message": error_msg
@@ -481,20 +440,14 @@ class MultimodalOther:
             if not filename:
                 filename = f"cogvideox_{int(time.time())}"
 
-            print(f"📥 开始下载视频和封面...")
-
             # 下载视频
             video_filename = f"{filename}.mp4"
             video_path = os.path.join(self.video_output_dir, video_filename)
-
-            print(f"  下载视频: {video_url[:50]}...")
-            print(f"  保存到: {video_path}")
 
             video_response = requests.get(video_url, stream=True, timeout=TIMEOUT)
 
             if video_response.status_code == 200:
                 total_size = int(video_response.headers.get('content-length', 0))
-                print(f"  视频大小: {total_size / (1024 * 1024):.2f} MB")
 
                 with open(video_path, 'wb') as f:
                     downloaded = 0
@@ -503,13 +456,6 @@ class MultimodalOther:
                             f.write(chunk)
                             downloaded += len(chunk)
 
-                            # 显示下载进度
-                            if total_size > 0:
-                                percent = (downloaded / total_size) * 100
-                                print(f"\r  下载进度: {percent:.1f}%", end="")
-
-                print(f"\n✅ 视频下载完成: {video_path}")
-
                 # 下载封面（如果提供）
                 cover_path = None
                 if cover_url:
@@ -517,20 +463,13 @@ class MultimodalOther:
                         cover_filename = f"{filename}_cover.png"
                         cover_path = os.path.join(self.video_output_dir, cover_filename)
 
-                        print(f"  下载封面: {cover_url[:50]}...")
-                        print(f"  保存到: {cover_path}")
-
                         cover_response = requests.get(cover_url, timeout=30)
 
                         if cover_response.status_code == 200:
                             with open(cover_path, 'wb') as f:
                                 f.write(cover_response.content)
-                            print(f"✅ 封面下载完成: {cover_path}")
-                        else:
-                            print(f"⚠️  封面下载失败: {cover_response.status_code}")
-
                     except Exception as cover_error:
-                        print(f"⚠️  封面下载出错: {cover_error}")
+                        pass
 
                 return {
                     "success": True,
@@ -541,7 +480,6 @@ class MultimodalOther:
                 }
             else:
                 error_msg = f"视频下载失败: {video_response.status_code}"
-                print(f"❌ {error_msg}")
                 return {
                     "success": False,
                     "message": error_msg
@@ -549,18 +487,16 @@ class MultimodalOther:
 
         except Exception as e:
             error_msg = f"下载失败: {str(e)}"
-            print(f"❌ {error_msg}")
-            import traceback
-            traceback.print_exc()
             return {
                 "success": False,
                 "message": error_msg
             }
 
     def wait_for_video_completion(self, task_id: str,
-                                  image_count: int = 0,  # 新增：图片数量
-                                  interval: int = 10,
-                                  max_attempts: int = 30) -> Dict[str, Any]:
+                                   image_count: int = 0,  # 新增：图片数量
+                                   interval: int = 10,
+                                   max_attempts: int = 30,
+                                   callback=None) -> Dict[str, Any]:
         """
         等待视频生成完成
 
@@ -569,40 +505,47 @@ class MultimodalOther:
             image_count: 图片数量（0=文字，1=单图，2=双图）
             interval: 检查间隔（秒）
             max_attempts: 最大尝试次数
+            callback: 回调函数，格式为 callback(event_type, attempt, task_id, status, interval)
 
         Returns:
             最终的视频结果
         """
-        print(f"🔄 开始轮询视频生成状态:")
-        print(f"  任务ID: {task_id}")
-        print(f"  图片数量: {image_count}")
-        print(f"  检查间隔: {interval}秒")
-        print(f"  最大尝试次数: {max_attempts}")
+        # 调用回调传递初始信息
+        if callback:
+            callback("START", task_id, image_count, interval, max_attempts)
 
         # 根据图片数量设置首次查询延迟
         initial_delay = 30 if image_count >= 1 else 10  # 双图和单图30秒，文字10秒
 
         # 首次查询前等待
         if initial_delay > 0:
-            print(f"⏳ 首次查询前等待 {initial_delay} 秒...")
+            if callback:
+                callback("WAIT", initial_delay, task_id, "PROCESSING", interval)
             time.sleep(initial_delay)
 
         for attempt in range(1, max_attempts + 1):
-            print(f"\n📊 第 {attempt}/{max_attempts} 次检查:")
-
+            # 调用回调传递轮询信息
             result = self.check_video_result(task_id)
+            status = result.get("status", "UNKNOWN")
+
+            if callback:
+                callback("CHECK", attempt, task_id, status, interval)
 
             if result.get("success") and result.get("status") == "SUCCESS":
-                print(f"🎉 视频生成成功！")
+                if callback:
+                    callback("SUCCESS", attempt, task_id, status, interval)
                 return result
             elif result.get("status") == "FAIL":
-                print(f"❌ 视频生成失败")
+                if callback:
+                    callback("FAIL", attempt, task_id, status, interval)
                 return result
             elif attempt < max_attempts:
-                print(f"⏳ 等待 {interval} 秒后重试...")
+                if callback:
+                    callback("WAIT", interval, task_id, status, interval)
                 time.sleep(interval)
             else:
-                print(f"⚠️  达到最大尝试次数，停止轮询")
+                if callback:
+                    callback("TIMEOUT", attempt, task_id, status, interval)
 
         return {
             "success": False,

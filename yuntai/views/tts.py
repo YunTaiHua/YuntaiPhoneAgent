@@ -17,10 +17,9 @@ class TTSBuilder:
 
     def create_page(self, tts_manager):
         """创建TTS语音合成页面"""
-        self.view._clear_content_card()
-        self.view._highlight_nav_button(2)
+        self.view._highlight_nav_button(1)
 
-        content_frame = ctk.CTkFrame(self.components["content_card"], fg_color="transparent")
+        content_frame = ctk.CTkFrame(self.view.content_pages[1], fg_color="transparent")
         content_frame.pack(fill="both", expand=True, padx=30, pady=30)
 
         # 页面标题
@@ -29,25 +28,6 @@ class TTSBuilder:
             text="🎤 TTS语音合成",
             font=("Microsoft YaHei", 24, "bold")
         ).pack(anchor="w", pady=(0, 10))
-
-        # 检查TTS可用性
-        if not hasattr(tts_manager, 'tts_available') or not tts_manager.tts_available:
-            warning_frame = ctk.CTkFrame(content_frame, corner_radius=15, fg_color="#f39c12")
-            warning_frame.pack(fill="x", pady=(0, 20))
-
-            ctk.CTkLabel(
-                warning_frame,
-                text="⚠️ TTS功能可能不可用",
-                font=("Microsoft YaHei", 16, "bold"),
-                text_color="white"
-            ).pack(padx=20, pady=10)
-
-            ctk.CTkLabel(
-                warning_frame,
-                text="请确保GPT-SoVITS已正确安装并配置",
-                font=("Microsoft YaHei", 12),
-                text_color="white"
-            ).pack(padx=20, pady=(0, 10))
 
         ctk.CTkLabel(
             content_frame,

@@ -14,11 +14,10 @@ class DynamicBuilder:
         self.components = view_instance.components
 
     def create_page(self):
-        """创建动态功能页面"""
-        self.view._clear_content_card()
-        self.view._highlight_nav_button(5)
+        """创建动态功能页面（只执行一次）"""
+        self.view._highlight_nav_button(4)
 
-        content_frame = ctk.CTkFrame(self.components["content_card"], fg_color="transparent")
+        content_frame = ctk.CTkFrame(self.view.content_pages[4], fg_color="transparent")
         content_frame.pack(fill="both", expand=True, padx=30, pady=30)
 
         # 页面标题
