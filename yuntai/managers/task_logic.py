@@ -30,6 +30,10 @@ class TaskLogicHandler:
     def handle_free_chat(self, task: str, zhipu_chat_model: str) -> str:
         """处理自由聊天"""
         try:
+            # 获取当前时间信息
+            from yuntai.tools.time_tool import TimeTool
+            time_info = TimeTool.get_time_info()
+
             # 获取历史自由聊天记录
             free_chat_history = self.file_manager.get_recent_free_chats(limit=5)
 
@@ -44,14 +48,23 @@ class TaskLogicHandler:
                     context_prompt += f"\n{i + 1}. 用户: {chat.get('user_input', '')}\n"
                     context_prompt += f"   你: {chat.get('assistant_reply', '')}\n"
 
-            # 构建系统提示词
+            # 构建系统提示词，添加时间信息
             system_prompt = f"""你是一个友好的助手，名字叫'小芸'（不用刻意用"小芸："放在对话开头做标注），性别为女，请用自然又俏皮可爱的方式回应用户。
 
 你有记忆功能，可以记住之前的对话内容。以下是你们之前的对话记录（最近5条）：
 {context_prompt}
 {forever_memory_content}
 
-请基于以上历史对话和用户当前的问题，生成一个连贯、友好的回复。"""
+{time_info}
+
+**重要**：
+- 如果用户询问时间，请使用上述当前时间信息回答
+- 不要编造时间，要准确使用提供的时间信息
+- 回答时可以自然地提及时间，如"现在的时间是14:30"或"今天是2026年1月31日"
+- 如果用户询问具体时间，请直接返回准确时间，不要添加不必要的对话内容
+- 如果用户未提及时间相关问题不要强行将时间添加到对话中
+
+请基于以上历史对话、时间信息和用户当前的问题，生成一个连贯、友好的回复。"""
 
             messages = [
                 {"role": "system", "content": system_prompt},

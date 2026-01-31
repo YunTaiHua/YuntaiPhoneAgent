@@ -40,6 +40,9 @@ from .utils import (
     cleanup_tts_resources
 )
 
+# 时间工具
+from .tools import TimeTool
+
 # ZHIPU_CLIENT 需要在主文件中初始化
 ZHIPU_CLIENT = None
 
@@ -66,6 +69,9 @@ __all__ = [
     "load_synthesized_files",
     "get_current_tts_status",
     "cleanup_tts_resources",
+
+    # 时间工具
+    "TimeTool",
 
     # 多模态处理器
     "MultimodalProcessor",
