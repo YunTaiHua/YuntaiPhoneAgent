@@ -6,6 +6,10 @@
 import os
 from dotenv import load_dotenv
 
+# ---------------- Version ----------------
+# 应用版本号，统一放在配置中，方便统一更新
+APP_VERSION = "1.2.8"
+
 # 加载环境变量
 load_dotenv()
 
@@ -141,10 +145,6 @@ TTS_ENABLE_PARALLEL = True    # 启用并行合成
 
 # ==================== GUI 主题配置 ====================
 # 图形用户界面主题颜色配置
-
-# ---------------- Version ----------------
-# 应用版本号，统一放在配置中，方便统一更新
-APP_VERSION = "1.2.7"
 
 class ThemeColors:
     """

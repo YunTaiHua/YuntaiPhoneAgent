@@ -2,12 +2,14 @@ Phone Agent Pro - Intelligent Multi-Modal Control Agent
 
 Version: 1.2.8
 
+**[English Version](README_en.md)**
+
 ## Phone Agent 智能版 v1.2.8 代码分析
 
 ### 📊 项目概述
 
 **项目名称**: Phone Agent 智能版  
-**版本**: v1.2.7（第878次迭代）
+**版本**: v1.2.8（第932次迭代）
 
 ### 🏗️ 架构设计
 
@@ -76,12 +78,8 @@ YuntaiPhoneAgent/
 │   ├── agent.py
 │   └── model/
 │       └── client.py
-├── .gitignore
-├── .pre-commit-config.yaml
-├── LICENSE
-├── README_en.md
 ├── __init__.py
-├── forever.txt
+├── forever.txt  #可以自主创建，把绝对路径填入.env
 ├── main.py  # 主入口
 ├── requirements.txt
 └── setup.py
@@ -207,36 +205,8 @@ pip install -r requirements.txt
 
 #### 命令行
 ```bash
-# 交互模式
-python main.py --base-url <模型API地址> --model <模型名称>
-
-# 执行指定任务
-python main.py --base-url <模型API地址> "打开美团搜索附近的火锅店"
-
-# 使用 API Key 认证
-python main.py --apikey YOUR_API_KEY
-
-# 指定设备
-python main.py --device-id 192.168.1.100:5555 --base-url <模型API地址> "打开抖音刷视频"
-```
-
-#### Python API
-```python
-from phone_agent import PhoneAgent
-from phone_agent.model import ModelConfig
-
-# 配置模型
-model_config = ModelConfig(
-    base_url="<模型API地址>",
-    model_name="<模型名称>",
-)
-
-# 创建 Agent
-agent = PhoneAgent(model_config=model_config)
-
-# 执行任务
-result = agent.run("打开淘宝搜索无线耳机")
-print(result)
+#配置好.env后直接运行主程序
+python main.py 
 ```
 
 ### 环境变量
