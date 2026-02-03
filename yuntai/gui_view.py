@@ -285,7 +285,7 @@ class GUIView:
             return
 
         # 显示文件区域
-        attached_files_frame.pack(fill="x", padx=15, pady=(0, 10))
+        attached_files_frame.pack(fill="x", padx=15, pady=(5, 0))
 
         # 标题
         ctk.CTkLabel(
@@ -299,8 +299,9 @@ class GUIView:
         for i, file_path in enumerate(file_paths):
             file_frame = ctk.CTkFrame(attached_files_frame,
                                       fg_color=ThemeColors.BG_HOVER,
-                                      height=35)
+                                      height=40)
             file_frame.pack(fill="x", pady=2)
+            file_frame.pack_propagate(False)
 
             # 文件名（带图标）
             file_name = os.path.basename(file_path)
@@ -362,6 +363,13 @@ class GUIView:
         else:
             # 如果没有controller，至少显示文件列表
             print("⚠️  show_attached_files未收到controller参数，文件操作为只读模式")
+
+        # 强制更新布局，确保父容器正确扩展
+        try:
+            if attached_files_frame.master:
+                attached_files_frame.master.update_idletasks()
+        except Exception:
+            pass
 
     def remove_attached_file(self, file_path: str, controller):
         """从UI中移除单个文件"""

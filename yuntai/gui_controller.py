@@ -142,11 +142,34 @@ class GUIController:
 
         command_input = self.view.get_component("command_input")
         if command_input:
-            command_input.bind("<Return>", lambda _: self.execute_command())
+            command_input.bind("<Return>", self._on_command_input_return)
+            command_input.bind("<Shift-Return>", self._on_command_input_shift_return)
+            command_input.bind("<Control-Return>", self._on_command_input_ctrl_return)
 
         enter_btn = self.view.get_component("enter_button")
         if enter_btn:
             enter_btn.configure(command=self.simulate_enter)
+
+    def _on_command_input_return(self, event=None):
+        """输入框按Enter键执行命令"""
+        self.execute_command()
+        return "break"
+
+    def _on_command_input_shift_return(self, event=None):
+        """Shift+Enter换行"""
+        text_widget = self.view.get_component("command_input")
+        if text_widget:
+            text_widget.insert(tk.INSERT, "\n")
+            text_widget.see(tk.INSERT)
+        return "break"
+
+    def _on_command_input_ctrl_return(self, event=None):
+        """Ctrl+Enter换行"""
+        text_widget = self.view.get_component("command_input")
+        if text_widget:
+            text_widget.insert(tk.INSERT, "\n")
+            text_widget.see(tk.INSERT)
+        return "break"
 
     # ============ 页面显示方法 ============
 
@@ -244,14 +267,15 @@ class GUIController:
 
         command_input = self.view.get_component("command_input")
         if not command_input: return
-        command = command_input.get().strip()
+        command = command_input.get("1.0", "end-1c").strip()
         has_attachments = len(self.attached_files) > 0
 
         if not command and not has_attachments:
             self.show_toast("请输入命令或选择文件", "warning")
             return
 
-        command_input.delete(0, tk.END)
+        command_input.delete("1.0", tk.END)
+        command_input.configure(height=35)
         if self.terminate_flag.is_set():
             self.terminate_flag.clear()
 

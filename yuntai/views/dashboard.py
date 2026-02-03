@@ -69,7 +69,6 @@ class DashboardBuilder:
             output_frame,
             font=("Consolas", 13),
             activate_scrollbars=True,
-            height=400,
             wrap="none"
         )
         self.components["output_text"].pack(fill="both", expand=True, padx=10, pady=(0, 10))
@@ -85,9 +84,13 @@ class DashboardBuilder:
             font=("Microsoft YaHei", 14, "bold")
         ).pack(anchor="w", padx=15, pady=10)
 
-        # 命令输入框和"+"号按钮在同一行
-        input_button_frame = ctk.CTkFrame(input_frame, fg_color="transparent")
-        input_button_frame.pack(fill="x", padx=15, pady=(0, 10))
+        # 输入框和附件区域容器
+        input_container = ctk.CTkFrame(input_frame, fg_color="transparent")
+        input_container.pack(fill="x", padx=15)
+
+        # 第一行：输入框和"+"号按钮
+        input_button_frame = ctk.CTkFrame(input_container, fg_color="transparent")
+        input_button_frame.pack(fill="x")
 
         # "+"号按钮 - 用于上传文件
         self.components["attach_button"] = ctk.CTkButton(
@@ -95,30 +98,33 @@ class DashboardBuilder:
             text="+",
             font=("Microsoft YaHei", 16, "bold"),
             width=45,
-            height=45,
+            height=35,
             fg_color=ThemeColors.SECONDARY,
             hover_color="#5e35b1",
             corner_radius=8
         )
         self.components["attach_button"].pack(side="left", padx=(0, 10))
 
-        # 命令输入框
-        self.components["command_input"] = ctk.CTkEntry(
+        # 命令输入框（可自适应高度的文本框）
+        self.components["command_input"] = ctk.CTkTextbox(
             input_button_frame,
-            placeholder_text="输入命令或聊天内容，可点击'+'号添加图片/视频/文件...",
             font=("Microsoft YaHei", 13),
-            height=45
+            height=35,
+            width=500,
+            wrap="word",
+            activate_scrollbars=False
         )
         self.components["command_input"].pack(side="left", fill="x", expand=True)
+        self.components["command_input"].bind("<KeyRelease>", self._on_input_keyrelease)
 
-        # 已选文件显示区域
-        self.components["attached_files_frame"] = ctk.CTkFrame(input_frame, fg_color="transparent")
-        self.components["attached_files_frame"].pack(fill="x", padx=15, pady=(0, 10))
+        # 已选文件显示区域（紧跟在输入框下方）
+        self.components["attached_files_frame"] = ctk.CTkFrame(input_container, fg_color="transparent")
+        self.components["attached_files_frame"].pack(fill="x", pady=(5, 0))
         self.components["attached_files_frame"].pack_forget()
 
         # 按钮区域
-        button_frame = ctk.CTkFrame(input_frame, fg_color="transparent")
-        button_frame.pack(fill="x", padx=15, pady=(0, 15))
+        self.components["button_frame"] = button_frame = ctk.CTkFrame(input_container, fg_color="transparent")
+        button_frame.pack(fill="x", pady=(10, 0))
 
         # 各功能按钮
         self.components["execute_button"] = ctk.CTkButton(
@@ -168,3 +174,26 @@ class DashboardBuilder:
             hover_color="#8e44ad"
         )
         self.components["scrcpy_button"].pack(side="left", padx=(10, 0))
+
+    def _on_input_keyrelease(self, event=None):
+        """输入框内容变化时自适应高度"""
+        text_widget = self.components.get("command_input")
+        if not text_widget:
+            return
+
+        try:
+            content = text_widget.get("1.0", "end-1c")
+            if not content:
+                text_widget.configure(height=35)
+                return
+
+            lines = content.count('\n') + 1
+            line_height = 20
+            current_height = min(lines * line_height + 10, 175)
+
+            if current_height < 35:
+                current_height = 35
+
+            text_widget.configure(height=current_height)
+        except Exception as e:
+            pass
