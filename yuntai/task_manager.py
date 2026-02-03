@@ -494,7 +494,7 @@ class TaskManager:
     def set_device_type(self, device_type: str):
         """设置设备类型"""
         self.connection_manager.set_device_type(device_type)
-        print(f"📱 TaskManager设备类型已切换为: {device_type}")
+        #print(f"📱 TaskManager设备类型已切换为: {device_type}")
 
     # ========== 连接管理方法 ==========
 
@@ -546,8 +546,9 @@ class TaskManager:
         else:
             print(f"❌ 重新连接失败: {message}")
 
-    def detect_devices(self) -> List[str]:
+    def detect_devices(self, device_type: str = "android") -> List[str]:
         """检测可用设备"""
+        self.connection_manager.set_device_type(device_type)
         return self.connection_manager.get_available_devices()
 
     def disconnect_device(self):
