@@ -846,7 +846,7 @@ class TTSManager:
             ref_text = self.get_current_model("text")
 
             if not ref_audio or not ref_text:
-                print("⚠️  无法语音播报：未选择参考音频或文本")
+                print("\n⚠️  无法语音播报：未选择参考音频或文本")
                 return False
 
             # 检查TTS是否启用
@@ -1960,7 +1960,7 @@ class TaskManager:
                                 auto_play=True
                             )
                         else:
-                            print("⚠️  无法语音播报：未选择参考音频或文本")
+                            print("\n⚠️  无法语音播报：未选择参考音频或文本")
 
                     # 异步播报（与自由聊天和单次回复保持一致）
                     threading.Thread(target=speak_result, daemon=True).start()

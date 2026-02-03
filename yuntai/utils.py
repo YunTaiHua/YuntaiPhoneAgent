@@ -53,6 +53,23 @@ class Utils:
 
         return all_passed
 
+    def check_hdc(self) -> bool:
+        """检查HDC工具是否可用"""
+        if shutil.which("hdc") is None:
+            return False
+        try:
+            result = subprocess.run(
+                ["hdc", "-v"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                encoding="utf-8",
+                errors="ignore"
+            )
+            return result.returncode == 0
+        except Exception:
+            return False
+
     def check_model_api(self, base_url: str, model_name: str, api_key: str = "EMPTY") -> bool:
         print(f"🔍 检查模型API...")
         try:

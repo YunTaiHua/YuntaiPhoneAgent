@@ -73,17 +73,17 @@ class ConnectionBuilder:
             font=("Microsoft YaHei", 13)
         ).pack(anchor="w", pady=(0, 10))
 
-        self.components["device_type_var"] = ctk.StringVar(value="android")
+        self.components["device_type_var"] = ctk.StringVar(value="Android (ADB)")
 
-        android_option = ctk.CTkRadioButton(
+        device_type_menu = ctk.CTkOptionMenu(
             device_type_frame,
-            text="Android (ADB)",
+            values=["Android (ADB)", "HarmonyOS (HDC)"],
             variable=self.components["device_type_var"],
-            value="android",
             font=("Microsoft YaHei", 13),
-            command=lambda: self.view._on_device_type_change("android")
+            height=40,
+            command=self.view._on_device_type_change
         )
-        android_option.pack(anchor="w", pady=5)
+        device_type_menu.pack(anchor="w", pady=5)
 
         # 连接方式选择
         conn_type_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
