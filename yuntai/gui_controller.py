@@ -534,7 +534,7 @@ class GUIController:
             self.device_type = device_type
             self.task_manager.set_device_type(device_type)
             self.task_manager.agent_executor.set_device_type(device_type)
-            print(f"📱 设备类型已切换为: {device_type}")
+            #print(f"📱 设备类型已切换为: {device_type}")
 
         self.view._device_type_callback = on_device_type_change
 
