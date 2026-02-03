@@ -317,24 +317,13 @@ class TaskLogicHandler:
                 # TTS语音播报回复内容（与自由聊天和单次回复保持一致）
                 if self.tts_manager and self.tts_manager.tts_enabled and len(success_msg) > 5:
                     def speak_result():
-                        # 检查是否有参考音频和文本
-                        ref_audio = self.tts_manager.database_manager.get_current_model("audio")
-                        ref_text = self.tts_manager.database_manager.get_current_model("text")
-
-                        if ref_audio and ref_text:
-                            # 清理消息用于TTS（使用与自由聊天相同的清理方法）
-                            cleaned_msg = self.tts_manager.text_processor.clean_text_for_tts(success_msg)
-                            self.tts_manager.engine.synthesize_text(
-                                cleaned_msg,
-                                ref_audio,
-                                ref_text,
-                                auto_play=True
-                            )
-                        else:
-                            print("⚠️  无法语音播报：未选择参考音频或文本")
+                        try:
+                            self.tts_manager.speak_text_intelligently(success_msg)
+                        except Exception as e:
+                            print(f"❌ 语音播报失败: {e}")
 
                     # 异步播报（与自由聊天和单次回复保持一致）
-                    threading.Thread(target=speak_result, daemon=True).start()
+                    threading.Timer(0.5, speak_result).start()
 
             return return_msg
 
