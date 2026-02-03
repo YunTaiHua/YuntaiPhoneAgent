@@ -108,6 +108,7 @@ CONNECTION_CONFIG_FILE = os.path.join(PROJECT_ROOT, "connection_config.json")
 # ==================== 设备类型配置 ====================
 # 设备类型常量
 DEVICE_TYPE_ANDROID = "android"
+DEVICE_TYPE_HARMONY = "harmony"
 
 # 默认设备类型
 DEFAULT_DEVICE_TYPE = os.getenv('PHONE_AGENT_DEVICE_TYPE', DEVICE_TYPE_ANDROID)

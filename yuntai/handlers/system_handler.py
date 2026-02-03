@@ -3,14 +3,14 @@ import threading
 import customtkinter as ctk
 from tkinter import messagebox
 
-# 修复：从 yuntai 包导入
 from yuntai.config import (
     CONVERSATION_HISTORY_FILE, RECORD_LOGS_DIR,
     FOREVER_MEMORY_FILE, CONNECTION_CONFIG_FILE,
-    ZHIPU_API_BASE_URL, ZHIPU_MODEL, ZHIPU_API_KEY  # 修复导入路径
+    ZHIPU_API_BASE_URL, ZHIPU_MODEL, ZHIPU_API_KEY,
+    DEVICE_TYPE_HARMONY
 )
 from yuntai.gui_view import ThemeColors
-import tkinter as tk  # 添加缺失的导入
+import tkinter as tk
 
 
 class SystemHandler:
@@ -122,8 +122,12 @@ class SystemHandler:
 
     def check_system_gui(self):
         """可视化系统检查"""
-        # 修复：使用 yuntai 包下的导入
         from yuntai.config import ZHIPU_API_BASE_URL, ZHIPU_MODEL, ZHIPU_API_KEY
+
+        device_type_var = self.view.get_component("device_type_var")
+        is_harmony = False
+        if device_type_var and device_type_var.get() and "HarmonyOS" in device_type_var.get():
+            is_harmony = True
 
         check_window = ctk.CTkToplevel(self.root)
         check_window.title("🔍 系统检查")
@@ -132,7 +136,6 @@ class SystemHandler:
         check_window.transient(self.root)
         check_window.grab_set()
 
-        # 标题
         title_frame = ctk.CTkFrame(check_window, fg_color="transparent")
         title_frame.pack(fill="x", padx=20, pady=20)
 
@@ -142,18 +145,17 @@ class SystemHandler:
             font=("Microsoft YaHei", 20, "bold")
         ).pack(anchor="w")
 
+        device_type_name = "HarmonyOS (HDC)" if is_harmony else "Android (ADB)"
         ctk.CTkLabel(
             title_frame,
-            text="正在检查系统配置和依赖...",
+            text=f"正在检查 {device_type_name} 系统配置...",
             font=("Microsoft YaHei", 12),
             text_color=ThemeColors.TEXT_SECONDARY
         ).pack(anchor="w", pady=(5, 0))
 
-        # 检查结果区域
         result_frame = ctk.CTkFrame(check_window, corner_radius=10)
         result_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
 
-        # 创建滚动文本框显示结果
         result_text = ctk.CTkTextbox(
             result_frame,
             font=("Consolas", 12),
@@ -161,7 +163,6 @@ class SystemHandler:
         )
         result_text.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # 状态标签
         status_label = ctk.CTkLabel(
             check_window,
             text="准备开始检查...",
@@ -169,28 +170,44 @@ class SystemHandler:
         )
         status_label.pack(side="left", padx=20, pady=(0, 10))
 
-        # 检查线程
         def check_thread():
             try:
-                check_window.after(0, lambda: status_label.configure(text="检查ADB环境..."))
+                tool_name = "HDC" if is_harmony else "ADB"
+                check_window.after(0, lambda: status_label.configure(text=f"检查{tool_name}环境..."))
 
-                # 检查ADB
-                adb_result = self.task_manager.utils.check_system_requirements()
+                if is_harmony:
+                    tool_result = self.task_manager.utils.check_hdc()
 
-                result_text.insert("end", "=" * 60 + "\n")
-                result_text.insert("end", "📱 ADB 环境检查\n")
-                result_text.insert("end", "=" * 60 + "\n")
-                if adb_result:
-                    result_text.insert("end", "✅ ADB检查通过\n")
-                    result_text.insert("end", "  已安装ADB工具\n")
-                    result_text.insert("end", "  设备连接功能正常\n\n")
+                    result_text.insert("end", "=" * 60 + "\n")
+                    result_text.insert("end", "📱 HDC 环境检查\n")
+                    result_text.insert("end", "=" * 60 + "\n")
+                    if tool_result:
+                        result_text.insert("end", "✅ HDC检查通过\n")
+                        result_text.insert("end", "  HDC工具已安装\n")
+                        result_text.insert("end", "  HarmonyOS设备连接功能正常\n\n")
+                    else:
+                        result_text.insert("end", "❌ HDC检查失败\n")
+                        result_text.insert("end", "  HDC工具未安装或不在PATH中\n")
+                        result_text.insert("end", "\n💡 解决方案:\n")
+                        result_text.insert("end", "  1. 下载HarmonyOS SDK\n")
+                        result_text.insert("end", "  2. 从SDK目录找到hdc工具\n")
+                        result_text.insert("end", "  3. 将hdc添加到系统PATH环境变量\n\n")
                 else:
-                    result_text.insert("end", "❌ ADB检查失败\n")
-                    result_text.insert("end", "  请确保已安装ADB并添加到系统PATH\n\n")
+                    tool_result = self.task_manager.utils.check_system_requirements()
+
+                    result_text.insert("end", "=" * 60 + "\n")
+                    result_text.insert("end", "📱 ADB 环境检查\n")
+                    result_text.insert("end", "=" * 60 + "\n")
+                    if tool_result:
+                        result_text.insert("end", "✅ ADB检查通过\n")
+                        result_text.insert("end", "  ADB工具已安装\n")
+                        result_text.insert("end", "  Android设备连接功能正常\n\n")
+                    else:
+                        result_text.insert("end", "❌ ADB检查失败\n")
+                        result_text.insert("end", "  请确保已安装ADB并添加到系统PATH\n\n")
 
                 check_window.after(0, lambda: status_label.configure(text="检查模型API..."))
 
-                # 检查模型API
                 api_result = self.task_manager.utils.check_model_api(
                     ZHIPU_API_BASE_URL,
                     ZHIPU_MODEL,
@@ -210,7 +227,6 @@ class SystemHandler:
 
                 check_window.after(0, lambda: status_label.configure(text="检查TTS功能..."))
 
-                # 检查TTS功能
                 result_text.insert("end", "=" * 60 + "\n")
                 result_text.insert("end", "🎤 TTS功能检查\n")
                 result_text.insert("end", "=" * 60 + "\n")
@@ -218,7 +234,6 @@ class SystemHandler:
                 if self.task_manager.tts_manager.tts_available:
                     result_text.insert("end", "✅ TTS模块可用\n")
 
-                    # 检查文件数据库
                     gpt_count = len(self.task_manager.tts_manager.tts_files_database["gpt"])
                     sovits_count = len(self.task_manager.tts_manager.tts_files_database["sovits"])
                     audio_count = len(self.task_manager.tts_manager.tts_files_database["audio"])
@@ -239,7 +254,6 @@ class SystemHandler:
 
                 result_text.insert("end", "\n")
 
-                # 检查设备连接
                 check_window.after(0, lambda: status_label.configure(text="检查设备连接..."))
 
                 result_text.insert("end", "=" * 60 + "\n")
@@ -248,18 +262,17 @@ class SystemHandler:
 
                 if self.task_manager.is_connected:
                     result_text.insert("end", f"✅ 设备已连接: {self.task_manager.device_id}\n")
-                    result_text.insert("end",
-                                       f"  连接类型: {self.task_manager.config.get('connection_type', '未知')}\n")
+                    conn_type = self.task_manager.config.get('connection_type', '未知')
+                    result_text.insert("end", f"  连接类型: {conn_type}\n")
                 else:
                     result_text.insert("end", "⚠️  设备未连接\n")
                     result_text.insert("end", "  请前往设备管理页面连接设备\n")
 
-                # 总体结论
                 result_text.insert("end", "\n" + "=" * 60 + "\n")
                 result_text.insert("end", "📋 检查结论\n")
                 result_text.insert("end", "=" * 60 + "\n")
 
-                if adb_result and api_result:
+                if tool_result and api_result:
                     result_text.insert("end", "🎉 系统检查通过，核心组件正常\n")
                     check_window.after(0, lambda: status_label.configure(
                         text="检查完成，核心组件正常",
@@ -272,7 +285,6 @@ class SystemHandler:
                         text_color=ThemeColors.WARNING
                     ))
 
-                # 滚动到顶部
                 result_text.see("1.0")
 
             except Exception as e:
@@ -282,7 +294,6 @@ class SystemHandler:
                     text_color=ThemeColors.DANGER
                 ))
 
-        # 启动检查线程
         threading.Thread(target=check_thread, daemon=True).start()
 
     def show_file_management(self):

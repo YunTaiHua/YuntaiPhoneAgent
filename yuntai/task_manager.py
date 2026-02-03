@@ -317,7 +317,7 @@ class TTSManager:
             ref_text = self.get_current_model("text")
 
             if not ref_audio or not ref_text:
-                print("⚠️  无法语音播报：未选择参考音频或文本")
+                print("\n⚠️  无法语音播报：未选择参考音频或文本")
                 return False
 
             # 检查TTS是否启用
@@ -546,8 +546,9 @@ class TaskManager:
         else:
             print(f"❌ 重新连接失败: {message}")
 
-    def detect_devices(self) -> List[str]:
+    def detect_devices(self, device_type: str = "android") -> List[str]:
         """检测可用设备"""
+        self.connection_manager.set_device_type(device_type)
         return self.connection_manager.get_available_devices()
 
     def disconnect_device(self):

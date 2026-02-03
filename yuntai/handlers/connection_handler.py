@@ -6,8 +6,8 @@ import customtkinter as ctk
 import pyperclip
 from typing import Optional, Dict, Any, Callable
 
-# 导入公共配置和视图样式
 from yuntai.gui_view import ThemeColors
+from yuntai.config import DEVICE_TYPE_HARMONY
 
 
 class ConnectionHandler:
@@ -61,6 +61,21 @@ class ConnectionHandler:
                 usb_frame.pack_forget()
                 wireless_frame.pack(fill="x")
 
+    def _get_device_type(self) -> str:
+        """获取当前选择的设备类型"""
+        device_type_var = self.view.get_component("device_type_var")
+        if device_type_var:
+            if "HarmonyOS" in device_type_var.get():
+                return DEVICE_TYPE_HARMONY
+        return "android"
+
+    def _get_device_type_display(self) -> str:
+        """获取当前选择的设备类型显示文本"""
+        device_type_var = self.view.get_component("device_type_var")
+        if device_type_var:
+            return device_type_var.get()
+        return "Android (ADB)"
+
     def connect_device_gui(self):
         """GUI界面连接设备"""
         config = self._get_connection_config_from_ui()
@@ -86,11 +101,16 @@ class ConnectionHandler:
             self.controller.show_toast("UI组件未初始化", "error")
             return None
 
+        device_type = self._get_device_type()
+        device_type_display = self._get_device_type_display()
+
         config = {
             "connection_type": conn_var.get(),
             "wireless_ip": "",
             "wireless_port": "5555",
-            "usb_device_id": ""
+            "usb_device_id": "",
+            "device_type": device_type,
+            "device_type_display": device_type_display
         }
 
         if conn_var.get() == "usb":
@@ -120,13 +140,12 @@ class ConnectionHandler:
 
     def detect_devices_gui(self):
         """GUI界面检测设备 - 弹窗显示结果"""
-
         def detect_thread():
-            devices = self.task_manager.detect_devices()
+            device_type = self._get_device_type()
+            device_type_display = self._get_device_type_display()
+            devices = self.task_manager.detect_devices(device_type)
 
-            # 在主线程中显示弹窗
             def show_result_dialog():
-                # 创建弹窗
                 result_window = ctk.CTkToplevel(self.root)
                 result_window.title("设备检测结果")
                 result_window.geometry("600x500")
@@ -134,19 +153,23 @@ class ConnectionHandler:
                 result_window.transient(self.root)
                 result_window.grab_set()
 
-                # 标题
                 ctk.CTkLabel(
                     result_window,
                     text="📱 设备检测结果",
                     font=("Microsoft YaHei", 20, "bold")
                 ).pack(pady=20)
 
+                ctk.CTkLabel(
+                    result_window,
+                    text=f"设备类型: {device_type_display}",
+                    font=("Microsoft YaHei", 12),
+                    text_color=ThemeColors.TEXT_SECONDARY
+                ).pack(pady=(0, 10))
+
                 if devices:
-                    # 有设备的情况
                     device_count = len(devices)
                     status_text = f"✅ 检测到 {device_count} 个设备"
 
-                    # 状态标签
                     ctk.CTkLabel(
                         result_window,
                         text=status_text,
@@ -154,11 +177,9 @@ class ConnectionHandler:
                         text_color=ThemeColors.SUCCESS
                     ).pack(pady=(0, 10))
 
-                    # 创建可复制的文本框显示设备列表
                     text_frame = ctk.CTkFrame(result_window, corner_radius=10)
                     text_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
 
-                    # 添加复制按钮的框架
                     toolbar = ctk.CTkFrame(text_frame, fg_color="transparent", height=40)
                     toolbar.pack(fill="x", padx=10, pady=(10, 0))
 
@@ -168,24 +189,20 @@ class ConnectionHandler:
                         font=("Microsoft YaHei", 12, "bold")
                     ).pack(side="left")
 
-                    # 复制按钮
                     def copy_to_clipboard():
-                        # 复制所有设备信息到剪贴板
                         device_text = "\n".join([f"{i + 1}. {device}" for i, device in enumerate(devices)])
                         pyperclip.copy(device_text)
                         self.controller.show_toast("已复制到剪贴板", "success")
 
-                    copy_btn = ctk.CTkButton(
+                    ctk.CTkButton(
                         toolbar,
                         text="📋 复制",
                         font=("Microsoft YaHei", 12),
                         height=30,
                         width=80,
                         command=copy_to_clipboard
-                    )
-                    copy_btn.pack(side="right", padx=5)
+                    ).pack(side="right", padx=5)
 
-                    # 可复制的文本框
                     result_text = ctk.CTkTextbox(
                         text_frame,
                         font=("Consolas", 12),
@@ -193,12 +210,10 @@ class ConnectionHandler:
                     )
                     result_text.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
-                    # 填充设备信息
                     result_text.insert("1.0", "设备ID列表:\n" + "=" * 50 + "\n\n")
                     for i, device in enumerate(devices, 1):
                         result_text.insert("end", f"{i:2d}. {device}\n")
 
-                    # 添加使用提示
                     result_text.insert("end", "\n" + "=" * 50 + "\n")
                     result_text.insert("end", "💡 使用说明:\n")
                     result_text.insert("end", "1. 选择文本进行复制\n")
@@ -210,10 +225,8 @@ class ConnectionHandler:
                     result_text.configure(state="disabled")
 
                 else:
-                    # 无设备的情况 - 也提供可复制的文本
-                    status_text = "❌ 未检测到任何设备"
+                    status_text = f"❌ 未检测到任何设备 ({device_type_display})"
 
-                    # 状态标签
                     ctk.CTkLabel(
                         result_window,
                         text=status_text,
@@ -221,11 +234,9 @@ class ConnectionHandler:
                         text_color=ThemeColors.DANGER
                     ).pack(pady=(0, 10))
 
-                    # 可复制的文本框
                     text_frame = ctk.CTkFrame(result_window, corner_radius=10)
                     text_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
 
-                    # 工具栏
                     toolbar = ctk.CTkFrame(text_frame, fg_color="transparent", height=40)
                     toolbar.pack(fill="x", padx=10, pady=(10, 0))
 
@@ -235,28 +246,27 @@ class ConnectionHandler:
                         font=("Microsoft YaHei", 12, "bold")
                     ).pack(side="left")
 
-                    # 复制按钮
-                    def copy_troubleshooting():
-                        troubleshooting_text = """请检查以下项目：
+                    tool_name = "hdc" if device_type == DEVICE_TYPE_HARMONY else "adb"
+                    troubleshooting_text = f"""请检查以下项目：
     1. 手机是否已通过USB线连接电脑
     2. 手机是否已开启【开发者选项】和【USB调试】
     3. 连接电脑时，手机上是否点击了【允许USB调试】
-    4. 尝试重新插拔USB线或重启ADB服务
+    4. 尝试重新插拔USB线或重启{tool_name.upper()}服务
     5. 如果是无线连接，请确保IP和端口正确"""
+
+                    def copy_troubleshooting():
                         pyperclip.copy(troubleshooting_text)
                         self.controller.show_toast("故障排除指南已复制", "success")
 
-                    copy_btn = ctk.CTkButton(
+                    ctk.CTkButton(
                         toolbar,
                         text="📋 复制指南",
                         font=("Microsoft YaHei", 12),
                         height=30,
                         width=100,
                         command=copy_troubleshooting
-                    )
-                    copy_btn.pack(side="right", padx=5)
+                    ).pack(side="right", padx=5)
 
-                    # 文本框内容
                     result_text = ctk.CTkTextbox(
                         text_frame,
                         font=("Microsoft YaHei", 12),
@@ -264,13 +274,12 @@ class ConnectionHandler:
                     )
                     result_text.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
-                    # 填充故障排除信息
                     result_text.insert("1.0", "请检查以下项目：\n" + "=" * 50 + "\n\n")
                     checks = [
                         "1. 📱 手机是否已通过USB线连接电脑",
                         "2. ⚙️ 手机是否已开启【开发者选项】和【USB调试】",
                         "3. 📲 连接电脑时，手机上是否点击了【允许USB调试】",
-                        "4. 🔄 尝试重新插拔USB线或重启ADB服务",
+                        f"4. 🔄 尝试重新插拔USB线或重启{tool_name.upper()}服务",
                         "5. 🔌 如果是无线连接，请确保IP和端口正确"
                     ]
 
@@ -285,7 +294,6 @@ class ConnectionHandler:
 
                     result_text.configure(state="normal")
 
-                # 关闭按钮
                 ctk.CTkButton(
                     result_window,
                     text="关闭",
@@ -295,16 +303,13 @@ class ConnectionHandler:
                     command=result_window.destroy
                 ).pack(pady=20)
 
-                # 只显示一个简单的Toast提示
                 if devices:
                     self.controller.show_toast(f"检测到 {len(devices)} 个设备", "success")
                 else:
                     self.controller.show_toast("未检测到设备", "warning")
 
-            # 在主线程中显示弹窗
             self.root.after(0, show_result_dialog)
 
-        # 启动检测线程
         threading.Thread(target=detect_thread, daemon=True).start()
 
     def disconnect_device(self):

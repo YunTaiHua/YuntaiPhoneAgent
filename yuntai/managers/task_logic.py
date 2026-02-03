@@ -331,7 +331,7 @@ class TaskLogicHandler:
                                 auto_play=True
                             )
                         else:
-                            print("⚠️  无法语音播报：未选择参考音频或文本")
+                            print("\n⚠️  无法语音播报：未选择参考音频或文本")
 
                     # 异步播报（与自由聊天和单次回复保持一致）
                     threading.Thread(target=speak_result, daemon=True).start()
