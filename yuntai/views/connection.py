@@ -41,13 +41,13 @@ class ConnectionBuilder:
         # 连接状态卡片 - 现代化样式
         self.components["status_card"] = ctk.CTkFrame(
             content_frame, 
-            corner_radius=16,
+            corner_radius=12,
             height=100,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT
         )
-        self.components["status_card"].pack(fill="x", pady=(0, 25))
+        self.components["status_card"].pack(fill="x", pady=(0, 16))
 
         status_inner = ctk.CTkFrame(
             self.components["status_card"], 
@@ -78,12 +78,12 @@ class ConnectionBuilder:
         """创建设备连接表单 - 现代化卡片样式"""
         form_frame = ctk.CTkFrame(
             parent, 
-            corner_radius=16,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT
         )
-        form_frame.pack(fill="x", pady=(0, 20))
+        form_frame.pack(fill="x", pady=(0, 16))
 
         # 表单标题
         ctk.CTkLabel(
@@ -112,7 +112,7 @@ class ConnectionBuilder:
             variable=self.components["device_type_var"],
             font=("Microsoft YaHei", 13),
             height=42,
-            corner_radius=10,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD_ALT,
             button_color=ThemeColors.PRIMARY,
             button_hover_color=ThemeColors.PRIMARY_HOVER,
@@ -181,7 +181,7 @@ class ConnectionBuilder:
             placeholder_text="通过 adb devices / hdc list targets / idevice_id -l 查看",
             font=("Microsoft YaHei", 13),
             height=42,
-            corner_radius=10,
+            corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
             text_color=ThemeColors.TEXT_PRIMARY,
             border_color=ThemeColors.BORDER_MEDIUM,
@@ -209,7 +209,7 @@ class ConnectionBuilder:
             placeholder_text="例如: 192.168.1.100",
             font=("Microsoft YaHei", 13),
             height=42,
-            corner_radius=10,
+            corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
             text_color=ThemeColors.TEXT_PRIMARY,
             border_color=ThemeColors.BORDER_MEDIUM,
@@ -230,7 +230,7 @@ class ConnectionBuilder:
             placeholder_text="默认: 5555",
             font=("Microsoft YaHei", 13),
             height=42,
-            corner_radius=10,
+            corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
             text_color=ThemeColors.TEXT_PRIMARY,
             border_color=ThemeColors.BORDER_MEDIUM,
@@ -247,8 +247,8 @@ class ConnectionBuilder:
             button_frame,
             text="🔍 检测设备",
             font=("Microsoft YaHei", 14),
-            height=44,
-            corner_radius=10,
+            height=40,
+            corner_radius=20,
             fg_color=ThemeColors.SECONDARY,
             hover_color=ThemeColors.SECONDARY_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -259,8 +259,8 @@ class ConnectionBuilder:
             button_frame,
             text="🔗 连接设备",
             font=("Microsoft YaHei", 14),
-            height=44,
-            corner_radius=10,
+            height=40,
+            corner_radius=20,
             fg_color=ThemeColors.PRIMARY,
             hover_color=ThemeColors.PRIMARY_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -271,8 +271,8 @@ class ConnectionBuilder:
             button_frame,
             text="⏹ 断开连接",
             font=("Microsoft YaHei", 14),
-            height=44,
-            corner_radius=10,
+            height=40,
+            corner_radius=20,
             fg_color=ThemeColors.DANGER,
             hover_color=ThemeColors.DANGER_HOVER,
             text_color=ThemeColors.TEXT_LIGHT

@@ -46,12 +46,12 @@ class DashboardBuilder:
         # 执行输出区域 - 现代化卡片
         output_frame = ctk.CTkFrame(
             content_frame, 
-            corner_radius=16,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT
         )
-        output_frame.pack(fill="both", expand=True, pady=(0, 20))
+        output_frame.pack(fill="both", expand=True, pady=(0, 16))
 
         # 标题行：执行输出标签 + 模拟回车按钮
         output_header_frame = ctk.CTkFrame(output_frame, fg_color="transparent")
@@ -70,10 +70,10 @@ class DashboardBuilder:
             text="↵ 模拟回车",
             font=("Microsoft YaHei", 12),
             width=100,
-            height=32,
+            height=36,
             fg_color=ThemeColors.PRIMARY,
             hover_color=ThemeColors.PRIMARY_HOVER,
-            corner_radius=8,
+            corner_radius=18,
             text_color=ThemeColors.TEXT_LIGHT
         )
         self.view.hide_enter_button()
@@ -96,12 +96,12 @@ class DashboardBuilder:
         # 命令输入区域 - 现代化卡片
         input_frame = ctk.CTkFrame(
             content_frame, 
-            corner_radius=16,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT
         )
-        input_frame.pack(fill="x", pady=(0, 10))
+        input_frame.pack(fill="x", pady=(0, 16))
 
         ctk.CTkLabel(
             input_frame,
@@ -123,11 +123,11 @@ class DashboardBuilder:
             input_button_frame,
             text="+",
             font=("Microsoft YaHei", 18, "bold"),
-            width=42,
-            height=42,
+            width=40,
+            height=40,
             fg_color=ThemeColors.SECONDARY,
             hover_color=ThemeColors.SECONDARY_HOVER,
-            corner_radius=10,
+            corner_radius=20,
             text_color=ThemeColors.TEXT_LIGHT
         )
         self.components["attach_button"].pack(side="left", padx=(0, 12))
@@ -169,10 +169,10 @@ class DashboardBuilder:
             button_frame,
             text="▶ 执行命令",
             font=("Microsoft YaHei", 14),
-            height=42,
+            height=40,
             fg_color=ThemeColors.PRIMARY,
             hover_color=ThemeColors.PRIMARY_HOVER,
-            corner_radius=10,
+            corner_radius=20,
             text_color=ThemeColors.TEXT_LIGHT
         )
         self.components["execute_button"].pack(side="left", padx=(0, 10))
@@ -181,10 +181,10 @@ class DashboardBuilder:
             button_frame,
             text="⏹ 终止",
             font=("Microsoft YaHei", 14),
-            height=42,
+            height=40,
             fg_color=ThemeColors.DANGER,
             hover_color=ThemeColors.DANGER_HOVER,
-            corner_radius=10,
+            corner_radius=20,
             text_color=ThemeColors.TEXT_LIGHT,
             state="disabled"
         )
@@ -194,10 +194,10 @@ class DashboardBuilder:
             button_frame,
             text="🔊 语音播报",
             font=("Microsoft YaHei", 14),
-            height=42,
+            height=40,
             fg_color=ThemeColors.SECONDARY,
             hover_color=ThemeColors.SECONDARY_HOVER,
-            corner_radius=10,
+            corner_radius=20,
             text_color=ThemeColors.TEXT_LIGHT
         )
         self.components["tts_button"].pack(side="left", padx=(0, 10))
@@ -206,10 +206,10 @@ class DashboardBuilder:
             button_frame,
             text="🗑 清空",
             font=("Microsoft YaHei", 14),
-            height=42,
+            height=40,
             fg_color=ThemeColors.ACCENT,
             hover_color=ThemeColors.ACCENT_HOVER,
-            corner_radius=10,
+            corner_radius=20,
             text_color=ThemeColors.TEXT_LIGHT
         )
         self.components["clear_output_btn"].pack(side="left")
@@ -218,10 +218,10 @@ class DashboardBuilder:
             button_frame,
             text="📱 手机投屏",
             font=("Microsoft YaHei", 14),
-            height=42,
+            height=40,
             fg_color=ThemeColors.SECONDARY,
             hover_color=ThemeColors.SECONDARY_HOVER,
-            corner_radius=10,
+            corner_radius=20,
             text_color=ThemeColors.TEXT_LIGHT
         )
         self.components["scrcpy_button"].pack(side="left", padx=(10, 0))

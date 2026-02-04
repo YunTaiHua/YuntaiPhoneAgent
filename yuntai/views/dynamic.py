@@ -42,7 +42,7 @@ class DynamicBuilder:
         # 创建选项卡 - 现代化样式
         self.components["dynamic_tabview"] = ctk.CTkTabview(
             content_frame,
-            corner_radius=16,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             segmented_button_fg_color=ThemeColors.BG_CARD_ALT,
             segmented_button_selected_color=ThemeColors.PRIMARY,
@@ -80,7 +80,7 @@ class DynamicBuilder:
         # 左侧：描述输入和参数设置
         left_frame = ctk.CTkFrame(
             main_container,
-            corner_radius=16,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT
@@ -138,7 +138,7 @@ class DynamicBuilder:
             font=("Microsoft YaHei", 12),
             width=150,
             height=38,
-            corner_radius=8,
+            corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
             button_color=ThemeColors.PRIMARY,
             button_hover_color=ThemeColors.PRIMARY_HOVER,
@@ -165,7 +165,7 @@ class DynamicBuilder:
             font=("Microsoft YaHei", 12),
             width=150,
             height=38,
-            corner_radius=8,
+            corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
             button_color=ThemeColors.PRIMARY,
             button_hover_color=ThemeColors.PRIMARY_HOVER,
@@ -181,8 +181,8 @@ class DynamicBuilder:
             button_frame,
             text="🖼️ 生成图像",
             font=("Microsoft YaHei", 14),
-            height=44,
-            corner_radius=10,
+            height=40,
+            corner_radius=20,
             fg_color=ThemeColors.PRIMARY,
             hover_color=ThemeColors.PRIMARY_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -193,8 +193,8 @@ class DynamicBuilder:
             button_frame,
             text="👁️ 预览",
             font=("Microsoft YaHei", 14),
-            height=44,
-            corner_radius=10,
+            height=40,
+            corner_radius=20,
             fg_color=ThemeColors.SECONDARY,
             hover_color=ThemeColors.SECONDARY_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -204,7 +204,7 @@ class DynamicBuilder:
         # 右侧：日志输出区域
         right_frame = ctk.CTkFrame(
             main_container,
-            corner_radius=16,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT
@@ -246,7 +246,7 @@ class DynamicBuilder:
         # 左侧：描述输入、URL输入和参数设置
         left_frame = ctk.CTkFrame(
             main_container,
-            corner_radius=16,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT
@@ -294,7 +294,7 @@ class DynamicBuilder:
             placeholder_text="图片URL 1 - 必须是公开可访问的HTTP/HTTPS链接",
             font=("Microsoft YaHei", 12),
             height=38,
-            corner_radius=10,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD_ALT,
             text_color=ThemeColors.TEXT_PRIMARY,
             border_color=ThemeColors.BORDER_MEDIUM,
@@ -311,7 +311,7 @@ class DynamicBuilder:
             placeholder_text="图片URL 2 - 双图生成时建议图片尺寸一致",
             font=("Microsoft YaHei", 12),
             height=38,
-            corner_radius=10,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD_ALT,
             text_color=ThemeColors.TEXT_PRIMARY,
             border_color=ThemeColors.BORDER_MEDIUM,
@@ -348,7 +348,7 @@ class DynamicBuilder:
             font=("Microsoft YaHei", 11),
             width=120,
             height=34,
-            corner_radius=8,
+            corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
             button_color=ThemeColors.PRIMARY,
             button_hover_color=ThemeColors.PRIMARY_HOVER,
@@ -373,7 +373,7 @@ class DynamicBuilder:
             font=("Microsoft YaHei", 11),
             width=80,
             height=34,
-            corner_radius=8,
+            corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
             button_color=ThemeColors.PRIMARY,
             button_hover_color=ThemeColors.PRIMARY_HOVER,
@@ -398,7 +398,7 @@ class DynamicBuilder:
             font=("Microsoft YaHei", 11),
             width=100,
             height=34,
-            corner_radius=8,
+            corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
             button_color=ThemeColors.PRIMARY,
             button_hover_color=ThemeColors.PRIMARY_HOVER,
@@ -431,8 +431,8 @@ class DynamicBuilder:
             button_frame,
             text="🎬 生成视频",
             font=("Microsoft YaHei", 14),
-            height=44,
-            corner_radius=10,
+            height=40,
+            corner_radius=20,
             fg_color=ThemeColors.ACCENT,
             hover_color=ThemeColors.ACCENT_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -443,8 +443,8 @@ class DynamicBuilder:
             button_frame,
             text="👁️ 预览",
             font=("Microsoft YaHei", 14),
-            height=44,
-            corner_radius=10,
+            height=40,
+            corner_radius=20,
             fg_color=ThemeColors.WARNING,
             hover_color=ThemeColors.WARNING_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -454,7 +454,7 @@ class DynamicBuilder:
         # 右侧：日志输出区域
         right_frame = ctk.CTkFrame(
             main_container,
-            corner_radius=16,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT

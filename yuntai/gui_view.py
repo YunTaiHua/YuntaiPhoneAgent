@@ -96,10 +96,6 @@ class GUIView:
             text_color=ThemeColors.TEXT_SECONDARY
         ).pack()
 
-        # 分隔线
-        separator = ctk.CTkFrame(self.nav_frame, height=1, fg_color=ThemeColors.BORDER_LIGHT)
-        separator.pack(fill="x", padx=20, pady=10)
-
         # 导航项目
         nav_items = [
             ("🏠 控制中心", "show_dashboard"),
@@ -116,41 +112,58 @@ class GUIView:
                 self.nav_frame,
                 text=text,
                 font=("Microsoft YaHei", 14),
-                height=45,
+                height=44,
                 corner_radius=12,
                 fg_color="transparent",
                 hover_color=ThemeColors.BG_HOVER,
                 text_color=ThemeColors.TEXT_PRIMARY,
-                anchor="w"
+                anchor="w",
+                border_width=0
             )
-            btn.pack(fill="x", padx=15, pady=5)
+            btn.pack(fill="x", padx=15, pady=4)
             self.components["nav_buttons"].append(btn)
 
         # 底部信息
         info_frame = ctk.CTkFrame(self.nav_frame, fg_color="transparent")
         info_frame.pack(side="bottom", fill="x", padx=20, pady=20)
 
-        # 分隔线
-        separator2 = ctk.CTkFrame(info_frame, height=1, fg_color=ThemeColors.BORDER_LIGHT)
-        separator2.pack(fill="x", pady=(0, 15))
-
         # 连接状态指示器
+        status_icons_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
+        status_icons_frame.pack(anchor="w")
+
+        self.components["connection_icon"] = ctk.CTkLabel(
+            status_icons_frame,
+            text="📶",
+            font=("Segoe UI Emoji", 14)
+        )
+        self.components["connection_icon"].pack(side="left", padx=(0, 8))
+
         self.components["connection_indicator"] = ctk.CTkLabel(
-            info_frame,
-            text="● 未连接",
+            status_icons_frame,
+            text="未连接",
             font=("Microsoft YaHei", 12),
             text_color=ThemeColors.DANGER
         )
-        self.components["connection_indicator"].pack(anchor="w")
+        self.components["connection_indicator"].pack(side="left")
 
         # TTS状态指示器
+        tts_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
+        tts_frame.pack(anchor="w", pady=(8, 0))
+
+        self.components["tts_icon"] = ctk.CTkLabel(
+            tts_frame,
+            text="🔊",
+            font=("Segoe UI Emoji", 14)
+        )
+        self.components["tts_icon"].pack(side="left", padx=(0, 8))
+
         self.components["tts_indicator"] = ctk.CTkLabel(
-            info_frame,
-            text="● TTS: 关闭",
+            tts_frame,
+            text="TTS: 关闭",
             font=("Microsoft YaHei", 12),
             text_color=ThemeColors.WARNING
         )
-        self.components["tts_indicator"].pack(anchor="w", pady=(5, 0))
+        self.components["tts_indicator"].pack(side="left")
 
         # 版本信息
         ctk.CTkLabel(
@@ -158,7 +171,7 @@ class GUIView:
             text=f"Version {APP_VERSION}",
             font=("Microsoft YaHei", 10),
             text_color=ThemeColors.TEXT_DISABLED
-        ).pack(anchor="w", pady=(5, 0))
+        ).pack(anchor="w", pady=(15, 0))
 
     def _create_main_content_frame(self):
         """创建主内容容器 - 现代化米白色风格"""
@@ -173,7 +186,7 @@ class GUIView:
         # 创建卡片容器 - 带阴影效果的圆角卡片
         self.components["content_card"] = ctk.CTkFrame(
             self.components["main_container"],
-            corner_radius=20,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT
@@ -429,14 +442,12 @@ class GUIView:
         if "nav_buttons" in self.components:
             for i, btn in enumerate(self.components["nav_buttons"]):
                 if i == index:
-                    # 选中状态：使用主色调背景，白色文字
                     btn.configure(
-                        fg_color=ThemeColors.PRIMARY,
-                        text_color=ThemeColors.TEXT_LIGHT,
-                        hover_color=ThemeColors.PRIMARY_HOVER
+                        fg_color="#EFF3FF",
+                        text_color=ThemeColors.PRIMARY,
+                        hover_color="#E0E7FF"
                     )
                 else:
-                    # 未选中状态：透明背景，深色文字
                     btn.configure(
                         fg_color="transparent",
                         text_color=ThemeColors.TEXT_PRIMARY,

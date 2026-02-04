@@ -52,7 +52,7 @@ class HistoryBuilder:
             font=("Microsoft YaHei", 14),
             width=100,
             height=40,
-            corner_radius=10,
+            corner_radius=20,
             fg_color=ThemeColors.SECONDARY,
             hover_color=ThemeColors.SECONDARY_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -65,7 +65,7 @@ class HistoryBuilder:
             font=("Microsoft YaHei", 14),
             width=100,
             height=40,
-            corner_radius=10,
+            corner_radius=20,
             fg_color=ThemeColors.DANGER,
             hover_color=ThemeColors.DANGER_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -75,7 +75,7 @@ class HistoryBuilder:
         # 历史记录显示区域 - 现代化卡片
         history_frame = ctk.CTkFrame(
             content_frame, 
-            corner_radius=16,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT

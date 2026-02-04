@@ -61,7 +61,7 @@ class SettingsBuilder:
             # 创建卡片框架
             card = ctk.CTkFrame(
                 settings_grid,
-                corner_radius=16,
+                corner_radius=12,
                 fg_color=ThemeColors.BG_CARD,
                 border_width=1,
                 border_color=ThemeColors.BORDER_LIGHT

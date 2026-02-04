@@ -51,7 +51,7 @@ class TTSBuilder:
         # 左侧：模型配置和合成区域 - 现代化卡片
         left_frame = ctk.CTkFrame(
             main_content, 
-            corner_radius=16,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT
@@ -103,8 +103,8 @@ class TTSBuilder:
             button_frame,
             text="▶ 执行合成",
             font=("Microsoft YaHei", 14),
-            height=44,
-            corner_radius=10,
+            height=40,
+            corner_radius=20,
             fg_color=ThemeColors.PRIMARY,
             hover_color=ThemeColors.PRIMARY_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -115,8 +115,8 @@ class TTSBuilder:
             button_frame,
             text="📂 加载模型",
             font=("Microsoft YaHei", 14),
-            height=44,
-            corner_radius=10,
+            height=40,
+            corner_radius=20,
             fg_color=ThemeColors.SUCCESS,
             hover_color=ThemeColors.SUCCESS_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -127,8 +127,8 @@ class TTSBuilder:
             button_frame,
             text="⏹ 停止播放",
             font=("Microsoft YaHei", 14),
-            height=44,
-            corner_radius=10,
+            height=40,
+            corner_radius=20,
             fg_color=ThemeColors.DANGER,
             hover_color=ThemeColors.DANGER_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -138,7 +138,7 @@ class TTSBuilder:
         # 右侧：执行输出和历史音频 - 现代化卡片
         right_frame = ctk.CTkFrame(
             main_content, 
-            corner_radius=16,
+            corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT
@@ -209,8 +209,8 @@ class TTSBuilder:
             audio_btn_frame,
             text="▶ 播放",
             font=("Microsoft YaHei", 12),
-            height=38,
-            corner_radius=8,
+            height=36,
+            corner_radius=18,
             fg_color=ThemeColors.PRIMARY,
             hover_color=ThemeColors.PRIMARY_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -221,8 +221,8 @@ class TTSBuilder:
             audio_btn_frame,
             text="🔄 刷新",
             font=("Microsoft YaHei", 12),
-            height=38,
-            corner_radius=8,
+            height=36,
+            corner_radius=18,
             fg_color=ThemeColors.SECONDARY,
             hover_color=ThemeColors.SECONDARY_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -233,8 +233,8 @@ class TTSBuilder:
             audio_btn_frame,
             text="🗑️ 删除",
             font=("Microsoft YaHei", 12),
-            height=38,
-            corner_radius=8,
+            height=36,
+            corner_radius=18,
             fg_color=ThemeColors.DANGER,
             hover_color=ThemeColors.DANGER_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -271,7 +271,7 @@ class TTSBuilder:
             font=("Microsoft YaHei", 12),
             width=80,
             height=36,
-            corner_radius=8,
+            corner_radius=18,
             fg_color=ThemeColors.SECONDARY,
             hover_color=ThemeColors.SECONDARY_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -306,7 +306,7 @@ class TTSBuilder:
             font=("Microsoft YaHei", 12),
             width=80,
             height=36,
-            corner_radius=8,
+            corner_radius=18,
             fg_color=ThemeColors.SECONDARY,
             hover_color=ThemeColors.SECONDARY_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -341,7 +341,7 @@ class TTSBuilder:
             font=("Microsoft YaHei", 12),
             width=80,
             height=36,
-            corner_radius=8,
+            corner_radius=18,
             fg_color=ThemeColors.SECONDARY,
             hover_color=ThemeColors.SECONDARY_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
@@ -376,7 +376,7 @@ class TTSBuilder:
             font=("Microsoft YaHei", 12),
             width=80,
             height=36,
-            corner_radius=8,
+            corner_radius=18,
             fg_color=ThemeColors.SECONDARY,
             hover_color=ThemeColors.SECONDARY_HOVER,
             text_color=ThemeColors.TEXT_LIGHT
