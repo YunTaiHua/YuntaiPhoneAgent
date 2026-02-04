@@ -104,7 +104,7 @@ class DynamicBuilder:
             font=("Microsoft YaHei", 13),
             height=200,
             corner_radius=12,
-            fg_color=ThemeColors.BG_INPUT,
+            fg_color=ThemeColors.BG_CARD_ALT,
             text_color=ThemeColors.TEXT_PRIMARY,
             border_color=ThemeColors.BORDER_MEDIUM,
             border_width=1
@@ -270,7 +270,7 @@ class DynamicBuilder:
             font=("Microsoft YaHei", 13),
             height=180,
             corner_radius=12,
-            fg_color=ThemeColors.BG_INPUT,
+            fg_color=ThemeColors.BG_CARD_ALT,
             text_color=ThemeColors.TEXT_PRIMARY,
             border_color=ThemeColors.BORDER_MEDIUM,
             border_width=1
@@ -295,7 +295,7 @@ class DynamicBuilder:
             font=("Microsoft YaHei", 12),
             height=38,
             corner_radius=10,
-            fg_color=ThemeColors.BG_INPUT,
+            fg_color=ThemeColors.BG_CARD_ALT,
             text_color=ThemeColors.TEXT_PRIMARY,
             border_color=ThemeColors.BORDER_MEDIUM,
             border_width=1
@@ -312,7 +312,7 @@ class DynamicBuilder:
             font=("Microsoft YaHei", 12),
             height=38,
             corner_radius=10,
-            fg_color=ThemeColors.BG_INPUT,
+            fg_color=ThemeColors.BG_CARD_ALT,
             text_color=ThemeColors.TEXT_PRIMARY,
             border_color=ThemeColors.BORDER_MEDIUM,
             border_width=1

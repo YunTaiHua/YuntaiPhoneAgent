@@ -113,7 +113,7 @@ class ConnectionBuilder:
             font=("Microsoft YaHei", 13),
             height=42,
             corner_radius=10,
-            fg_color=ThemeColors.BG_INPUT,
+            fg_color=ThemeColors.BG_CARD_ALT,
             button_color=ThemeColors.PRIMARY,
             button_hover_color=ThemeColors.PRIMARY_HOVER,
             text_color=ThemeColors.TEXT_PRIMARY,

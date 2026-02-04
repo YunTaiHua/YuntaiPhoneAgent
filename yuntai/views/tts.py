@@ -88,7 +88,7 @@ class TTSBuilder:
             font=("Microsoft YaHei", 13),
             height=120,
             corner_radius=12,
-            fg_color=ThemeColors.BG_INPUT,
+            fg_color=ThemeColors.BG_CARD_ALT,
             text_color=ThemeColors.TEXT_PRIMARY,
             border_color=ThemeColors.BORDER_MEDIUM,
             border_width=1
@@ -188,7 +188,7 @@ class TTSBuilder:
         self.components["tts_audio_listbox"] = Listbox(
             audio_frame,
             font=("Microsoft YaHei", 12),
-            bg=ThemeColors.BG_INPUT,
+            bg=ThemeColors.BG_CARD_ALT,
             fg=ThemeColors.TEXT_PRIMARY,
             height=8,
             relief="flat",

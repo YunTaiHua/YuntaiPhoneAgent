@@ -131,7 +131,7 @@ class DashboardBuilder:
         )
         self.components["attach_button"].pack(side="left", padx=(0, 12))
 
-        # 命令输入框（可自适应高度的文本框）
+        # 命令输入框（可自适应高度的文本框）- 现代化样式
         self.components["command_input"] = ctk.CTkTextbox(
             input_button_frame,
             font=("Microsoft YaHei", 13),
@@ -139,11 +139,11 @@ class DashboardBuilder:
             width=500,
             wrap="word",
             activate_scrollbars=False,
-            fg_color=ThemeColors.BG_INPUT,
+            fg_color=ThemeColors.BG_CARD_ALT,
             text_color=ThemeColors.TEXT_PRIMARY,
-            border_width=1,
-            border_color=ThemeColors.BORDER_MEDIUM,
-            corner_radius=10
+            border_width=2,
+            border_color=ThemeColors.BORDER_LIGHT,
+            corner_radius=12
         )
         self.components["command_input"].pack(side="left", fill="x", expand=True)
         self.components["command_input"].bind("<KeyRelease>", self._on_input_keyrelease)
