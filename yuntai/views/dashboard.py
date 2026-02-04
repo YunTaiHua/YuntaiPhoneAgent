@@ -13,6 +13,7 @@ class DashboardBuilder:
     def __init__(self, view_instance):
         self.view = view_instance
         self.components = view_instance.components
+        self._last_line_count = 1  # 跟踪上一次行数
 
     def create_page(self):
         """创建控制中心页面（只执行一次）"""
@@ -226,20 +227,30 @@ class DashboardBuilder:
         self.components["scrcpy_button"].pack(side="left", padx=(10, 0))
 
     def _on_input_keyrelease(self, event=None):
-        """输入框内容变化时自适应高度"""
+        """输入框内容变化时自适应高度（只在换行时重新计算）"""
         text_widget = self.components.get("command_input")
         if not text_widget:
             return
 
         try:
             content = text_widget.get("1.0", "end-1c")
+
+            current_line_count = content.count('\n') + 1 if content else 1
+
             if not content:
+                if self._last_line_count == 1:
+                    return
                 text_widget.configure(height=42)
+                self._last_line_count = 1
                 return
 
-            lines = content.count('\n') + 1
+            if current_line_count == self._last_line_count:
+                return
+
+            self._last_line_count = current_line_count
+
             line_height = 20
-            current_height = min(lines * line_height + 15, 175)
+            current_height = min(current_line_count * line_height + 15, 175)
 
             if current_height < 42:
                 current_height = 42
