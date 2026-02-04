@@ -140,8 +140,8 @@ class DynamicBuilder:
             height=38,
             corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
-            button_color=ThemeColors.PRIMARY,
-            button_hover_color=ThemeColors.PRIMARY_HOVER,
+            button_color="#C4C9D0",
+            button_hover_color="#A8AEB5",
             text_color=ThemeColors.TEXT_PRIMARY
         )
         self.components["image_size_menu"].pack(side="left")
@@ -167,8 +167,8 @@ class DynamicBuilder:
             height=38,
             corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
-            button_color=ThemeColors.PRIMARY,
-            button_hover_color=ThemeColors.PRIMARY_HOVER,
+            button_color="#C4C9D0",
+            button_hover_color="#A8AEB5",
             text_color=ThemeColors.TEXT_PRIMARY
         )
         self.components["image_quality_menu"].pack(side="left")
@@ -350,8 +350,8 @@ class DynamicBuilder:
             height=34,
             corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
-            button_color=ThemeColors.PRIMARY,
-            button_hover_color=ThemeColors.PRIMARY_HOVER,
+            button_color="#C4C9D0",
+            button_hover_color="#A8AEB5",
             text_color=ThemeColors.TEXT_PRIMARY
         )
         self.components["video_size_menu"].pack(side="left", padx=(0, 15))
@@ -375,8 +375,8 @@ class DynamicBuilder:
             height=34,
             corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
-            button_color=ThemeColors.PRIMARY,
-            button_hover_color=ThemeColors.PRIMARY_HOVER,
+            button_color="#C4C9D0",
+            button_hover_color="#A8AEB5",
             text_color=ThemeColors.TEXT_PRIMARY
         )
         self.components["video_fps_menu"].pack(side="left", padx=(0, 15))
@@ -400,8 +400,8 @@ class DynamicBuilder:
             height=34,
             corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
-            button_color=ThemeColors.PRIMARY,
-            button_hover_color=ThemeColors.PRIMARY_HOVER,
+            button_color="#C4C9D0",
+            button_hover_color="#A8AEB5",
             text_color=ThemeColors.TEXT_PRIMARY
         )
         self.components["video_quality_menu"].pack(side="left")

@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 # ---------------- Version ----------------
 # 应用版本号，统一放在配置中，方便统一更新
-APP_VERSION = "1.2.8"
+APP_VERSION = "1.2.9"
 
 # 加载环境变量
 load_dotenv()

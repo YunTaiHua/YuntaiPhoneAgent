@@ -114,8 +114,8 @@ class ConnectionBuilder:
             height=42,
             corner_radius=12,
             fg_color=ThemeColors.BG_CARD_ALT,
-            button_color=ThemeColors.PRIMARY,
-            button_hover_color=ThemeColors.PRIMARY_HOVER,
+            button_color="#C4C9D0",
+            button_hover_color="#A8AEB5",
             text_color=ThemeColors.TEXT_PRIMARY,
             command=self.view._on_device_type_change
         )
