@@ -44,16 +44,16 @@ class PageBuilder:
             self.dashboard.create_page()
             self.page_initialized[0] = True
 
-    def create_tts_page(self, tts_manager):
-        """创建TTS语音合成页面（每次都创建，支持自动刷新）"""
-        if not self.page_initialized[1]:
-            self.tts.create_page(tts_manager)
-            self.page_initialized[1] = True
-
     def create_connection_page(self):
         """创建设备管理页面（只执行一次）"""
-        if not self.page_initialized[2]:
+        if not self.page_initialized[1]:
             self.connection.create_page()
+            self.page_initialized[1] = True
+
+    def create_tts_page(self, tts_manager):
+        """创建TTS语音合成页面（每次都创建，支持自动刷新）"""
+        if not self.page_initialized[2]:
+            self.tts.create_page(tts_manager)
             self.page_initialized[2] = True
 
     def create_history_page(self):

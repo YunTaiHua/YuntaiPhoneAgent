@@ -1,15 +1,15 @@
 Phone Agent Pro - Intelligent Multi-Modal Control Agent
 
-Version: 1.2.8
+Version: 1.2.9
 
 **[English Version](README_en.md)**
 
-## Phone Agent 智能版 v1.2.8 代码分析
+## Phone Agent 智能版 v1.2.9 代码分析
 
 ### 📊 项目概述
 
 **项目名称**: Phone Agent 智能版  
-**版本**: v1.2.8（第932次迭代）
+**版本**: v1.2.9（第1002次迭代）
 
 ### 🏗️ 架构设计
 

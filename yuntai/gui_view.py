@@ -25,8 +25,8 @@ class GUIView:
         # 存储UI组件引用
         self.components = {}
 
-        # 设置外观
-        ctk.set_appearance_mode("dark")
+        # 设置外观 - 浅色米白色主题
+        ctk.set_appearance_mode("light")
         ctk.set_default_color_theme("blue")
 
         # 创建页面构建器
@@ -56,13 +56,23 @@ class GUIView:
         self._create_status_bar()
 
     def _create_navigation_frame(self):
-        """创建左侧导航栏"""
-        self.nav_frame = ctk.CTkFrame(self.root, width=240, corner_radius=0)
+        """创建左侧导航栏 - 现代化米白色风格"""
+        self.nav_frame = ctk.CTkFrame(
+            self.root, 
+            width=240, 
+            corner_radius=0,
+            fg_color=ThemeColors.BG_NAV,
+            border_width=0
+        )
         self.nav_frame.grid(row=0, column=0, sticky="nsew")
         self.nav_frame.grid_propagate(False)
 
         # 应用标题
-        title_frame = ctk.CTkFrame(self.nav_frame, fg_color="transparent", height=100)
+        title_frame = ctk.CTkFrame(
+            self.nav_frame, 
+            fg_color="transparent", 
+            height=100
+        )
         title_frame.pack(fill="x", padx=20, pady=(30, 20))
 
         ctk.CTkLabel(
@@ -75,7 +85,8 @@ class GUIView:
         ctk.CTkLabel(
             title_frame,
             text="Phone Agent",
-            font=("Microsoft YaHei", 24, "bold")
+            font=("Microsoft YaHei", 24, "bold"),
+            text_color=ThemeColors.TEXT_PRIMARY
         ).pack()
 
         ctk.CTkLabel(
@@ -84,6 +95,10 @@ class GUIView:
             font=("Microsoft YaHei", 12),
             text_color=ThemeColors.TEXT_SECONDARY
         ).pack()
+
+        # 分隔线
+        separator = ctk.CTkFrame(self.nav_frame, height=1, fg_color=ThemeColors.BORDER_LIGHT)
+        separator.pack(fill="x", padx=20, pady=10)
 
         # 导航项目
         nav_items = [
@@ -102,9 +117,10 @@ class GUIView:
                 text=text,
                 font=("Microsoft YaHei", 14),
                 height=45,
-                corner_radius=8,
+                corner_radius=12,
                 fg_color="transparent",
                 hover_color=ThemeColors.BG_HOVER,
+                text_color=ThemeColors.TEXT_PRIMARY,
                 anchor="w"
             )
             btn.pack(fill="x", padx=15, pady=5)
@@ -113,6 +129,10 @@ class GUIView:
         # 底部信息
         info_frame = ctk.CTkFrame(self.nav_frame, fg_color="transparent")
         info_frame.pack(side="bottom", fill="x", padx=20, pady=20)
+
+        # 分隔线
+        separator2 = ctk.CTkFrame(info_frame, height=1, fg_color=ThemeColors.BORDER_LIGHT)
+        separator2.pack(fill="x", pady=(0, 15))
 
         # 连接状态指示器
         self.components["connection_indicator"] = ctk.CTkLabel(
@@ -137,43 +157,59 @@ class GUIView:
             info_frame,
             text=f"Version {APP_VERSION}",
             font=("Microsoft YaHei", 10),
-            text_color=ThemeColors.TEXT_SECONDARY
+            text_color=ThemeColors.TEXT_DISABLED
         ).pack(anchor="w", pady=(5, 0))
 
     def _create_main_content_frame(self):
-        """创建主内容容器"""
-        self.components["main_container"] = ctk.CTkFrame(self.root, fg_color="transparent")
+        """创建主内容容器 - 现代化米白色风格"""
+        self.components["main_container"] = ctk.CTkFrame(
+            self.root, 
+            fg_color=ThemeColors.BG_MAIN
+        )
         self.components["main_container"].grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
         self.components["main_container"].grid_rowconfigure(0, weight=1)
         self.components["main_container"].grid_columnconfigure(0, weight=1)
 
-        # 创建卡片容器
+        # 创建卡片容器 - 带阴影效果的圆角卡片
         self.components["content_card"] = ctk.CTkFrame(
             self.components["main_container"],
-            corner_radius=15,
-            fg_color=ThemeColors.BG_CARD
+            corner_radius=20,
+            fg_color=ThemeColors.BG_CARD,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
         )
         self.components["content_card"].grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
         # 创建6个页面容器，按顺序排列（所有页面内容）
         self.content_pages = []
         for i in range(6):
-            page_frame = ctk.CTkFrame(self.components["content_card"], fg_color="transparent")
+            page_frame = ctk.CTkFrame(
+                self.components["content_card"], 
+                fg_color="transparent",
+                corner_radius=20
+            )
             page_frame.pack(fill="both", expand=True)
             page_frame.grid_propagate(False)
             self.content_pages.append(page_frame)
             page_frame.pack_forget()  # 初始隐藏
 
     def _create_status_bar(self):
-        """创建底部状态栏"""
-        self.components["status_bar"] = ctk.CTkFrame(self.root, height=30)
+        """创建底部状态栏 - 现代化样式"""
+        self.components["status_bar"] = ctk.CTkFrame(
+            self.root, 
+            height=30,
+            fg_color=ThemeColors.BG_NAV,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
+        )
         self.components["status_bar"].grid(row=1, column=0, columnspan=2, sticky="ew")
 
         # 系统状态
         self.components["status_label"] = ctk.CTkLabel(
             self.components["status_bar"],
             text="系统已就绪",
-            font=("Microsoft YaHei", 11)
+            font=("Microsoft YaHei", 11),
+            text_color=ThemeColors.TEXT_SECONDARY
         )
         self.components["status_label"].pack(side="left", padx=20)
 
@@ -207,9 +243,9 @@ class GUIView:
         if page_index == 0:
             self.page_builder.create_dashboard_page()
         elif page_index == 1:
-            self.page_builder.create_tts_page(self.page_builder.tts_manager)
-        elif page_index == 2:
             self.page_builder.create_connection_page()
+        elif page_index == 2:
+            self.page_builder.create_tts_page(self.page_builder.tts_manager)
         elif page_index == 3:
             self.page_builder.create_history_page()
         elif page_index == 4:
@@ -221,12 +257,12 @@ class GUIView:
         """创建控制中心页面（委托给show_page）"""
         self.show_page(0)
 
-    def create_tts_page(self, tts_manager):
-        """创建TTS语音合成页面（委托给show_page）"""
-        self.show_page(1)
-
     def create_connection_page(self):
         """创建设备管理页面（委托给show_page）"""
+        self.show_page(1)
+
+    def create_tts_page(self, tts_manager):
+        """创建TTS语音合成页面（委托给show_page）"""
         self.show_page(2)
 
     def create_history_page(self):
@@ -389,13 +425,23 @@ class GUIView:
                 widget.destroy()
 
     def _highlight_nav_button(self, index):
-        """高亮导航按钮"""
+        """高亮导航按钮 - 现代化样式"""
         if "nav_buttons" in self.components:
             for i, btn in enumerate(self.components["nav_buttons"]):
                 if i == index:
-                    btn.configure(fg_color=ThemeColors.BG_HOVER)
+                    # 选中状态：使用主色调背景，白色文字
+                    btn.configure(
+                        fg_color=ThemeColors.PRIMARY,
+                        text_color=ThemeColors.TEXT_LIGHT,
+                        hover_color=ThemeColors.PRIMARY_HOVER
+                    )
                 else:
-                    btn.configure(fg_color="transparent")
+                    # 未选中状态：透明背景，深色文字
+                    btn.configure(
+                        fg_color="transparent",
+                        text_color=ThemeColors.TEXT_PRIMARY,
+                        hover_color=ThemeColors.BG_HOVER
+                    )
 
     def _on_device_type_change(self, device_type: str):
         """设备类型改变时的回调"""

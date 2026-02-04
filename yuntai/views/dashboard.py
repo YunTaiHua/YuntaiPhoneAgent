@@ -1,5 +1,6 @@
 """
 DashboardBuilder - 控制中心页面构建器
+浅色米白色主题版本
 """
 import tkinter as tk
 import customtkinter as ctk
@@ -17,17 +18,21 @@ class DashboardBuilder:
         """创建控制中心页面（只执行一次）"""
         self.view._highlight_nav_button(0)
 
-        content_frame = ctk.CTkFrame(self.view.content_pages[0], fg_color="transparent")
-        content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        content_frame = ctk.CTkFrame(
+            self.view.content_pages[0], 
+            fg_color="transparent"
+        )
+        content_frame.pack(fill="both", expand=True, padx=25, pady=25)
 
         # 顶部标题
         header_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        header_frame.pack(fill="x", pady=(0, 20))
+        header_frame.pack(fill="x", pady=(0, 25))
 
         ctk.CTkLabel(
             header_frame,
-            text="🏠 控制中心",
-            font=("Microsoft YaHei", 24, "bold")
+            text="控制中心",
+            font=("Microsoft YaHei", 28, "bold"),
+            text_color=ThemeColors.TEXT_PRIMARY
         ).pack(anchor="w")
 
         ctk.CTkLabel(
@@ -37,18 +42,25 @@ class DashboardBuilder:
             text_color=ThemeColors.TEXT_SECONDARY
         ).pack(anchor="w", pady=(5, 0))
 
-        # 执行输出区域
-        output_frame = ctk.CTkFrame(content_frame, corner_radius=10)
+        # 执行输出区域 - 现代化卡片
+        output_frame = ctk.CTkFrame(
+            content_frame, 
+            corner_radius=16,
+            fg_color=ThemeColors.BG_CARD,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
+        )
         output_frame.pack(fill="both", expand=True, pady=(0, 20))
 
         # 标题行：执行输出标签 + 模拟回车按钮
         output_header_frame = ctk.CTkFrame(output_frame, fg_color="transparent")
-        output_header_frame.pack(fill="x", padx=15, pady=10)
+        output_header_frame.pack(fill="x", padx=20, pady=15)
 
         ctk.CTkLabel(
             output_header_frame,
-            text="执行输出:",
-            font=("Microsoft YaHei", 14, "bold")
+            text="📋 执行输出",
+            font=("Microsoft YaHei", 16, "bold"),
+            text_color=ThemeColors.TEXT_PRIMARY
         ).pack(side="left")
 
         # 模拟回车按钮
@@ -57,36 +69,49 @@ class DashboardBuilder:
             text="↵ 模拟回车",
             font=("Microsoft YaHei", 12),
             width=100,
-            height=30,
+            height=32,
             fg_color=ThemeColors.PRIMARY,
-            hover_color="#3451b2",
-            corner_radius=6
+            hover_color=ThemeColors.PRIMARY_HOVER,
+            corner_radius=8,
+            text_color=ThemeColors.TEXT_LIGHT
         )
         self.view.hide_enter_button()
 
-        # 输出文本框
+        # 输出文本框 - 适配浅色主题
         self.components["output_text"] = ctk.CTkTextbox(
             output_frame,
             font=("Consolas", 13),
             activate_scrollbars=True,
-            wrap="none"
+            wrap="none",
+            fg_color=ThemeColors.BG_CARD_ALT,
+            text_color=ThemeColors.TEXT_PRIMARY,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT,
+            corner_radius=12
         )
-        self.components["output_text"].pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        self.components["output_text"].pack(fill="both", expand=True, padx=15, pady=(0, 15))
         self.components["output_text"].configure(state="disabled")
 
-        # 命令输入区域
-        input_frame = ctk.CTkFrame(content_frame, corner_radius=10)
+        # 命令输入区域 - 现代化卡片
+        input_frame = ctk.CTkFrame(
+            content_frame, 
+            corner_radius=16,
+            fg_color=ThemeColors.BG_CARD,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
+        )
         input_frame.pack(fill="x", pady=(0, 10))
 
         ctk.CTkLabel(
             input_frame,
-            text="命令输入:",
-            font=("Microsoft YaHei", 14, "bold")
-        ).pack(anchor="w", padx=15, pady=10)
+            text="💬 命令输入",
+            font=("Microsoft YaHei", 16, "bold"),
+            text_color=ThemeColors.TEXT_PRIMARY
+        ).pack(anchor="w", padx=20, pady=15)
 
         # 输入框和附件区域容器
         input_container = ctk.CTkFrame(input_frame, fg_color="transparent")
-        input_container.pack(fill="x", padx=15)
+        input_container.pack(fill="x", padx=20, pady=(0, 15))
 
         # 第一行：输入框和"+"号按钮
         input_button_frame = ctk.CTkFrame(input_container, fg_color="transparent")
@@ -96,72 +121,95 @@ class DashboardBuilder:
         self.components["attach_button"] = ctk.CTkButton(
             input_button_frame,
             text="+",
-            font=("Microsoft YaHei", 16, "bold"),
-            width=45,
-            height=35,
+            font=("Microsoft YaHei", 18, "bold"),
+            width=42,
+            height=42,
             fg_color=ThemeColors.SECONDARY,
-            hover_color="#5e35b1",
-            corner_radius=8
+            hover_color=ThemeColors.SECONDARY_HOVER,
+            corner_radius=10,
+            text_color=ThemeColors.TEXT_LIGHT
         )
-        self.components["attach_button"].pack(side="left", padx=(0, 10))
+        self.components["attach_button"].pack(side="left", padx=(0, 12))
 
         # 命令输入框（可自适应高度的文本框）
         self.components["command_input"] = ctk.CTkTextbox(
             input_button_frame,
             font=("Microsoft YaHei", 13),
-            height=35,
+            height=42,
             width=500,
             wrap="word",
-            activate_scrollbars=False
+            activate_scrollbars=False,
+            fg_color=ThemeColors.BG_INPUT,
+            text_color=ThemeColors.TEXT_PRIMARY,
+            border_width=1,
+            border_color=ThemeColors.BORDER_MEDIUM,
+            corner_radius=10
         )
         self.components["command_input"].pack(side="left", fill="x", expand=True)
         self.components["command_input"].bind("<KeyRelease>", self._on_input_keyrelease)
 
         # 已选文件显示区域（紧跟在输入框下方）
-        self.components["attached_files_frame"] = ctk.CTkFrame(input_container, fg_color="transparent")
-        self.components["attached_files_frame"].pack(fill="x", pady=(5, 0))
+        self.components["attached_files_frame"] = ctk.CTkFrame(
+            input_container, 
+            fg_color="transparent"
+        )
+        self.components["attached_files_frame"].pack(fill="x", pady=(10, 0))
         self.components["attached_files_frame"].pack_forget()
 
         # 按钮区域
-        self.components["button_frame"] = button_frame = ctk.CTkFrame(input_container, fg_color="transparent")
-        button_frame.pack(fill="x", pady=(10, 0))
+        self.components["button_frame"] = button_frame = ctk.CTkFrame(
+            input_container, 
+            fg_color="transparent"
+        )
+        button_frame.pack(fill="x", pady=(15, 0))
 
-        # 各功能按钮
+        # 各功能按钮 - 使用圆角和合适的颜色
         self.components["execute_button"] = ctk.CTkButton(
             button_frame,
-            text="执行命令",
+            text="▶ 执行命令",
             font=("Microsoft YaHei", 14),
-            height=40,
-            fg_color=ThemeColors.PRIMARY
+            height=42,
+            fg_color=ThemeColors.PRIMARY,
+            hover_color=ThemeColors.PRIMARY_HOVER,
+            corner_radius=10,
+            text_color=ThemeColors.TEXT_LIGHT
         )
         self.components["execute_button"].pack(side="left", padx=(0, 10))
 
         self.components["terminate_button"] = ctk.CTkButton(
             button_frame,
-            text="终止操作",
+            text="⏹ 终止",
             font=("Microsoft YaHei", 14),
-            height=40,
+            height=42,
             fg_color=ThemeColors.DANGER,
-            hover_color="#c62828",
+            hover_color=ThemeColors.DANGER_HOVER,
+            corner_radius=10,
+            text_color=ThemeColors.TEXT_LIGHT,
             state="disabled"
         )
         self.components["terminate_button"].pack(side="left", padx=(0, 10))
 
         self.components["tts_button"] = ctk.CTkButton(
             button_frame,
-            text="语音播报",
+            text="🔊 语音播报",
             font=("Microsoft YaHei", 14),
-            height=40,
-            fg_color=ThemeColors.SECONDARY
+            height=42,
+            fg_color=ThemeColors.SECONDARY,
+            hover_color=ThemeColors.SECONDARY_HOVER,
+            corner_radius=10,
+            text_color=ThemeColors.TEXT_LIGHT
         )
         self.components["tts_button"].pack(side="left", padx=(0, 10))
 
         self.components["clear_output_btn"] = ctk.CTkButton(
             button_frame,
-            text="清空输出",
+            text="🗑 清空",
             font=("Microsoft YaHei", 14),
-            height=40,
-            fg_color=ThemeColors.ACCENT
+            height=42,
+            fg_color=ThemeColors.ACCENT,
+            hover_color=ThemeColors.ACCENT_HOVER,
+            corner_radius=10,
+            text_color=ThemeColors.TEXT_LIGHT
         )
         self.components["clear_output_btn"].pack(side="left")
 
@@ -169,9 +217,11 @@ class DashboardBuilder:
             button_frame,
             text="📱 手机投屏",
             font=("Microsoft YaHei", 14),
-            height=40,
-            fg_color="#9b59b6",
-            hover_color="#8e44ad"
+            height=42,
+            fg_color=ThemeColors.SECONDARY,
+            hover_color=ThemeColors.SECONDARY_HOVER,
+            corner_radius=10,
+            text_color=ThemeColors.TEXT_LIGHT
         )
         self.components["scrcpy_button"].pack(side="left", padx=(10, 0))
 
@@ -184,15 +234,15 @@ class DashboardBuilder:
         try:
             content = text_widget.get("1.0", "end-1c")
             if not content:
-                text_widget.configure(height=35)
+                text_widget.configure(height=42)
                 return
 
             lines = content.count('\n') + 1
             line_height = 20
-            current_height = min(lines * line_height + 10, 175)
+            current_height = min(lines * line_height + 15, 175)
 
-            if current_height < 35:
-                current_height = 35
+            if current_height < 42:
+                current_height = 42
 
             text_widget.configure(height=current_height)
         except Exception as e:
