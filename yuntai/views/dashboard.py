@@ -15,43 +15,75 @@ class DashboardBuilder:
         self.components = view_instance.components
         self._last_line_count = 1  # 跟踪上一次行数
 
+        # 快捷键配置
+        self.shortcuts = {
+            'w': ('打开微信', '💬'),
+            'q': ('打开QQ', '🐧'),
+            'd': ('打开抖音', '🎵'),
+            'k': ('打开快手', '🎬'),
+            't': ('打开淘宝', '🛒'),
+            'm': ('打开QQ音乐', '🎶')
+        }
+
     def create_page(self):
         """创建控制中心页面（只执行一次）"""
         self.view._highlight_nav_button(0)
 
         content_frame = ctk.CTkFrame(
-            self.view.content_pages[0], 
+            self.view.content_pages[0],
             fg_color="transparent"
         )
         content_frame.pack(fill="both", expand=True, padx=25, pady=25)
 
-        # 顶部标题
-        header_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        header_frame.pack(fill="x", pady=(0, 25))
+        # 标题卡片 - 居中对齐
+        header_card = ctk.CTkFrame(
+            content_frame,
+            corner_radius=16,
+            fg_color=ThemeColors.BG_CARD,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
+        )
+        header_card.pack(fill="x", pady=(0, 20))
+
+        header_inner = ctk.CTkFrame(header_card, fg_color="transparent")
+        header_inner.pack(expand=True, padx=30, pady=20)
 
         ctk.CTkLabel(
-            header_frame,
+            header_inner,
             text="控制中心",
             font=("Microsoft YaHei", 28, "bold"),
             text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w")
+        ).pack(pady=(0, 8))
 
         ctk.CTkLabel(
-            header_frame,
+            header_inner,
             text="执行输出和命令控制中心",
             font=("Microsoft YaHei", 14),
             text_color=ThemeColors.TEXT_SECONDARY
-        ).pack(anchor="w", pady=(5, 0))
+        ).pack()
 
-        # 执行输出区域 - 现代化卡片
+        # 主内容区域 - 左右两列布局
+        main_content = ctk.CTkFrame(content_frame, fg_color="transparent")
+        main_content.pack(fill="both", expand=True)
+
+        main_content.grid_rowconfigure(0, weight=1)
+        main_content.grid_columnconfigure(0, weight=3)
+        main_content.grid_columnconfigure(1, weight=1)
+
+        # 左侧：执行输出区域
+        output_container = ctk.CTkFrame(main_content, fg_color="transparent")
+        output_container.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
+
+        # 执行输出卡片
         output_frame = ctk.CTkFrame(
-            content_frame, 
+            output_container,
             corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT
         )
         output_frame.pack(fill="both", expand=True, pady=(0, 16))
+        self.components["output_frame"] = output_frame
 
         # 标题行：执行输出标签 + 模拟回车按钮
         output_header_frame = ctk.CTkFrame(output_frame, fg_color="transparent")
@@ -78,7 +110,7 @@ class DashboardBuilder:
         )
         self.view.hide_enter_button()
 
-        # 输出文本框 - 适配浅色主题
+        # 输出文本框
         self.components["output_text"] = ctk.CTkTextbox(
             output_frame,
             font=("Consolas", 13),
@@ -93,15 +125,16 @@ class DashboardBuilder:
         self.components["output_text"].pack(fill="both", expand=True, padx=15, pady=(0, 15))
         self.components["output_text"].configure(state="disabled")
 
-        # 命令输入区域 - 现代化卡片
+        # 命令输入区域
         input_frame = ctk.CTkFrame(
-            content_frame, 
+            output_container,
             corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT
         )
-        input_frame.pack(fill="x", pady=(0, 16))
+        input_frame.pack(fill="x")
+        self.components["input_frame"] = input_frame
 
         ctk.CTkLabel(
             input_frame,
@@ -114,30 +147,11 @@ class DashboardBuilder:
         input_container = ctk.CTkFrame(input_frame, fg_color="transparent")
         input_container.pack(fill="x", padx=20, pady=(0, 15))
 
-        # 第一行：输入框和"+"号按钮
-        input_button_frame = ctk.CTkFrame(input_container, fg_color="transparent")
-        input_button_frame.pack(fill="x")
-
-        # "+"号按钮 - 用于上传文件
-        self.components["attach_button"] = ctk.CTkButton(
-            input_button_frame,
-            text="+",
-            font=("Microsoft YaHei", 18, "bold"),
-            width=40,
-            height=40,
-            fg_color=ThemeColors.SECONDARY,
-            hover_color=ThemeColors.SECONDARY_HOVER,
-            corner_radius=20,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.components["attach_button"].pack(side="left", padx=(0, 12))
-
-        # 命令输入框（可自适应高度的文本框）- 现代化样式
+        # 命令输入框
         self.components["command_input"] = ctk.CTkTextbox(
-            input_button_frame,
+            input_container,
             font=("Microsoft YaHei", 13),
             height=42,
-            width=500,
             wrap="word",
             activate_scrollbars=False,
             fg_color=ThemeColors.BG_CARD_ALT,
@@ -146,25 +160,25 @@ class DashboardBuilder:
             border_color=ThemeColors.BORDER_LIGHT,
             corner_radius=12
         )
-        self.components["command_input"].pack(side="left", fill="x", expand=True)
+        self.components["command_input"].pack(fill="x")
         self.components["command_input"].bind("<KeyRelease>", self._on_input_keyrelease)
 
-        # 已选文件显示区域（紧跟在输入框下方）
+        # 已选文件显示区域（输入框下方）
         self.components["attached_files_frame"] = ctk.CTkFrame(
-            input_container, 
+            input_container,
             fg_color="transparent"
         )
         self.components["attached_files_frame"].pack(fill="x", pady=(10, 0))
         self.components["attached_files_frame"].pack_forget()
 
         # 按钮区域
-        self.components["button_frame"] = button_frame = ctk.CTkFrame(
-            input_container, 
+        button_frame = ctk.CTkFrame(
+            input_container,
             fg_color="transparent"
         )
         button_frame.pack(fill="x", pady=(15, 0))
 
-        # 各功能按钮 - 使用圆角和合适的颜色
+        # 各功能按钮
         self.components["execute_button"] = ctk.CTkButton(
             button_frame,
             text="▶ 执行命令",
@@ -225,6 +239,119 @@ class DashboardBuilder:
             text_color=ThemeColors.TEXT_LIGHT
         )
         self.components["scrcpy_button"].pack(side="left", padx=(10, 0))
+
+        # 右侧：文件管理、文件展示和快捷键卡片
+        right_panel = ctk.CTkFrame(main_content, fg_color="transparent")
+        right_panel.grid(row=0, column=1, sticky="nsew", padx=(12, 0))
+        right_panel.grid_rowconfigure(0, weight=0)
+        right_panel.grid_rowconfigure(1, weight=1)
+        right_panel.grid_rowconfigure(2, weight=0)
+        right_panel.grid_columnconfigure(0, weight=1)
+
+        # 文件管理卡片（固定高度）
+        file_management_card = ctk.CTkFrame(
+            right_panel,
+            corner_radius=12,
+            fg_color=ThemeColors.BG_CARD,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
+        )
+        file_management_card.grid(row=0, column=0, sticky="ew", pady=(0, 12))
+        self.components["file_management_card"] = file_management_card
+
+        ctk.CTkLabel(
+            file_management_card,
+            text="📁 文件管理",
+            font=("Microsoft YaHei", 16, "bold"),
+            text_color=ThemeColors.TEXT_PRIMARY
+        ).pack(anchor="w", padx=15, pady=(15, 10))
+
+        # 上传文件按钮
+        self.components["file_upload_button"] = ctk.CTkButton(
+            file_management_card,
+            text="📤 上传文件",
+            font=("Microsoft YaHei", 14),
+            height=40,
+            fg_color=ThemeColors.PRIMARY,
+            hover_color=ThemeColors.PRIMARY_HOVER,
+            corner_radius=20,
+            text_color=ThemeColors.TEXT_LIGHT
+        )
+        self.components["file_upload_button"].pack(fill="x", padx=15, pady=(0, 15))
+
+        # 文件展示卡片（可扩展高度）
+        file_display_card = ctk.CTkFrame(
+            right_panel,
+            corner_radius=12,
+            fg_color=ThemeColors.BG_CARD,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
+        )
+        file_display_card.grid(row=1, column=0, sticky="nsew", pady=(0, 12))
+        self.components["file_display_card"] = file_display_card
+
+        ctk.CTkLabel(
+            file_display_card,
+            text="📎 已选文件",
+            font=("Microsoft YaHei", 16, "bold"),
+            text_color=ThemeColors.TEXT_PRIMARY
+        ).pack(anchor="w", padx=15, pady=(15, 10))
+
+        # 创建可滚动的文件列表
+        files_scroll_frame = ctk.CTkScrollableFrame(
+            file_display_card,
+            label_text="",
+            fg_color="transparent",
+            scrollbar_button_color=ThemeColors.BG_HOVER,
+            scrollbar_button_hover_color=ThemeColors.PRIMARY
+        )
+        files_scroll_frame.pack(fill="both", expand=True, padx=15, pady=(0, 15))
+        self.components["files_list_scroll_frame"] = files_scroll_frame
+
+        # 快捷键卡片（固定高度）
+        shortcuts_card = ctk.CTkFrame(
+            right_panel,
+            corner_radius=12,
+            fg_color=ThemeColors.BG_CARD,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
+        )
+        shortcuts_card.grid(row=2, column=0, sticky="ew")
+        self.components["shortcuts_card"] = shortcuts_card
+
+        ctk.CTkLabel(
+            shortcuts_card,
+            text="⚡ 快捷键",
+            font=("Microsoft YaHei", 16, "bold"),
+            text_color=ThemeColors.TEXT_PRIMARY
+        ).pack(anchor="w", padx=15, pady=(15, 15))
+
+        # 快捷键按钮网格
+        shortcuts_grid = ctk.CTkFrame(shortcuts_card, fg_color="transparent")
+        shortcuts_grid.pack(fill="x", padx=15, pady=(0, 15))
+
+        shortcuts_grid.grid_columnconfigure(0, weight=1)
+        shortcuts_grid.grid_columnconfigure(1, weight=1)
+
+        row, col = 0, 0
+        for key, (app_name, icon) in self.shortcuts.items():
+            btn = ctk.CTkButton(
+                shortcuts_grid,
+                text=f"{icon} {app_name}",
+                font=("Microsoft YaHei", 13),
+                height=45,
+                fg_color=ThemeColors.BG_HOVER,
+                hover_color=ThemeColors.PRIMARY,
+                corner_radius=12,
+                text_color=ThemeColors.TEXT_PRIMARY
+            )
+            btn.grid(row=row, column=col, sticky="ew", padx=4, pady=4)
+            self.components[f"shortcut_btn_{key}"] = btn
+
+            col += 1
+            if col > 1:
+                col = 0
+                row += 1
 
     def _on_input_keyrelease(self, event=None):
         """输入框内容变化时自适应高度（只在换行时重新计算）"""

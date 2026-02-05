@@ -21,25 +21,37 @@ class TTSBuilder:
         self.view._highlight_nav_button(2)
 
         content_frame = ctk.CTkFrame(
-            self.view.content_pages[2], 
+            self.view.content_pages[2],
             fg_color="transparent"
         )
         content_frame.pack(fill="both", expand=True, padx=30, pady=30)
 
-        # 页面标题
-        ctk.CTkLabel(
+        # 标题卡片 - 居中对齐
+        header_card = ctk.CTkFrame(
             content_frame,
+            corner_radius=16,
+            fg_color=ThemeColors.BG_CARD,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
+        )
+        header_card.pack(fill="x", pady=(0, 20))
+
+        header_inner = ctk.CTkFrame(header_card, fg_color="transparent")
+        header_inner.pack(expand=True, padx=30, pady=20)
+
+        ctk.CTkLabel(
+            header_inner,
             text="TTS语音合成",
             font=("Microsoft YaHei", 28, "bold"),
             text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w", pady=(0, 8))
+        ).pack(pady=(0, 8))
 
         ctk.CTkLabel(
-            content_frame,
+            header_inner,
             text="配置本地语音合成与播报",
             font=("Microsoft YaHei", 14),
             text_color=ThemeColors.TEXT_SECONDARY
-        ).pack(anchor="w", pady=(0, 30))
+        ).pack()
 
         # 创建主内容区域
         main_content = ctk.CTkFrame(content_frame, fg_color="transparent")
@@ -50,7 +62,7 @@ class TTSBuilder:
 
         # 左侧：模型配置和合成区域 - 现代化卡片
         left_frame = ctk.CTkFrame(
-            main_content, 
+            main_content,
             corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
@@ -137,7 +149,7 @@ class TTSBuilder:
 
         # 右侧：执行输出和历史音频 - 现代化卡片
         right_frame = ctk.CTkFrame(
-            main_content, 
+            main_content,
             corner_radius=12,
             fg_color=ThemeColors.BG_CARD,
             border_width=1,
@@ -157,21 +169,18 @@ class TTSBuilder:
         ).pack(anchor="w", pady=(0, 15))
 
         # 创建日志文本框 - 适配浅色主题
-        self.components["tts_log_text"] = scrolledtext.ScrolledText(
+        self.components["tts_log_text"] = ctk.CTkTextbox(
             log_frame,
-            wrap="word",
             font=("Consolas", 11),
-            bg=ThemeColors.BG_CARD_ALT,
-            fg=ThemeColors.TEXT_PRIMARY,
-            height=12,
-            width=35,
-            undo=True,
-            relief="flat",
-            padx=10,
-            pady=10
+            wrap="word",
+            fg_color=ThemeColors.BG_CARD_ALT,
+            text_color=ThemeColors.TEXT_PRIMARY,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT,
+            corner_radius=12
         )
         self.components["tts_log_text"].pack(fill="both", expand=True, pady=(0, 15))
-        self.components["tts_log_text"].config(state="disabled")
+        self.components["tts_log_text"].configure(state="disabled")
 
         # 历史音频列表
         audio_frame = ctk.CTkFrame(log_frame, fg_color="transparent")

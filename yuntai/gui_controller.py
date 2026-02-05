@@ -150,6 +150,22 @@ class GUIController:
         if enter_btn:
             enter_btn.configure(command=self.simulate_enter)
 
+        # 绑定主题切换按钮
+        theme_toggle_btn = self.view.get_component("theme_toggle_button")
+        if theme_toggle_btn:
+            theme_toggle_btn.configure(command=self.toggle_theme)
+
+        # 绑定文件管理上传按钮
+        file_upload_btn = self.view.get_component("file_upload_button")
+        if file_upload_btn:
+            file_upload_btn.configure(command=self.show_file_upload)
+
+        # 绑定快捷键按钮
+        for key, app_name in SHORTCUTS.items():
+            shortcut_btn = self.view.get_component(f"shortcut_btn_{key}")
+            if shortcut_btn:
+                shortcut_btn.configure(command=lambda k=key: self.execute_shortcut(k))
+
     def _on_command_input_return(self, event=None):
         """输入框按Enter键执行命令"""
         self.execute_command()
@@ -777,3 +793,383 @@ class GUIController:
         """窗口关闭事件"""
         self.cleanup_on_exit()
         self.root.quit()
+
+    # ============ 主题切换 ============
+
+    def toggle_theme(self):
+        """切换深色/浅色主题"""
+        import customtkinter as ctk
+        from .views.theme import DarkThemeColors, ThemeColors
+        import tkinter as tk
+
+        current_mode = ctk.get_appearance_mode().lower()
+        new_mode = "dark" if current_mode == "light" else "light"
+
+        ctk.set_appearance_mode(new_mode)
+
+        # 获取新主题颜色
+        new_colors = DarkThemeColors if new_mode == "dark" else ThemeColors
+
+        def update_widget(widget, depth=0):
+            """递归更新所有部件的颜色"""
+            if depth > 10:  # 防止无限递归
+                return
+
+            try:
+                widget_type = type(widget).__name__
+
+                # CTkFrame - 卡片框架
+                if isinstance(widget, ctk.CTkFrame):
+                    # 检查是否是主要框架
+                    if widget in [self.view.nav_frame, self.view.components.get("nav_frame")]:
+                        widget.configure(fg_color=new_colors.BG_NAV)
+                    elif widget == self.view.components.get("main_container"):
+                        widget.configure(fg_color=new_colors.BG_MAIN)
+                    elif widget == self.view.components.get("status_bar"):
+                        widget.configure(fg_color=new_colors.BG_NAV, border_color=new_colors.BORDER_LIGHT)
+                    else:
+                        # 根据当前颜色判断应该使用什么新颜色
+                        try:
+                            current_fg = widget.cget("fg_color")
+                            current_border = widget.cget("border_width")
+                            
+                            if current_fg and current_fg != "transparent":
+                                # 检查是否是卡片样式（有边框）
+                                if current_border > 0:
+                                    # 检查当前颜色类型以保持颜色类型一致
+                                    if current_fg in [ThemeColors.BG_CARD_ALT, DarkThemeColors.BG_CARD_ALT]:
+                                        widget.configure(fg_color=new_colors.BG_CARD_ALT, border_color=new_colors.BORDER_LIGHT)
+                                    elif current_fg in [ThemeColors.BG_HOVER, DarkThemeColors.BG_HOVER]:
+                                        widget.configure(fg_color=new_colors.BG_HOVER, border_color=new_colors.BORDER_LIGHT)
+                                    elif current_fg in [ThemeColors.BG_INPUT, DarkThemeColors.BG_INPUT]:
+                                        widget.configure(fg_color=new_colors.BG_INPUT, border_color=new_colors.BORDER_LIGHT)
+                                    else:
+                                        widget.configure(fg_color=new_colors.BG_CARD, border_color=new_colors.BORDER_LIGHT)
+                                else:
+                                    # 无边框框架
+                                    if current_fg in [ThemeColors.BG_CARD, DarkThemeColors.BG_CARD]:
+                                        widget.configure(fg_color=new_colors.BG_CARD)
+                                    elif current_fg in [ThemeColors.BG_CARD_ALT, DarkThemeColors.BG_CARD_ALT]:
+                                        widget.configure(fg_color=new_colors.BG_CARD_ALT)
+                                    elif current_fg in [ThemeColors.BG_HOVER, DarkThemeColors.BG_HOVER]:
+                                        widget.configure(fg_color=new_colors.BG_HOVER)
+                                    elif current_fg in [ThemeColors.BG_INPUT, DarkThemeColors.BG_INPUT]:
+                                        widget.configure(fg_color=new_colors.BG_INPUT)
+                        except:
+                            pass
+
+                # CTkButton - 按钮
+                elif isinstance(widget, ctk.CTkButton):
+                    # 主题切换按钮特殊处理
+                    if widget == self.view.components.get("theme_toggle_button"):
+                        icon = "☀️" if new_mode == "dark" else "🌙"
+                        widget.configure(
+                            text=icon,
+                            fg_color=new_colors.BG_HOVER,
+                            hover_color=new_colors.BG_CARD_ALT,
+                            border_color=new_colors.BORDER_LIGHT,
+                            text_color=new_colors.TEXT_PRIMARY
+                        )
+                    else:
+                        # 获取当前颜色判断按钮类型
+                        try:
+                            current_fg = widget.cget("fg_color")
+                            if current_fg == ThemeColors.PRIMARY or current_fg == DarkThemeColors.PRIMARY:
+                                widget.configure(fg_color=new_colors.PRIMARY, hover_color=new_colors.PRIMARY_HOVER)
+                            elif current_fg == ThemeColors.SECONDARY or current_fg == DarkThemeColors.SECONDARY:
+                                widget.configure(fg_color=new_colors.SECONDARY, hover_color=new_colors.SECONDARY_HOVER)
+                            elif current_fg == ThemeColors.DANGER or current_fg == DarkThemeColors.DANGER:
+                                widget.configure(fg_color=new_colors.DANGER, hover_color=new_colors.DANGER_HOVER)
+                            elif current_fg == ThemeColors.ACCENT or current_fg == DarkThemeColors.ACCENT:
+                                widget.configure(fg_color=new_colors.ACCENT, hover_color=new_colors.ACCENT_HOVER)
+                            elif current_fg == ThemeColors.SUCCESS or current_fg == DarkThemeColors.SUCCESS:
+                                widget.configure(fg_color=new_colors.SUCCESS, hover_color=new_colors.SUCCESS_HOVER)
+                            elif current_fg == ThemeColors.WARNING or current_fg == DarkThemeColors.WARNING:
+                                widget.configure(fg_color=new_colors.WARNING, hover_color=new_colors.WARNING_HOVER)
+                            elif "BG_HOVER" in str(current_fg):
+                                widget.configure(fg_color=new_colors.BG_HOVER, text_color=new_colors.TEXT_PRIMARY)
+                            else:
+                                # 默认按钮样式
+                                widget.configure(text_color=new_colors.TEXT_PRIMARY)
+                        except:
+                            widget.configure(text_color=new_colors.TEXT_PRIMARY)
+
+                # CTkTextbox - 文本框
+                elif isinstance(widget, ctk.CTkTextbox):
+                    widget.configure(
+                        fg_color=new_colors.BG_CARD_ALT,
+                        text_color=new_colors.TEXT_PRIMARY,
+                        border_color=new_colors.BORDER_LIGHT
+                    )
+
+                # CTkScrollableFrame - 可滚动框架
+                elif isinstance(widget, ctk.CTkScrollableFrame):
+                    widget.configure(
+                        fg_color="transparent",
+                        scrollbar_button_color=new_colors.BG_HOVER,
+                        scrollbar_button_hover_color=new_colors.PRIMARY
+                    )
+
+                # CTkLabel - 标签
+                elif isinstance(widget, ctk.CTkLabel):
+                    text = str(widget.cget("text"))
+                    # 状态指示器
+                    if any(keyword in text for keyword in ["已连接", "●", "未连接"]):
+                        if "未连接" in text:
+                            widget.configure(text_color=new_colors.DANGER)
+                        else:
+                            widget.configure(text_color=new_colors.SUCCESS)
+                    elif any(keyword in text for keyword in ["TTS", "开启", "关闭", "ON", "OFF"]):
+                        if "开启" in text or "ON" in text:
+                            widget.configure(text_color=new_colors.SUCCESS)
+                        else:
+                            widget.configure(text_color=new_colors.WARNING)
+                    else:
+                        # 普通标签
+                        try:
+                            current_color = widget.cget("text_color")
+                            if current_color in [ThemeColors.TEXT_PRIMARY, DarkThemeColors.TEXT_PRIMARY, ThemeColors.TEXT_SECONDARY, DarkThemeColors.TEXT_SECONDARY, ThemeColors.TEXT_DISABLED, DarkThemeColors.TEXT_DISABLED]:
+                                # 根据原始颜色映射到新颜色
+                                if current_color in [ThemeColors.TEXT_SECONDARY, DarkThemeColors.TEXT_SECONDARY]:
+                                    widget.configure(text_color=new_colors.TEXT_SECONDARY)
+                                elif current_color in [ThemeColors.TEXT_DISABLED, DarkThemeColors.TEXT_DISABLED]:
+                                    widget.configure(text_color=new_colors.TEXT_DISABLED)
+                                else:
+                                    widget.configure(text_color=new_colors.TEXT_PRIMARY)
+                        except:
+                            widget.configure(text_color=new_colors.TEXT_PRIMARY)
+
+                # CTkEntry - 输入框
+                elif isinstance(widget, ctk.CTkEntry):
+                    widget.configure(
+                        fg_color=new_colors.BG_INPUT,
+                        text_color=new_colors.TEXT_PRIMARY,
+                        border_color=new_colors.BORDER_MEDIUM
+                    )
+
+                # CTkOptionMenu - 下拉菜单
+                elif isinstance(widget, ctk.CTkOptionMenu):
+                    widget.configure(
+                        fg_color=new_colors.BG_INPUT,
+                        button_color=new_colors.OPTION_BUTTON_COLOR,
+                        button_hover_color=new_colors.OPTION_BUTTON_HOVER,
+                        text_color=new_colors.TEXT_PRIMARY
+                    )
+
+                # CTkRadioButton - 单选按钮
+                elif isinstance(widget, ctk.CTkRadioButton):
+                    widget.configure(
+                        fg_color=new_colors.PRIMARY,
+                        hover_color=new_colors.PRIMARY_HOVER,
+                        text_color=new_colors.TEXT_PRIMARY
+                    )
+
+                # CTkCheckBox - 复选框
+                elif isinstance(widget, ctk.CTkCheckBox):
+                    widget.configure(
+                        fg_color=new_colors.PRIMARY,
+                        hover_color=new_colors.PRIMARY_HOVER,
+                        text_color=new_colors.TEXT_PRIMARY
+                    )
+
+                # CTkProgressBar - 进度条
+                elif isinstance(widget, ctk.CTkProgressBar):
+                    widget.configure(
+                        fg_color=new_colors.BG_CARD_ALT,
+                        progress_color=new_colors.PRIMARY
+                    )
+
+                # CTkSlider - 滑块
+                elif isinstance(widget, ctk.CTkSlider):
+                    widget.configure(
+                        fg_color=new_colors.BG_CARD_ALT,
+                        button_color=new_colors.PRIMARY,
+                        button_hover_color=new_colors.PRIMARY_HOVER
+                    )
+
+                # CTkSwitch - 开关
+                elif isinstance(widget, ctk.CTkSwitch):
+                    widget.configure(
+                        fg_color=new_colors.BG_CARD_ALT,
+                        progress_color=new_colors.PRIMARY,
+                        button_color=new_colors.PRIMARY,
+                        button_hover_color=new_colors.PRIMARY_HOVER,
+                        text_color=new_colors.TEXT_PRIMARY
+                    )
+
+                # CTkSegmentedButton - 分段按钮
+                elif isinstance(widget, ctk.CTkSegmentedButton):
+                    widget.configure(
+                        fg_color=new_colors.BG_CARD_ALT,
+                        selected_color=new_colors.PRIMARY,
+                        selected_hover_color=new_colors.PRIMARY_HOVER,
+                        unselected_color=new_colors.BG_CARD,
+                        unselected_hover_color=new_colors.BG_HOVER,
+                        text_color=new_colors.TEXT_PRIMARY
+                    )
+
+                # CTkTabview - 标签页
+                elif isinstance(widget, ctk.CTkTabview):
+                    widget.configure(
+                        fg_color=new_colors.BG_CARD,
+                        segmented_button_fg_color=new_colors.BG_CARD_ALT,
+                        segmented_button_selected_color=new_colors.PRIMARY,
+                        segmented_button_selected_hover_color=new_colors.PRIMARY_HOVER,
+                        segmented_button_unselected_color=new_colors.BG_CARD,
+                        segmented_button_unselected_hover_color=new_colors.BG_HOVER
+                    )
+
+            except Exception as e:
+                # 忽略更新失败的部件
+                pass
+
+            # 处理 tkinter 原生控件（非 customtkinter）
+            try:
+                widget_type = type(widget).__name__
+                
+                # tkinter.Listbox - 列表框（如TTS历史音频列表）
+                if widget_type == "Listbox":
+                    widget.configure(
+                        bg=new_colors.BG_CARD_ALT,
+                        fg=new_colors.TEXT_PRIMARY,
+                        selectbackground=new_colors.PRIMARY,
+                        selectforeground=new_colors.TEXT_LIGHT,
+                        highlightcolor=new_colors.BORDER_MEDIUM,
+                        highlightbackground=new_colors.BORDER_MEDIUM
+                    )
+            except Exception as e:
+                # 忽略更新失败的部件
+                pass
+
+            # 递归处理子部件
+            try:
+                children = widget.winfo_children()
+                for child in children:
+                    update_widget(child, depth + 1)
+            except:
+                pass
+
+        # 从根窗口开始递归更新
+        try:
+            update_widget(self.root)
+        except Exception as e:
+            print(f"主题更新警告: {e}")
+
+        # 遍历所有已创建的页面（包括未显示的）- 确保先临时显示再更新主题
+        try:
+            if hasattr(self.view, 'content_pages'):
+                current_page = self.view.current_page_index
+                for i, page in enumerate(self.view.content_pages):
+                    if page and page.winfo_exists():
+                        # 临时显示页面以确保widget树完整
+                        if i != current_page:
+                            page.pack(fill="both", expand=True)
+                        # 更新页面主题
+                        update_widget(page)
+                        # 恢复隐藏状态
+                        if i != current_page:
+                            page.pack_forget()
+        except Exception as e:
+            print(f"页面更新警告: {e}")
+
+        # 通过components字典更新所有已注册的组件
+        for name, component in self.view.components.items():
+            if component is None:
+                continue
+            try:
+                if isinstance(component, ctk.CTkFrame):
+                    # 更新已注册的框架
+                    if 'card' in name.lower() or 'frame' in name.lower():
+                        try:
+                            border_width = component.cget("border_width")
+                            if border_width > 0:
+                                component.configure(fg_color=new_colors.BG_CARD, border_color=new_colors.BORDER_LIGHT)
+                            elif name in ['usb_frame', 'wireless_frame']:
+                                component.configure(fg_color=new_colors.BG_CARD_ALT)
+                        except:
+                            pass
+                elif isinstance(component, ctk.CTkButton) and 'shortcut' in name:
+                    # 更新快捷键按钮
+                    component.configure(fg_color=new_colors.BG_HOVER, text_color=new_colors.TEXT_PRIMARY)
+                elif isinstance(component, ctk.CTkScrollableFrame) and 'files' in name:
+                    # 更新文件列表滚动框
+                    component.configure(
+                        fg_color="transparent",
+                        scrollbar_button_color=new_colors.BG_HOVER,
+                        scrollbar_button_hover_color=new_colors.PRIMARY
+                    )
+
+                # 更新文件列表中的动态组件
+                files_scroll_frame = self.view.get_component("files_list_scroll_frame")
+                if files_scroll_frame and hasattr(files_scroll_frame, 'winfo_children'):
+                    for child in files_scroll_frame.winfo_children():
+                        try:
+                            child_type = type(child).__name__
+                            if child_type == 'CTkFrame':
+                                child.configure(fg_color=new_colors.BG_HOVER)
+                            elif child_type == 'CTkLabel':
+                                child.configure(text_color=new_colors.TEXT_PRIMARY)
+                            elif child_type == 'CTkButton':
+                                if '清空' in str(child.cget("text")):
+                                    child.configure(fg_color=new_colors.WARNING, hover_color=new_colors.WARNING_HOVER, text_color=new_colors.TEXT_LIGHT)
+                                else:
+                                    child.configure(fg_color=new_colors.DANGER, hover_color=new_colors.DANGER_HOVER, text_color=new_colors.TEXT_LIGHT)
+                        except:
+                            continue
+
+                # 更新TTS页面的scrolledtext和Listbox
+                tts_log_text = self.view.get_component("tts_log_text")
+                if tts_log_text and tts_log_text.winfo_exists():
+                    try:
+                        tts_log_text.configure(fg_color=new_colors.BG_CARD_ALT, text_color=new_colors.TEXT_PRIMARY, border_color=new_colors.BORDER_LIGHT)
+                    except:
+                        pass
+
+                tts_audio_listbox = self.view.get_component("tts_audio_listbox")
+                if tts_audio_listbox and tts_audio_listbox.winfo_exists():
+                    try:
+                        tts_audio_listbox.configure(bg=new_colors.BG_CARD_ALT, fg=new_colors.TEXT_PRIMARY)
+                    except:
+                        pass
+
+                # 更新CTkOptionMenu按钮颜色（用于区分下拉按钮和背景）
+                for name in self.view.components:
+                    component = self.view.components[name]
+                    if isinstance(component, ctk.CTkOptionMenu):
+                        component.configure(
+                            fg_color=new_colors.BG_INPUT,
+                            button_color=new_colors.OPTION_BUTTON_COLOR,
+                            button_hover_color=new_colors.OPTION_BUTTON_HOVER,
+                            text_color=new_colors.TEXT_PRIMARY
+                        )
+
+            except Exception as e:
+                continue
+
+        # 更新导航按钮高亮
+        try:
+            self.view._highlight_nav_button(self.view.current_page_index)
+        except:
+            pass
+
+        # 显示提示
+        theme_name = "深色主题" if new_mode == "dark" else "浅色主题"
+        self.show_toast(f"已切换到{theme_name}", "info")
+
+    # ============ 快捷键处理 ============
+
+    def execute_shortcut(self, shortcut_key):
+        """执行快捷键对应的应用打开命令"""
+        # 从 SHORTCUTS 获取完整的命令
+        from .config import SHORTCUTS
+        command = SHORTCUTS.get(shortcut_key, "")
+        if not command:
+            return
+
+        command_input = self.view.get_component("command_input")
+        if command_input:
+            command_input.delete("1.0", tk.END)
+            command_input.insert("1.0", command)
+            self.execute_command()
+            app_name = command.replace("打开", "")
+            self.show_toast(f"正在打开{app_name}", "info")

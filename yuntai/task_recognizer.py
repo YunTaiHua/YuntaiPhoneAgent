@@ -192,20 +192,6 @@ class TaskRecognizer:
                     "specific_content": ""
                 }
 
-            # 特别处理：单个字母的快捷键
-            if len(user_input.strip()) == 1:
-                letter = user_input.strip().lower()
-                if letter in SHORTCUTS:
-                    # 单个字母，优先识别为快捷键
-                    app_name = SHORTCUTS[letter].replace("打开", "")
-                    return {
-                        "task_type": "basic_operation",
-                        "target_app": app_name,
-                        "target_object": "",
-                        "is_auto": False,
-                        "specific_content": ""
-                    }
-
             # 使用ZHIPU_JUDGEMENT_MODEL进行任务识别
             messages = [
                 {"role": "system", "content": self.TASK_RECOGNITION_PROMPT},

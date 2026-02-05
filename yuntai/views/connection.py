@@ -18,29 +18,41 @@ class ConnectionBuilder:
         self.view._highlight_nav_button(1)
 
         content_frame = ctk.CTkFrame(
-            self.view.content_pages[1], 
+            self.view.content_pages[1],
             fg_color="transparent"
         )
         content_frame.pack(fill="both", expand=True, padx=30, pady=30)
 
-        # 页面标题
-        ctk.CTkLabel(
+        # 标题卡片 - 居中对齐
+        header_card = ctk.CTkFrame(
             content_frame,
+            corner_radius=16,
+            fg_color=ThemeColors.BG_CARD,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
+        )
+        header_card.pack(fill="x", pady=(0, 20))
+
+        header_inner = ctk.CTkFrame(header_card, fg_color="transparent")
+        header_inner.pack(expand=True, padx=30, pady=20)
+
+        ctk.CTkLabel(
+            header_inner,
             text="设备管理",
             font=("Microsoft YaHei", 28, "bold"),
             text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w", pady=(0, 8))
+        ).pack(pady=(0, 8))
 
         ctk.CTkLabel(
-            content_frame,
+            header_inner,
             text="管理您的手机设备连接",
             font=("Microsoft YaHei", 14),
             text_color=ThemeColors.TEXT_SECONDARY
-        ).pack(anchor="w", pady=(0, 30))
+        ).pack()
 
-        # 连接状态卡片 - 现代化样式
+        # 连接状态卡片
         self.components["status_card"] = ctk.CTkFrame(
-            content_frame, 
+            content_frame,
             corner_radius=12,
             height=100,
             fg_color=ThemeColors.BG_CARD,
@@ -50,7 +62,7 @@ class ConnectionBuilder:
         self.components["status_card"].pack(fill="x", pady=(0, 16))
 
         status_inner = ctk.CTkFrame(
-            self.components["status_card"], 
+            self.components["status_card"],
             fg_color="transparent"
         )
         status_inner.pack(expand=True, padx=30, pady=25)
@@ -63,7 +75,6 @@ class ConnectionBuilder:
         )
         self.components["connection_status_label"].pack(anchor="w", pady=(0, 8))
 
-        # 添加状态描述
         ctk.CTkLabel(
             status_inner,
             text="请配置下方连接参数",
@@ -104,22 +115,33 @@ class ConnectionBuilder:
             text_color=ThemeColors.TEXT_PRIMARY
         ).pack(anchor="w", pady=(0, 10))
 
+        # 创建一个带边框的容器包裹下拉框
+        device_type_border_frame = ctk.CTkFrame(
+            device_type_frame,
+            corner_radius=12,
+            fg_color="transparent",
+            border_width=1,
+            border_color=ThemeColors.BORDER_MEDIUM
+        )
+        device_type_border_frame.pack(fill="x", pady=5)
+
         self.components["device_type_var"] = ctk.StringVar(value="Android (ADB)")
 
         device_type_menu = ctk.CTkOptionMenu(
-            device_type_frame,
+            device_type_border_frame,
             values=["Android (ADB)", "HarmonyOS (HDC)"],
             variable=self.components["device_type_var"],
             font=("Microsoft YaHei", 13),
             height=42,
             corner_radius=12,
-            fg_color=ThemeColors.BG_CARD_ALT,
-            button_color="#C4C9D0",
-            button_hover_color="#A8AEB5",
+            fg_color=ThemeColors.BG_INPUT,
+            button_color=ThemeColors.OPTION_BUTTON_COLOR,
+            button_hover_color=ThemeColors.OPTION_BUTTON_HOVER,
             text_color=ThemeColors.TEXT_PRIMARY,
             command=self.view._on_device_type_change
         )
-        device_type_menu.pack(anchor="w", pady=5)
+        device_type_menu.pack(fill="x", padx=1, pady=1)
+        self.components["device_type_menu"] = device_type_menu
 
         # 连接方式选择
         conn_type_frame = ctk.CTkFrame(form_frame, fg_color="transparent")

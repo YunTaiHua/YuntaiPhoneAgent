@@ -42,14 +42,11 @@ class ThemeColors:
     TEXT_DISABLED = "#9CA3AF"    # 禁用文字 - 浅灰
     TEXT_LIGHT = "#FFFFFF"       # 浅色文字（用于深色背景按钮）
 
-    # 阴影色（用于卡片效果）
-    SHADOW_LIGHT = "#00000008"    # 微弱阴影
-    SHADOW = "#00000015"         # 默认阴影
-    SHADOW_MEDIUM = "#00000025"  # 中等阴影
-    SHADOW_HOVER = "#00000035"   # 悬停阴影
-
-    # 保留旧颜色名称以兼容现有代码（映射到新颜色）
-    BG_DARK = BG_MAIN            # 兼容旧代码
+    # 特殊颜色
+    NAV_HIGHLIGHT_BG = "#EFF3FF"
+    NAV_HIGHLIGHT_HOVER = "#E0E7FF"
+    OPTION_BUTTON_COLOR = "#C4C9D0"
+    OPTION_BUTTON_HOVER = "#A8AEB5"
 
 
 class ThemeSpacing:
@@ -75,3 +72,53 @@ class ThemeHeight:
     BUTTON_LG = 48
     INPUT_SM = 36
     INPUT_MD = 42
+
+
+class DarkThemeColors:
+    """深色主题颜色类"""
+    # 主色调
+    PRIMARY = "#60A5FA"
+    PRIMARY_HOVER = "#3B82F6"
+    SECONDARY = "#A78BFA"
+    SECONDARY_HOVER = "#8B5CF6"
+    ACCENT = "#FB923C"
+    ACCENT_HOVER = "#F97316"
+
+    # 功能色
+    SUCCESS = "#22C55E"
+    SUCCESS_HOVER = "#16A34A"
+    WARNING = "#F59E0B"
+    WARNING_HOVER = "#D97706"
+    DANGER = "#EF4444"
+    DANGER_HOVER = "#DC2626"
+
+    # 背景色
+    BG_MAIN = "#1A1A2E"
+    BG_NAV = "#16213E"
+    BG_CARD = "#1F2937"
+    BG_CARD_ALT = "#374151"
+    BG_HOVER = "#2D3748"
+    BG_INPUT = "#1F2937"
+    BG_SCROLLBAR = "#4B5563"
+
+    # 边框色
+    BORDER_LIGHT = "#374151"
+    BORDER_MEDIUM = "#4B5563"
+    BORDER_FOCUS = "#60A5FA"
+
+    # 文字色
+    TEXT_PRIMARY = "#F3F4F6"
+    TEXT_SECONDARY = "#9CA3AF"
+    TEXT_DISABLED = "#6B7280"
+    TEXT_LIGHT = "#FFFFFF"
+
+    # 特殊颜色
+    NAV_HIGHLIGHT_BG = "#60A5FA"
+    NAV_HIGHLIGHT_HOVER = "#3B82F6"
+    OPTION_BUTTON_COLOR = "#4B5563"
+    OPTION_BUTTON_HOVER = "#6B7280"
+
+
+def get_theme_colors(is_dark=False):
+    """获取当前主题颜色"""
+    return DarkThemeColors if is_dark else ThemeColors

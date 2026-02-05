@@ -19,25 +19,37 @@ class DynamicBuilder:
         self.view._highlight_nav_button(4)
 
         content_frame = ctk.CTkFrame(
-            self.view.content_pages[4], 
+            self.view.content_pages[4],
             fg_color="transparent"
         )
         content_frame.pack(fill="both", expand=True, padx=30, pady=30)
 
-        # 页面标题
-        ctk.CTkLabel(
+        # 标题卡片 - 居中对齐
+        header_card = ctk.CTkFrame(
             content_frame,
+            corner_radius=16,
+            fg_color=ThemeColors.BG_CARD,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
+        )
+        header_card.pack(fill="x", pady=(0, 20))
+
+        header_inner = ctk.CTkFrame(header_card, fg_color="transparent")
+        header_inner.pack(expand=True, padx=30, pady=20)
+
+        ctk.CTkLabel(
+            header_inner,
             text="动态功能",
             font=("Microsoft YaHei", 28, "bold"),
             text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w", pady=(0, 8))
+        ).pack(pady=(0, 8))
 
         ctk.CTkLabel(
-            content_frame,
+            header_inner,
             text="图像生成与视频合成",
             font=("Microsoft YaHei", 14),
             text_color=ThemeColors.TEXT_SECONDARY
-        ).pack(anchor="w", pady=(0, 30))
+        ).pack()
 
         # 创建选项卡 - 现代化样式
         self.components["dynamic_tabview"] = ctk.CTkTabview(
@@ -140,8 +152,8 @@ class DynamicBuilder:
             height=38,
             corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
-            button_color="#C4C9D0",
-            button_hover_color="#A8AEB5",
+            button_color=ThemeColors.OPTION_BUTTON_COLOR,
+            button_hover_color=ThemeColors.OPTION_BUTTON_HOVER,
             text_color=ThemeColors.TEXT_PRIMARY
         )
         self.components["image_size_menu"].pack(side="left")
@@ -167,8 +179,8 @@ class DynamicBuilder:
             height=38,
             corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
-            button_color="#C4C9D0",
-            button_hover_color="#A8AEB5",
+            button_color=ThemeColors.OPTION_BUTTON_COLOR,
+            button_hover_color=ThemeColors.OPTION_BUTTON_HOVER,
             text_color=ThemeColors.TEXT_PRIMARY
         )
         self.components["image_quality_menu"].pack(side="left")
@@ -350,8 +362,8 @@ class DynamicBuilder:
             height=34,
             corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
-            button_color="#C4C9D0",
-            button_hover_color="#A8AEB5",
+            button_color=ThemeColors.OPTION_BUTTON_COLOR,
+            button_hover_color=ThemeColors.OPTION_BUTTON_HOVER,
             text_color=ThemeColors.TEXT_PRIMARY
         )
         self.components["video_size_menu"].pack(side="left", padx=(0, 15))
@@ -375,8 +387,8 @@ class DynamicBuilder:
             height=34,
             corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
-            button_color="#C4C9D0",
-            button_hover_color="#A8AEB5",
+            button_color=ThemeColors.OPTION_BUTTON_COLOR,
+            button_hover_color=ThemeColors.OPTION_BUTTON_HOVER,
             text_color=ThemeColors.TEXT_PRIMARY
         )
         self.components["video_fps_menu"].pack(side="left", padx=(0, 15))
@@ -400,8 +412,8 @@ class DynamicBuilder:
             height=34,
             corner_radius=12,
             fg_color=ThemeColors.BG_INPUT,
-            button_color="#C4C9D0",
-            button_hover_color="#A8AEB5",
+            button_color=ThemeColors.OPTION_BUTTON_COLOR,
+            button_hover_color=ThemeColors.OPTION_BUTTON_HOVER,
             text_color=ThemeColors.TEXT_PRIMARY
         )
         self.components["video_quality_menu"].pack(side="left")

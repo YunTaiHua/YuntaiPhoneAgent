@@ -18,29 +18,41 @@ class SettingsBuilder:
         self.view._highlight_nav_button(5)
 
         content_frame = ctk.CTkFrame(
-            self.view.content_pages[5], 
+            self.view.content_pages[5],
             fg_color="transparent"
         )
         content_frame.pack(fill="both", expand=True, padx=30, pady=30)
 
-        # 页面标题
-        ctk.CTkLabel(
+        # 标题卡片 - 居中对齐
+        header_card = ctk.CTkFrame(
             content_frame,
+            corner_radius=16,
+            fg_color=ThemeColors.BG_CARD,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
+        )
+        header_card.pack(fill="x", pady=(0, 20))
+
+        header_inner = ctk.CTkFrame(header_card, fg_color="transparent")
+        header_inner.pack(expand=True, padx=30, pady=20)
+
+        ctk.CTkLabel(
+            header_inner,
             text="系统设置",
             font=("Microsoft YaHei", 28, "bold"),
             text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w", pady=(0, 8))
+        ).pack(pady=(0, 8))
 
         ctk.CTkLabel(
-            content_frame,
+            header_inner,
             text="配置系统各项参数",
             font=("Microsoft YaHei", 14),
             text_color=ThemeColors.TEXT_SECONDARY
-        ).pack(anchor="w", pady=(0, 30))
+        ).pack()
 
         # 创建设置卡片容器
         settings_grid = ctk.CTkFrame(
-            content_frame, 
+            content_frame,
             fg_color="transparent"
         )
         settings_grid.pack(fill="both", expand=True)

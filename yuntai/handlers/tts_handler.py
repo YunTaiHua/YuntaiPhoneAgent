@@ -105,11 +105,11 @@ class TTSHandler:
         if tts_log_text and tts_log_text.winfo_exists():
             def update_gui():
                 try:
-                    tts_log_text.config(state="normal")
+                    tts_log_text.configure(state="normal")
                     timestamp = time.strftime("[%H:%M:%S]")
                     tts_log_text.insert("end", f"{timestamp} {msg}\n")
                     tts_log_text.see("end")
-                    tts_log_text.config(state="disabled")
+                    tts_log_text.configure(state="disabled")
                 except tk.TclError:
                     pass
 

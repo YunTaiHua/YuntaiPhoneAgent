@@ -171,7 +171,26 @@ class GUIView:
             text=f"Version {APP_VERSION}",
             font=("Microsoft YaHei", 10),
             text_color=ThemeColors.TEXT_DISABLED
-        ).pack(anchor="w", pady=(15, 0))
+        ).pack(anchor="w", pady=(15, 10))
+
+        # 主题切换按钮
+        theme_toggle_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
+        theme_toggle_frame.pack(anchor="w", pady=(10, 0))
+
+        self.components["theme_toggle_button"] = ctk.CTkButton(
+            theme_toggle_frame,
+            text="🌙",
+            font=("Segoe UI Emoji", 14),
+            width=40,
+            height=40,
+            fg_color=ThemeColors.BG_HOVER,
+            hover_color=ThemeColors.BG_CARD_ALT,
+            corner_radius=20,
+            text_color=ThemeColors.TEXT_PRIMARY,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
+        )
+        self.components["theme_toggle_button"].pack(anchor="w")
 
     def _create_main_content_frame(self):
         """创建主内容容器 - 现代化米白色风格"""
@@ -318,39 +337,34 @@ class GUIView:
 
     def show_attached_files(self, file_paths: list[str], controller=None):
         """在UI中显示已选择的文件"""
-        # 获取组件
-        attached_files_frame = self.get_component("attached_files_frame")
-        if not attached_files_frame:
-            print("⚠️  未找到attached_files_frame组件")
+        # 获取文件列表滚动框架
+        files_scroll_frame = self.get_component("files_list_scroll_frame")
+        if not files_scroll_frame:
+            print("⚠️  未找到files_list_scroll_frame组件")
             return
 
         # 清空现有文件显示
-        for widget in attached_files_frame.winfo_children():
+        for widget in files_scroll_frame.winfo_children():
             widget.destroy()
 
         if not file_paths:
-            # 如果没有文件，隐藏该区域
-            attached_files_frame.pack_forget()
+            # 如果没有文件，显示提示
+            ctk.CTkLabel(
+                files_scroll_frame,
+                text="暂无已选文件",
+                font=("Microsoft YaHei", 12),
+                text_color=ThemeColors.TEXT_DISABLED
+            ).pack(pady=10)
             return
-
-        # 显示文件区域
-        attached_files_frame.pack(fill="x", padx=15, pady=(5, 0))
-
-        # 标题
-        ctk.CTkLabel(
-            attached_files_frame,
-            text="📎 已选文件:",
-            font=("Microsoft YaHei", 12, "bold"),
-            text_color=ThemeColors.TEXT_SECONDARY
-        ).pack(anchor="w", pady=(0, 5))
 
         # 显示每个文件
         for i, file_path in enumerate(file_paths):
-            file_frame = ctk.CTkFrame(attached_files_frame,
-                                      fg_color=ThemeColors.BG_HOVER,
-                                      height=40)
-            file_frame.pack(fill="x", pady=2)
-            file_frame.pack_propagate(False)
+            file_frame = ctk.CTkFrame(
+                files_scroll_frame,
+                fg_color=ThemeColors.BG_HOVER,
+                corner_radius=8
+            )
+            file_frame.pack(fill="x", pady=3)
 
             # 文件名（带图标）
             file_name = os.path.basename(file_path)
@@ -372,9 +386,10 @@ class GUIView:
                 file_frame,
                 text=f"{icon} {file_name}",
                 font=("Microsoft YaHei", 11),
-                anchor="w"
+                anchor="w",
+                text_color=ThemeColors.TEXT_PRIMARY
             )
-            file_label.pack(side="left", fill="x", expand=True, padx=10)
+            file_label.pack(side="left", fill="x", expand=True, padx=10, pady=8)
 
             # 删除按钮（仅在controller存在时显示）
             if controller:
@@ -385,10 +400,11 @@ class GUIView:
                     width=30,
                     height=30,
                     fg_color=ThemeColors.DANGER,
-                    hover_color="#c62828",
-                    text_color="white"
+                    hover_color=ThemeColors.DANGER_HOVER,
+                    text_color=ThemeColors.TEXT_LIGHT,
+                    corner_radius=15
                 )
-                delete_btn.pack(side="right", padx=5)
+                delete_btn.pack(side="right", padx=5, pady=4)
 
                 # 绑定删除事件
                 delete_btn.configure(
@@ -396,27 +412,25 @@ class GUIView:
                 )
 
         # 清空所有按钮（仅在controller存在时显示）
-        if controller:
+        if controller and file_paths:
             clear_all_btn = ctk.CTkButton(
-                attached_files_frame,
+                files_scroll_frame,
                 text="清空所有",
                 font=("Microsoft YaHei", 11),
                 height=30,
                 fg_color=ThemeColors.WARNING,
-                hover_color="#e67e22"
+                hover_color=ThemeColors.WARNING_HOVER,
+                text_color=ThemeColors.TEXT_LIGHT,
+                corner_radius=15
             )
             clear_all_btn.pack(anchor="e", pady=(5, 0))
 
             # 绑定清空所有事件
             clear_all_btn.configure(command=controller.clear_attached_files)
-        else:
-            # 如果没有controller，至少显示文件列表
-            print("⚠️  show_attached_files未收到controller参数，文件操作为只读模式")
 
-        # 强制更新布局，确保父容器正确扩展
+        # 强制更新布局
         try:
-            if attached_files_frame.master:
-                attached_files_frame.master.update_idletasks()
+            files_scroll_frame.update_idletasks()
         except Exception:
             pass
 
@@ -439,19 +453,25 @@ class GUIView:
 
     def _highlight_nav_button(self, index):
         """高亮导航按钮 - 现代化样式"""
+        import customtkinter as ctk
+        from .views.theme import DarkThemeColors, ThemeColors
+
+        current_mode = ctk.get_appearance_mode().lower()
+        colors = DarkThemeColors if current_mode == "dark" else ThemeColors
+
         if "nav_buttons" in self.components:
             for i, btn in enumerate(self.components["nav_buttons"]):
                 if i == index:
                     btn.configure(
-                        fg_color="#EFF3FF",
-                        text_color=ThemeColors.PRIMARY,
-                        hover_color="#E0E7FF"
+                        fg_color=colors.NAV_HIGHLIGHT_BG,
+                        text_color=ThemeColors.TEXT_LIGHT if current_mode == "dark" else colors.PRIMARY,
+                        hover_color=colors.NAV_HIGHLIGHT_HOVER
                     )
                 else:
                     btn.configure(
                         fg_color="transparent",
-                        text_color=ThemeColors.TEXT_PRIMARY,
-                        hover_color=ThemeColors.BG_HOVER
+                        text_color=colors.TEXT_PRIMARY,
+                        hover_color=colors.BG_HOVER
                     )
 
     def _on_device_type_change(self, device_type: str):
