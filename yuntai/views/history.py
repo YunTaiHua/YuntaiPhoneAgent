@@ -60,12 +60,46 @@ class HistoryBuilder:
         )
         history_frame.pack(fill="both", expand=True)
 
+        # 标题和按钮区域（水平布局）
+        title_button_frame = ctk.CTkFrame(history_frame, fg_color="transparent")
+        title_button_frame.pack(fill="x", padx=20, pady=15)
+
         ctk.CTkLabel(
-            history_frame,
+            title_button_frame,
             text="📋 历史记录列表",
             font=("Microsoft YaHei", 16, "bold"),
             text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w", padx=20, pady=15)
+        ).pack(side="left")
+
+        # 右侧按钮容器
+        button_container = ctk.CTkFrame(title_button_frame, fg_color="transparent")
+        button_container.pack(side="right")
+
+        self.components["refresh_history_btn"] = ctk.CTkButton(
+            button_container,
+            text="🔄 刷新",
+            font=("Microsoft YaHei", 14),
+            width=100,
+            height=36,
+            corner_radius=18,
+            fg_color=ThemeColors.SECONDARY,
+            hover_color=ThemeColors.SECONDARY_HOVER,
+            text_color=ThemeColors.TEXT_LIGHT
+        )
+        self.components["refresh_history_btn"].pack(side="left", padx=(0, 10))
+
+        self.components["clear_history_btn"] = ctk.CTkButton(
+            button_container,
+            text="🗑️ 清空",
+            font=("Microsoft YaHei", 14),
+            width=100,
+            height=36,
+            corner_radius=18,
+            fg_color=ThemeColors.DANGER,
+            hover_color=ThemeColors.DANGER_HOVER,
+            text_color=ThemeColors.TEXT_LIGHT
+        )
+        self.components["clear_history_btn"].pack(side="left")
 
         # 创建历史记录文本框
         self.components["history_text"] = ctk.CTkTextbox(
@@ -80,37 +114,3 @@ class HistoryBuilder:
         )
         self.components["history_text"].pack(fill="both", expand=True, padx=15, pady=(0, 20))
         self.components["history_text"].configure(state="disabled")
-
-        # 底部按钮区域 - 居中对齐
-        button_frame = ctk.CTkFrame(history_frame, fg_color="transparent")
-        button_frame.pack(fill="x", padx=20, pady=(0, 20))
-
-        # 创建居中容器
-        button_center = ctk.CTkFrame(button_frame, fg_color="transparent")
-        button_center.pack()
-
-        self.components["refresh_history_btn"] = ctk.CTkButton(
-            button_center,
-            text="🔄 刷新",
-            font=("Microsoft YaHei", 14),
-            width=100,
-            height=40,
-            corner_radius=20,
-            fg_color=ThemeColors.SECONDARY,
-            hover_color=ThemeColors.SECONDARY_HOVER,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.components["refresh_history_btn"].pack(side="left", padx=(0, 12))
-
-        self.components["clear_history_btn"] = ctk.CTkButton(
-            button_center,
-            text="🗑️ 清空",
-            font=("Microsoft YaHei", 14),
-            width=100,
-            height=40,
-            corner_radius=20,
-            fg_color=ThemeColors.DANGER,
-            hover_color=ThemeColors.DANGER_HOVER,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.components["clear_history_btn"].pack(side="left")
