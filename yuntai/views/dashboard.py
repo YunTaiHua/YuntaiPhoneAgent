@@ -353,6 +353,9 @@ class DashboardBuilder:
                 col = 0
                 row += 1
 
+        # 初始化已选文件显示区域
+        self._init_attached_files_display()
+
     def _on_input_keyrelease(self, event=None):
         """输入框内容变化时自适应高度（只在换行时重新计算）"""
         text_widget = self.components.get("command_input")
@@ -385,3 +388,8 @@ class DashboardBuilder:
             text_widget.configure(height=current_height)
         except Exception as e:
             pass
+
+    def _init_attached_files_display(self):
+        """初始化已选文件显示区域"""
+        if hasattr(self.view, 'show_attached_files'):
+            self.view.show_attached_files([], None)

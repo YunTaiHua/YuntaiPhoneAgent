@@ -644,7 +644,7 @@ class GUIController:
     def _enable_execute_button(self):
         execute_btn = self.view.get_component("execute_button")
         if execute_btn and execute_btn.winfo_exists():
-            execute_btn.configure(state="normal", fg_color=ThemeColors.PRIMARY, text="执行命令")
+            execute_btn.configure(state="normal", fg_color=ThemeColors.PRIMARY, text="▶ 执行命令")
         self.view.hide_enter_button()
 
     def _disable_terminate_button(self):
