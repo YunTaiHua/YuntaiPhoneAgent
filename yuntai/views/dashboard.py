@@ -240,12 +240,11 @@ class DashboardBuilder:
         )
         self.components["scrcpy_button"].pack(side="left", padx=(10, 0))
 
-        # 右侧：快捷键、已选文件和文件管理卡片
+        # 右侧：快捷键和文件管理卡片
         right_panel = ctk.CTkFrame(main_content, fg_color="transparent")
         right_panel.grid(row=0, column=1, sticky="nsew", padx=(12, 0))
         right_panel.grid_rowconfigure(0, weight=0)
         right_panel.grid_rowconfigure(1, weight=1)
-        right_panel.grid_rowconfigure(2, weight=0)
         right_panel.grid_columnconfigure(0, weight=1)
 
         # 快捷键卡片（固定高度）- 放在最上面
@@ -293,36 +292,7 @@ class DashboardBuilder:
                 col = 0
                 row += 1
 
-        # 文件展示卡片（可扩展高度）- 放在中间
-        file_display_card = ctk.CTkFrame(
-            right_panel,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
-        )
-        file_display_card.grid(row=1, column=0, sticky="nsew", pady=(0, 12))
-        self.components["file_display_card"] = file_display_card
-
-        ctk.CTkLabel(
-            file_display_card,
-            text="📎 已选文件",
-            font=("Microsoft YaHei", 16, "bold"),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w", padx=15, pady=(15, 10))
-
-        # 创建可滚动的文件列表
-        files_scroll_frame = ctk.CTkScrollableFrame(
-            file_display_card,
-            label_text="",
-            fg_color="transparent",
-            scrollbar_button_color=ThemeColors.BG_HOVER,
-            scrollbar_button_hover_color=ThemeColors.PRIMARY
-        )
-        files_scroll_frame.pack(fill="both", expand=True, padx=15, pady=(0, 15))
-        self.components["files_list_scroll_frame"] = files_scroll_frame
-
-        # 文件管理卡片（固定高度）- 放在最下面
+        # 文件管理卡片（可扩展高度）- 包含上传按钮和文件列表
         file_management_card = ctk.CTkFrame(
             right_panel,
             corner_radius=12,
@@ -330,7 +300,7 @@ class DashboardBuilder:
             border_width=1,
             border_color=ThemeColors.BORDER_LIGHT
         )
-        file_management_card.grid(row=2, column=0, sticky="ew")
+        file_management_card.grid(row=1, column=0, sticky="nsew")
         self.components["file_management_card"] = file_management_card
 
         ctk.CTkLabel(
@@ -340,7 +310,29 @@ class DashboardBuilder:
             text_color=ThemeColors.TEXT_PRIMARY
         ).pack(anchor="w", padx=15, pady=(15, 10))
 
-        # 上传文件按钮
+        # 文件列表容器（带边框的日志框样式）
+        files_list_container = ctk.CTkFrame(
+            file_management_card,
+            corner_radius=12,
+            fg_color=ThemeColors.BG_CARD_ALT,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
+        )
+        files_list_container.pack(fill="both", expand=True, padx=15, pady=(0, 10))
+        self.components["files_list_container"] = files_list_container
+
+        # 创建可滚动的文件列表
+        files_scroll_frame = ctk.CTkScrollableFrame(
+            files_list_container,
+            label_text="",
+            fg_color="transparent",
+            scrollbar_button_color=ThemeColors.BG_HOVER,
+            scrollbar_button_hover_color=ThemeColors.PRIMARY
+        )
+        files_scroll_frame.pack(fill="both", expand=True, padx=8, pady=8)
+        self.components["files_list_scroll_frame"] = files_scroll_frame
+
+        # 上传文件按钮（放在底部）
         self.components["file_upload_button"] = ctk.CTkButton(
             file_management_card,
             text="📤 上传文件",

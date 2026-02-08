@@ -348,14 +348,7 @@ class GUIView:
             widget.destroy()
 
         if not file_paths:
-            # 如果没有文件，显示提示
-            ctk.CTkLabel(
-                files_scroll_frame,
-                text="暂无已选文件",
-                font=("Microsoft YaHei", 12),
-                text_color=ThemeColors.TEXT_DISABLED
-            ).pack(pady=10)
-            # 强制更新布局
+            # 如果没有文件，只更新布局，不显示提示
             try:
                 files_scroll_frame.update_idletasks()
                 files_scroll_frame._parent_canvas.yview_moveto(0)
