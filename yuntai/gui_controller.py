@@ -919,7 +919,7 @@ class GUIController:
                             widget.configure(text_color=new_colors.DANGER)
                         else:
                             widget.configure(text_color=new_colors.SUCCESS)
-                    elif any(keyword in text for keyword in ["TTS", "开启", "关闭", "ON", "OFF"]):
+                    elif ": " in text and any(keyword in text for keyword in ["TTS", "开启", "关闭", "ON", "OFF"]):
                         if "开启" in text or "ON" in text:
                             widget.configure(text_color=new_colors.SUCCESS)
                         else:
