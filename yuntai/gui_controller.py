@@ -254,13 +254,13 @@ class GUIController:
         if self.is_executing:
             self.show_toast("任务执行中，请等待完成", "warning")
             return
-        if not self.attached_files: return
 
         file_count = len(self.attached_files)
         self.attached_files.clear()
         if self.view:
             self.view.show_attached_files(self.attached_files, self)
-        self.show_toast(f"已清空 {file_count} 个文件", "success")
+        if file_count > 0:
+            self.show_toast(f"已清空 {file_count} 个文件", "success")
 
     def remove_attached_file(self, file_path: str):
         """移除单个文件"""

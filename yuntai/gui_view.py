@@ -355,6 +355,12 @@ class GUIView:
                 font=("Microsoft YaHei", 12),
                 text_color=ThemeColors.TEXT_DISABLED
             ).pack(pady=10)
+            # 强制更新布局
+            try:
+                files_scroll_frame.update_idletasks()
+                files_scroll_frame._parent_canvas.yview_moveto(0)
+            except Exception:
+                pass
             return
 
         # 显示每个文件
@@ -431,6 +437,7 @@ class GUIView:
         # 强制更新布局
         try:
             files_scroll_frame.update_idletasks()
+            files_scroll_frame._parent_canvas.yview_moveto(0)
         except Exception:
             pass
 
