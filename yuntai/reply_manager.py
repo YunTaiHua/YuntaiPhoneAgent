@@ -16,10 +16,15 @@ from phone_agent.agent import AgentConfig
 from pydantic import BaseModel, Field, ValidationError
 
 # 导入配置
-from yuntai.config import (
-    MAX_CYCLE_TIMES, WAIT_INTERVAL, ZHIPU_CLIENT,ZHIPU_CHAT_MODEL
-)
+from yuntai.config import (MAX_CYCLE_TIMES, WAIT_INTERVAL, ZHIPU_CLIENT,ZHIPU_CHAT_MODEL)
 from yuntai.file_manager import FileManager
+from yuntai.prompts.reply_manager_prompt import (
+    EXTRACT_PROMPT,
+    PARSE_MESSAGES_PROMPT,
+    EXTRACT_CHAT_RECORDS_PROMPT,
+    GENERATE_REPLY_PROMPT,
+    GENERATE_REPLY_SYSTEM_PROMPT
+)
 
 
 class ChatMessage(BaseModel):
@@ -49,37 +54,8 @@ class SmartContinuousReplyManager:
         self.other_messages_list = []
         self.my_messages_list = []
 
-        # 修复Prompt格式（转义大括号）
-        self.extract_prompt = """
-        你是专业的聊天记录解析助手，必须严格按以下规则提取信息：
-        ### 核心规则（优先级最高）：
-        1. 头像位置判断：
-           - 右侧有头像 = 消息气泡在屏幕右侧（我方发送的消息）
-           - 左侧有头像 = 消息气泡在屏幕左侧（对方发送的消息）
-           - 从描述中找关键词："右侧有头像"、"红色气泡"、"粉色气泡" → 一律标为「右侧有头像」
-        2. 气泡颜色判断：
-           - 红色/粉色/绿色气泡 = 我方的消息，颜色填「红色」或「粉色」
-           - 白色/灰色气泡 = 对方的消息，颜色填「白色」
-           - 从描述中找关键词："红色气泡"→颜色填「红色」，"粉色气泡"→填「粉色」，"绿色气泡"→填「绿色」，无描述才填「未知」
-        3. 消息内容：完整保留原文，包括标点、emoji、语气词（如~、💪）
-
-        ### 输入文本（聊天记录描述）：
-        {text}
-
-        ### 强制输出格式（必须是纯JSON，不要加任何额外文字、代码块标记）：
-        {{
-          "messages": [
-            {{"content": "消息内容1", "position": "右侧有头像", "color": "红色"}},
-            {{"content": "消息内容2", "position": "左侧有头像", "color": "白色"}}
-          ]
-        }}
-
-        ### 错误示例（禁止出现）：
-        - 不要输出"```json"或"```"
-        - 不要加解释性文字（如"以下是提取结果："）
-        - 不要遗漏position/color字段
-        - 不要把"右侧有头像"写成"右"或"右侧"，必须严格按指定值输出
-        """
+        # 从prompts目录导入提示词
+        self.extract_prompt = EXTRACT_PROMPT
 
     def parse_messages_simple(self, record: str) -> List[Dict[str, str]]:
         """
@@ -90,31 +66,8 @@ class SmartContinuousReplyManager:
             print(f"\n⚠️  聊天记录为空/过短")
             return []
 
-        # ========== 核心：给ZHIPU_CHAT_MODEL的超精准指令 ==========
-        prompt_text = f"""
-    你的唯一任务是：从以下文本中提取聊天消息，并按要求输出JSON。
-    严格遵守以下规则（违反任何一条都会导致解析失败）：
-    1. 消息提取规则：
-       - 只提取实际的聊天内容（如"早上就有两节"），忽略时间戳、思考过程、性能指标等无关内容
-       - 不遗漏任何一条可见的聊天消息，不重复提取
-       - 消息内容完整保留（包括标点、emoji、语气词）
-    2. 位置/颜色判断规则：
-       - 右侧有头像 = 我方发送的消息（通常是红色/粉色/绿色气泡）
-       - 左侧有头像 = 对方发送的消息（通常是白色气泡）
-       - 必须从文本中找依据（如"红色气泡，右侧有头像"→右侧+红色；"白色气泡，左侧有头像"→左侧+白色）
-       - 无明确依据时，位置/颜色填"未知"
-       - 位置和颜色判断矛盾时，以位置为主
-    3. 输出格式（必须是纯JSON，无任何额外内容、代码块、解释文字）：
-    {{
-      "messages": [
-        {{"content": "消息内容1", "position": "左侧有头像", "color": "白色"}},
-        {{"content": "消息内容2", "position": "右侧有头像", "color": "红色"}}
-      ]
-    }}
-
-    需要处理的文本：
-    {record[:2000]}  # 限制长度，避免ZHIPU_CHAT_MODEL上下文超限
-    """
+        # 使用从prompts目录导入的提示词模板
+        prompt_text = PARSE_MESSAGES_PROMPT.format(record=record[:2000])
 
         try:
             # ========== 调用ZHIPU_CHAT_MODEL（强制精准输出） ==========
@@ -283,32 +236,8 @@ class SmartContinuousReplyManager:
             )
             phone_agent = PhoneAgent(model_config=model_config, agent_config=agent_config)
 
-            task_with_prompt = task + "\n\n" + """你是手机操作执行器，严格按指令执行：
-
-重要：准确识别头像位置和气泡颜色是判断消息发送方的关键！
-
-消息提取要求：
-1. 准确描述每条消息气泡的颜色（如：白色、红色、蓝色、绿色、粉色等）
-2. **非常重要**：准确描述每条消息的头像位置（左侧有头像、右侧有头像）
-3. **绝对不要简化描述**，必须明确说明"左侧有头像"或"右侧有头像"
-4. 注意：我方发送的消息通常在右侧有头像，气泡颜色可能是粉色、绿色等深色
-5. 对方发送的消息通常在左侧有头像，气泡颜色通常是白色或浅色
-6. 不要判断发送方，只需客观描述颜色和头像位置
-
-执行要求：
-1. 如果指令中指定了聊天对象，必须进入该对象的聊天窗口
-2. 提取聊天记录时：键盘已经关闭，不需要点击空白处关闭键盘，直接向下滑动1次
-3. 提取聊天记录时：不要向上滚动，只向下滑动1次
-4. 发送消息时：准确输入并点击发送按钮
-5. 发送消息必须完整，不要截断
-6. 输出聊天记录时，包括：
-   - 每条消息的内容
-   - 每条消息的气泡颜色
-   - 每条消息的头像位置（左侧有头像/右侧有头像）
-7. 不要判断消息发送方，只需描述客观信息（颜色和头像位置）
-8. 不要查看完整聊天历史或更早的聊天记录，只需当前屏幕可见消息
-9. 发送消息后必须使用Back按钮关闭键盘
-"""
+            # 使用从prompts目录导入的提示词模板
+            task_with_prompt = task + "\n\n" + EXTRACT_CHAT_RECORDS_PROMPT
 
             raw_result = phone_agent.run(task_with_prompt)
             phone_agent.reset()
@@ -454,24 +383,14 @@ class SmartContinuousReplyManager:
                 for i, msg in enumerate(history_messages[-5:], 1):  # 只取最近5条作为历史
                     history_prompt += f"{i}. {msg[:50]}...\n"
 
-            # 构建提示词 - 优化以支持头像位置判断
-            prompt = f"""你是一个聊天助手，名字叫"小芸"，性别为女，请用可爱俏皮的方式回复对方消息。
-不要使用真实人名，用"你"、"对方"、"朋友"等代替。
-保持对话的自然和友好。
-
-重要提示：在聊天界面中，左侧有头像的消息是对方发送的，右侧有头像的消息是我方发送的。
-请根据这个规则理解对话上下文。
-
-对方最新消息：
-"{latest_message}"
-{history_prompt}
-
-请基于以上对方最新消息生成回复，保持对话的连贯性。
-注意：只需要回复最新的一条消息，历史消息仅作为上下文参考。"""
+            # 使用从prompts目录导入的提示词模板
+            prompt = GENERATE_REPLY_PROMPT.format(
+                latest_message=latest_message,
+                history_prompt=history_prompt
+            )
 
             messages = [
-                {"role": "system",
-                 "content": "你是一个友好的聊天助手，名字叫'小芸'，请用可爱俏皮的方式回复。记住：左侧有头像的消息是对方发送的，右侧有头像的消息是我方发送的。"},
+                {"role": "system", "content": GENERATE_REPLY_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt}
             ]
 

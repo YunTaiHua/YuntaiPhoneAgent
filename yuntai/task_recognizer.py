@@ -7,110 +7,17 @@ import json
 from typing import Dict, Any, Optional
 
 from yuntai.config import SHORTCUTS, ZHIPU_CLIENT,ZHIPU_JUDGEMENT_MODEL
+from yuntai.prompts.task_recognizer_prompt import TASK_RECOGNITION_PROMPT, PHONE_AGENT_EXTRACT_PROMPT, MULTIMODAL_TASK_PROMPT
 
 
 class TaskRecognizer:
     def __init__(self, zhipu_client):
         self.zhipu_client = zhipu_client
 
-        # 智能任务识别提示词（更新版）
-        self.TASK_RECOGNITION_PROMPT = """你是一个任务识别专家，负责分析用户输入的指令并判断任务类型。
-
-任务类型定义：
-1. free_chat：用户只是想和你自由聊天，或者表达感谢、问候等，不涉及手机操作
-   - 如"你好"、"今天天气怎么样"、"谢谢你帮我打开抖音"
-   - 判断依据：不包含"打开"、"发送"、"发消息"等操作关键词，主要是自然语言交流
-
-2. basic_operation：用户想要打开某个APP
-   - 如"打开QQ"、"打开微信"、"打开淘宝"
-   - 判断依据：只包含"打开"和APP名称，不包含其他操作如"发消息"、"选购"、"点赞"等
-
-3. single_reply：用户想要在某个APP中给某个联系人发送一次消息，但**没有指定具体消息内容**
-   - 如"打开QQ给黄恬发消息"、"在微信里给张三发送消息"
-   - 判断依据：包含"打开"、"发消息"/"发送"和联系人，但**不包含具体的消息内容文本**
-   - **关键区别**：指令中没有引号或冒号后的具体消息内容（如："你好呀"、"晚上有空吗"等）
-
-4. continuous_reply：用户想要在某个APP中给某个联系人持续回复消息
-   - 如"打开QQ给黄恬发消息auto"、"打开微信给张三发消息 auto"
-   - 判断依据：包含"打开"、"发消息"/"发送"和联系人，且包含"auto"或"持续"，同样**没有指定具体消息内容**
-
-5. complex_operation：用户想要执行复杂的手机操作，**包括发送具体指定的消息内容**
-   - 如"打开QQ给黄恬发送消息：你好呀"、"在微信里给张三发消息：晚上有空吗？"
-   - 如"打开淘宝选购一个便宜的文具盒"、"打开抖音点赞"、"在QQ里搜索文件"
-   - **发送具体消息的判断依据**：包含"打开"、"发消息"/"发送"、联系人，**并且有具体的消息内容文本（通常用引号或冒号标注）**
-   - 其他复杂操作判断依据：包含"打开"和更复杂的操作指令（如"选购"、"点赞"、"搜索"、"查看"等）
-
-识别规则：
-1. 首先检查是否包含感谢、问候等自然语言，如果是则归为free_chat
-2. 检查是否包含"auto"或"持续"，如果有且包含"发消息"，则是continuous_reply（前提：没有具体消息内容）
-3. 检查是否包含"发消息"或"发送"，如果有且不包含"auto"：
-   - 如果**有具体的消息内容文本**（如引号内的内容或冒号后的内容），则是complex_operation
-   - 如果**没有具体的消息内容文本**，则是single_reply
-4. 检查是否只包含"打开"和APP名称，不包含其他操作，则是basic_operation
-5. 如果包含"打开"和其他复杂操作词，则是complex_operation
-6. 其他情况默认是free_chat
-
-**关键判断点**：
-- "发消息"或"发送" + **有具体内容** = complex_operation
-- "发消息"或"发送" + **无具体内容** = single_reply（或continuous_reply如果包含auto）
-
-返回格式要求：
-请以JSON格式返回，包含以下字段：
-{
-  "task_type": "任务类型，只能是free_chat/basic_operation/single_reply/continuous_reply/complex_operation",
-  "target_app": "目标APP，如QQ、微信等，如果没有则为空字符串",
-  "target_object": "聊天对象，如果没有则为空字符串",
-  "is_auto": true/false，是否为持续回复模式,
-  "specific_content": "具体的消息内容，如果有则返回完整内容，否则为空字符串"
-}
-
-注意：只返回JSON格式，不要有其他任何内容。"""
-
-        # 改进的phone_agent提示词（头像位置版本）
-        self.PHONE_AGENT_EXTRACT_PROMPT = """你是手机操作执行器，严格按指令执行：
-
-重要：准确识别头像位置和气泡颜色是判断消息发送方的关键！
-
-消息提取要求：
-1. 准确描述每条消息气泡的颜色（如：白色、红色、蓝色、绿色、粉色等）
-2. **非常重要**：准确描述每条消息的头像位置（左侧有头像、右侧有头像）
-3. **绝对不要简化描述**，必须明确说明"左侧有头像"或"右侧有头像"
-4. 注意：我方发送的消息通常在右侧有头像，气泡颜色可能是粉色、绿色等深色
-5. 对方发送的消息通常在左侧有头像，气泡颜色通常是白色或浅色
-6. 不要判断发送方，只需客观描述颜色和头像位置
-
-执行要求：
-1. 如果指令中指定了聊天对象，必须进入该对象的聊天窗口
-2. 提取聊天记录时：键盘已经关闭，不需要点击空白处关闭键盘，直接向下滑动1次
-3. 提取聊天记录时：不要向上滚动，只向下滑动1次
-4. 发送消息时：准确输入并点击发送按钮
-5. 发送消息必须完整，不要截断
-6. 输出聊天记录时，包括：
-   - 每条消息的内容
-   - 每条消息的气泡颜色
-   - 每条消息的头像位置（左侧有头像/右侧有头像）
-7. 不要判断消息发送方，只需描述客观信息（颜色和头像位置）
-8. 不要查看完整聊天历史或更早的聊天记录，只需当前屏幕可见消息
-9. 发送消息后必须使用Back按钮关闭键盘
-"""
-
-        # 在 __init__ 方法末尾添加
-        self.MULTIMODAL_TASK_PROMPT = """你是一个多模态任务识别专家，负责判断用户指令是否涉及图像、视频、文件处理。
-
-判断规则：
-1. 如果用户明确提到了"图片"、"照片"、"图像"、"截图"、"拍照"、"查看图片"、"分析图片"等关键词 -> 需要多模态处理
-2. 如果用户明确提到了"视频"、"录像"、"影片"、"看电影"、"看视频"、"分析视频"等关键词 -> 需要多模态处理
-3. 如果用户明确提到了"文件"、"文档"、"PDF"、"Word"、"Excel"、"PPT"、"查看文件"、"分析文件"等关键词 -> 需要多模态处理
-4. 如果用户提到了"上传"、"发送"、"分享"等动词 + 文件类型 -> 需要多模态处理
-5. 如果用户只是普通文本聊天，没有文件相关意图 -> 不需要多模态处理
-
-返回格式：
-{
-  "needs_multimodal": true/false,
-  "file_type": "image/video/document/none",
-  "description": "对文件处理需求的简短描述"
-}
-"""
+        # 从prompts目录导入提示词
+        self.TASK_RECOGNITION_PROMPT = TASK_RECOGNITION_PROMPT
+        self.PHONE_AGENT_EXTRACT_PROMPT = PHONE_AGENT_EXTRACT_PROMPT
+        self.MULTIMODAL_TASK_PROMPT = MULTIMODAL_TASK_PROMPT
 
     def recognize_multimodal_intent(self, user_input: str, has_attached_files: bool = False) -> Dict[str, Any]:
         """识别是否需要多模态处理"""
