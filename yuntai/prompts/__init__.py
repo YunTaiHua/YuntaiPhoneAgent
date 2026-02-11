@@ -9,10 +9,7 @@ from .task_recognizer_prompt import (
     MULTIMODAL_TASK_PROMPT
 )
 
-from .agent_executor_prompt import (
-    CHAT_MESSAGE_PROMPT,
-    GENERAL_EXECUTION_PROMPT
-)
+from .agent_executor_prompt import CHAT_MESSAGE_PROMPT
 
 from .reply_manager_prompt import (
     EXTRACT_PROMPT,
@@ -27,7 +24,6 @@ __all__ = [
     'PHONE_AGENT_EXTRACT_PROMPT',
     'MULTIMODAL_TASK_PROMPT',
     'CHAT_MESSAGE_PROMPT',
-    'GENERAL_EXECUTION_PROMPT',
     'EXTRACT_PROMPT',
     'PARSE_MESSAGES_PROMPT',
     'EXTRACT_CHAT_RECORDS_PROMPT',
