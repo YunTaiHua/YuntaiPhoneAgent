@@ -88,6 +88,8 @@ class ConnectionHandler:
             if success:
                 self.controller.message_queue.put(("success", f"✅ {message}"))
                 self._update_connection_status_gui(True)
+                if hasattr(self.controller, '_sync_device_to_task_chain'):
+                    self.controller._sync_device_to_task_chain()
             else:
                 self.controller.message_queue.put(("error", f"❌ 连接失败: {message}"))
                 self._update_connection_status_gui(False)

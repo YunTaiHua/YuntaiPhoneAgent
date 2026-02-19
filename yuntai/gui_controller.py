@@ -24,8 +24,11 @@ from yuntai.config import (
     CONVERSATION_HISTORY_FILE, RECORD_LOGS_DIR, FOREVER_MEMORY_FILE,
     CONNECTION_CONFIG_FILE
 )
-# 引用 TaskManager
+# 引用 TaskManager（保留用于连接管理和TTS）
 from yuntai.task_manager import TaskManager
+# 引用新的 TaskChain
+from yuntai.chains import TaskChain, ReplyChain
+from yuntai.agents import JudgementAgent
 # 引用 Handlers
 from .handlers import ConnectionHandler, TTSHandler, DynamicHandler, SystemHandler
 
@@ -47,8 +50,18 @@ class GUIController:
         # 初始化视图
         self.view = GUIView(root)
 
-        # 初始化任务管理器
+        # 初始化任务管理器（保留用于连接管理和TTS）
         self.task_manager = TaskManager(project_root, self.scrcpy_path)
+
+        # 初始化新的 TaskChain
+        self.task_chain = TaskChain(
+            device_id="",
+            file_manager=self.task_manager.file_manager,
+            tts_manager=self.task_manager.tts_manager
+        )
+
+        # 初始化判断 Agent
+        self.judgement_agent = JudgementAgent()
 
         # 初始化输出捕获器
         self.output_capture = None
@@ -314,10 +327,10 @@ class GUIController:
 
                 print(f"\n{'=' * 180}\n")
                 if has_attachments:
-                    print(f"\n📋 多模态指令: {command if command else '[无文本]'}")
+                    print(f"\n💭 多模态指令: {command if command else '[无文本]'}")
                     print(f"📎 附件数量: {len(self.attached_files)} 个文件\n")
                 else:
-                    print(f"\n📋 指令: {command}\n")
+                    print(f"\n💭 指令: {command}\n")
 
                 # 特殊命令处理
                 if command.lower() == "quit":
@@ -348,8 +361,8 @@ class GUIController:
                     return
 
                 if not has_attachments and not self.task_manager.is_connected:
-                    task_info = self.task_manager.task_recognizer.recognize_task_intent(command)
-                    task_type = task_info.get("task_type", "free_chat")
+                    task_result = self.judgement_agent.judge(command)
+                    task_type = task_result.task_type
                     if task_type != "free_chat":
                         self._append_output(f"❌ 设备未连接，请先连接设备\n")
                         return
@@ -358,9 +371,8 @@ class GUIController:
                 if has_attachments:
                     result = self._handle_multimodal_chat(command, self.attached_files)
                 else:
-                    result = self.task_manager.dispatch_task(
-                        command, self.task_manager.task_args, self.task_manager.device_id
-                    )
+                    self._sync_device_to_task_chain()
+                    result, task_info = self.task_chain.process(command)
 
                 # 持续回复处理
                 if result and isinstance(result, str) and "🔄CONTINUOUS_REPLY:" in result:
@@ -371,7 +383,7 @@ class GUIController:
                             if not self.task_manager.is_connected:
                                 self._append_output(f"❌ 设备未连接，无法启动持续回复\n")
                                 return
-                            self._append_output(f"🚀 检测到持续回复模式: {target_app} -> {target_object}\n")
+                            self._append_output(f"\n🚀 检测到持续回复模式: {target_app} -> {target_object}\n")
                             self.start_continuous_reply_thread(
                                 self.task_manager.task_args, target_app, target_object, self.task_manager.device_id
                             )
@@ -418,7 +430,7 @@ class GUIController:
 
         try:
             if not file_paths or len(file_paths) == 0:
-                return self.task_manager._handle_free_chat(text)
+                return self.chat_agent.chat(text) if hasattr(self, 'chat_agent') else "无法处理"
 
             valid_files = []
             for file_path in file_paths:
@@ -428,7 +440,7 @@ class GUIController:
                     print(f"⚠️  文件不存在: {file_path}")
 
             if len(valid_files) == 0:
-                return self.task_manager._handle_free_chat(text)
+                return self.chat_agent.chat(text) if hasattr(self, 'chat_agent') else "无法处理"
 
             if not self.multimodal_processor:
                 from .multimodal_processor import MultimodalProcessor
@@ -510,6 +522,9 @@ class GUIController:
         print("\n" + "=" * 180 + "\n")
         print("🛑 正在发送终止信号...")
         self._cleanup_active_threads()
+        
+        self.task_chain.stop_continuous_reply()
+        
         if not self.active_threads and not self.is_continuous_mode:
             self.show_toast("没有正在执行的操作", "info")
             return
@@ -550,9 +565,13 @@ class GUIController:
             self.device_type = device_type
             self.task_manager.set_device_type(device_type)
             self.task_manager.agent_executor.set_device_type(device_type)
-            #print(f"📱 设备类型已切换为: {device_type}")
 
         self.view._device_type_callback = on_device_type_change
+
+    def _sync_device_to_task_chain(self):
+        """同步设备ID到TaskChain"""
+        if self.task_manager.device_id:
+            self.task_chain.set_device_id(self.task_manager.device_id)
 
     # ============ 持续回复 ============
 
@@ -568,17 +587,21 @@ class GUIController:
         def continuous_thread():
             try:
                 print(f"\n🚀 持续回复线程启动: {target_app} -> {target_object}")
-                from .agent_core import TerminableContinuousReplyManager
-                manager = TerminableContinuousReplyManager(
-                    args, target_app, target_object, device_id,
-                    self.task_manager.zhipu_client, self.task_manager.file_manager,
-                    terminate_flag=self.terminate_flag
+                
+                from yuntai.agents import ReplyAgent
+                reply_agent = ReplyAgent(
+                    device_id=device_id,
+                    file_manager=self.task_manager.file_manager,
+                    tts_manager=self.task_manager.tts_manager
                 )
-                success = manager.run_continuous_loop()
+                reply_agent.terminate_flag = self.terminate_flag
+                
+                success, result = reply_agent.continuous_reply(target_app, target_object)
+                
                 if success:
-                    print(f"\n✅ 持续回复完成")
+                    print(f"\n✅ {result}")
                 else:
-                    print(f"\n⏹️  持续回复已终止")
+                    print(f"\n⏹️  {result}")
             except Exception as e:
                 print(f"\n❌ 持续回复错误：{str(e)}\n")
                 traceback.print_exc()
@@ -787,6 +810,7 @@ class GUIController:
         """检查初始连接"""
         self.task_manager.check_initial_connection()
         self.connection_handler._update_connection_status_gui(self.task_manager.is_connected)
+        self._sync_device_to_task_chain()
 
 
     def on_closing(self):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Yuntai - 芸薹手机助手模块包
+使用 LangChain 重构版本
 """
 
 # 导出配置
@@ -17,17 +18,11 @@ from .file_manager import FileManager
 from .agent_executor import AgentExecutor
 from .utils import Utils
 
-# 注意：TaskRecognizer 和 SmartContinuousReplyManager 需要客户端，所以不能在 __init__ 中实例化
-# 只导出类本身
-from .task_recognizer import TaskRecognizer
-from .reply_manager import SmartContinuousReplyManager
-
 # 重构模块
 from .gui_view import GUIView
 from .gui_controller import GUIController
 from .task_manager import TaskManager
 from .main_app import MainApp
-from .agent_core import TerminableContinuousReplyManager
 from .output_capture import SimpleOutputCapture
 from .multimodal_processor import MultimodalProcessor
 from .multimodal_other import MultimodalOther, ImagePreviewWindow, VideoPreviewWindow
@@ -43,6 +38,38 @@ from .utils import (
 # 时间工具
 from .tools import TimeTool
 
+# 新模块 - LangChain 重构
+from .models import (
+    get_judgement_model,
+    get_chat_model,
+    get_phone_model,
+    get_zhipu_client,
+)
+
+from .agents import (
+    JudgementAgent,
+    ChatAgent,
+    PhoneAgent,
+    ReplyAgent,
+)
+
+from .chains import (
+    TaskChain,
+    ReplyChain,
+)
+
+from .memory import ConversationMemoryManager
+
+from .prompts import (
+    TASK_JUDGEMENT_PROMPT,
+    TASK_TYPE_FREE_CHAT,
+    TASK_TYPE_BASIC_OPERATION,
+    TASK_TYPE_SINGLE_REPLY,
+    TASK_TYPE_CONTINUOUS_REPLY,
+    TASK_TYPE_COMPLEX_OPERATION,
+    CHAT_SYSTEM_PROMPT,
+)
+
 # ZHIPU_CLIENT 需要在主文件中初始化
 ZHIPU_CLIENT = None
 
@@ -54,15 +81,13 @@ __all__ = [
     'CONNECTION_CONFIG_FILE',
 
     # 原来的管理器类
-    'ConnectionManager', 'FileManager', 'TaskRecognizer',
-    'SmartContinuousReplyManager', 'AgentExecutor', 'Utils',
+    'ConnectionManager', 'FileManager', 'AgentExecutor', 'Utils',
 
     # 重构模块
     "GUIView",
     "GUIController",
     "TaskManager",
     "MainApp",
-    "TerminableContinuousReplyManager",
     "SimpleOutputCapture",
 
     # 工具函数
@@ -81,4 +106,28 @@ __all__ = [
 
     # 音频处理
     "AudioProcessor",
+
+    # 新模块 - LangChain 重构
+    "get_judgement_model",
+    "get_chat_model",
+    "get_phone_model",
+    "get_zhipu_client",
+
+    "JudgementAgent",
+    "ChatAgent",
+    "PhoneAgent",
+    "ReplyAgent",
+
+    "TaskChain",
+    "ReplyChain",
+
+    "ConversationMemoryManager",
+
+    "TASK_JUDGEMENT_PROMPT",
+    "TASK_TYPE_FREE_CHAT",
+    "TASK_TYPE_BASIC_OPERATION",
+    "TASK_TYPE_SINGLE_REPLY",
+    "TASK_TYPE_CONTINUOUS_REPLY",
+    "TASK_TYPE_COMPLEX_OPERATION",
+    "CHAT_SYSTEM_PROMPT",
 ]

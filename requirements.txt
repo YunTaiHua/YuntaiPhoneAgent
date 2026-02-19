@@ -9,6 +9,12 @@ torch==2.5.1+cu121
 zhipuai==2.1.5.20250825
 markitdown[all]>=0.1.4
 
+# LangChain (兼容版本)
+langchain>=0.3.20,<0.4.0
+langchain-core>=0.3.0,<0.4.0
+langchain-openai>=0.3.0,<0.4.0
+langchain-community>=0.3.0,<0.4.0
+
 # For Model Deployment
 
 ## After installing sglang or vLLM, please run pip install -U transformers again to upgrade to 5.0.0rc0.
