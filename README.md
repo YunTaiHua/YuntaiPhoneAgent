@@ -33,54 +33,88 @@ Version: 1.3.0
 #### 目录结构
 ```
 YuntaiPhoneAgent/
-├── yuntai/  # 核心模块
-│   ├── handlers/ #存放GUI控制器（gui_controller.py）所需的函数
-│   │      ├──__init__.py
-│   │      ├──connection_handler.py
-│   │      ├──dynamic_handler.py
-│   │      ├──system_handler.py
-│   │      └──tts_handler.py
-│   ├── managers/ #存放任务管理（task_manager.py）所需的函数
-│   │      ├──__init__.py
-│   │      ├──task_logic.py
-│   │      ├──tts_audio.py
-│   │      ├──tts_database.py
-│   │      ├──tts_engine.py
-│   │      └──tts_text.py
-│   ├──views/ #存放GUI视图（gui_view.py）所需的函数
-│   │      ├──__init__.py
-│   │      ├──connection.py
-│   │      ├──dashboard.py
-│   │      ├──dynamic.py
-│   │      ├──history.py
-│   │      ├──pages.py
-│   │      ├──settings.py
-│   │      ├──theme.py
-│   │      └──tts.py
-│   ├── __init__.py
-│   ├── agent_core.py  # 代理核心
-│   ├── agent_executor.py  # 执行器
-│   ├── audio_processor.py  # 音频处理
-│   ├── config.py  # 配置
-│   ├── connection_manager.py  # 连接管理
-│   ├── file_manager.py  # 文件管理
-│   ├── gui_controller.py  # GUI控制器
-│   ├── gui_view.py  # GUI视图
-│   ├── main_app.py  # 主应用
-│   ├── multimodal_other.py  # 多模态其他
-│   ├── multimodal_processor.py  # 多模态处理器
-│   ├── output_capture.py  # 输出捕获
-│   ├── reply_manager.py  # 回复管理
-│   ├── task_manager.py  # 任务管理
-│   ├── task_recognizer.py  # 任务识别
-│   └── utils.py  # 工具函数
-├── phone_agent/  # 代理模块
+├── yuntai/                    # 核心模块
+│   ├── core/                  # 核心基础设施
+│   │   ├── __init__.py
+│   │   ├── config.py          # 配置管理
+│   │   ├── main_app.py        # 主应用程序
+│   │   ├── utils.py           # 工具函数
+│   │   └── agent_executor.py  # Agent执行器
+│   ├── processors/            # 各类处理器
+│   │   ├── __init__.py
+│   │   ├── audio_processor.py      # 音频处理(Whisper)
+│   │   ├── multimodal_processor.py # 多模态处理器
+│   │   └── multimodal_other.py     # 图像/视频生成
+│   ├── services/              # 服务层
+│   │   ├── __init__.py
+│   │   ├── connection_manager.py   # 连接管理
+│   │   ├── file_manager.py         # 文件管理
+│   │   └── task_manager.py         # 任务管理
+│   ├── gui/                   # GUI层
+│   │   ├── __init__.py
+│   │   ├── gui_controller.py  # GUI控制器
+│   │   ├── gui_view.py        # GUI视图
+│   │   └── output_capture.py  # 输出捕获
+│   ├── handlers/              # GUI事件处理器
+│   │   ├── __init__.py
+│   │   ├── connection_handler.py
+│   │   ├── dynamic_handler.py
+│   │   ├── system_handler.py
+│   │   └── tts_handler.py
+│   ├── managers/              # TTS管理模块
+│   │   ├── __init__.py
+│   │   ├── tts_audio.py
+│   │   ├── tts_database.py
+│   │   ├── tts_engine.py
+│   │   └── tts_text.py
+│   ├── views/                 # GUI视图组件
+│   │   ├── __init__.py
+│   │   ├── connection.py
+│   │   ├── dashboard.py
+│   │   ├── dynamic.py
+│   │   ├── history.py
+│   │   ├── pages.py
+│   │   ├── settings.py
+│   │   ├── theme.py
+│   │   └── tts.py
+│   ├── agents/                # LangChain Agent模块
+│   │   ├── __init__.py
+│   │   ├── base_agent.py
+│   │   ├── chat_agent.py
+│   │   ├── judgement_agent.py
+│   │   ├── phone_agent.py
+│   │   └── reply_agent.py
+│   ├── chains/                # LangChain Chain模块
+│   │   ├── __init__.py
+│   │   ├── task_chain.py
+│   │   └── reply_chain.py
+│   ├── models/                # 模型初始化模块
+│   │   ├── __init__.py
+│   │   └── zhipu_model.py
+│   ├── prompts/               # 提示词模块
+│   │   ├── __init__.py
+│   │   ├── agent_executor_prompt.py
+│   │   ├── chat_prompt.py
+│   │   ├── judgement_prompt.py
+│   │   ├── phone_prompt.py
+│   │   └── reply_prompt.py
+│   ├── tools/                 # 工具模块
+│   │   ├── __init__.py
+│   │   ├── chat_tools.py
+│   │   ├── message_tools.py
+│   │   ├── phone_tools.py
+│   │   └── time_tool.py
+│   ├── memory/                # 记忆模块
+│   │   ├── __init__.py
+│   │   └── conversation_memory.py
+│   └── __init__.py
+├── phone_agent/               # 外部PhoneAgent模块
 │   ├── agent.py
 │   └── model/
 │       └── client.py
 ├── __init__.py
-├── forever.txt  #可以自主创建，把绝对路径填入.env
-├── main.py  # 主入口
+├── forever.txt               # 永久记忆文件
+├── main.py                   # 主入口
 ├── requirements.txt
 └── setup.py
 ```

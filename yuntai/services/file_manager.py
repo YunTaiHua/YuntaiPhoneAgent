@@ -8,7 +8,7 @@ import json
 import datetime
 from typing import Any, List, Dict
 
-from yuntai.config import (
+from yuntai.core.config import (
     CONVERSATION_HISTORY_FILE, RECORD_LOGS_DIR,
     FOREVER_MEMORY_FILE, MAX_HISTORY_LENGTH, CONNECTION_CONFIG_FILE
 )

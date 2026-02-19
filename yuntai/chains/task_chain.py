@@ -13,7 +13,7 @@ from yuntai.prompts import (
     TASK_TYPE_CONTINUOUS_REPLY,
     TASK_TYPE_COMPLEX_OPERATION,
 )
-from yuntai.config import SHORTCUTS
+from yuntai.core.config import SHORTCUTS
 
 
 class TaskChain:

@@ -18,7 +18,7 @@ from yuntai.tools.message_tools import (
     check_new_messages,
     is_message_similar,
 )
-from yuntai.config import MAX_CYCLE_TIMES, WAIT_INTERVAL
+from yuntai.core.config import MAX_CYCLE_TIMES, WAIT_INTERVAL
 from yuntai.prompts import REPLY_GENERATION_PROMPT
 
 

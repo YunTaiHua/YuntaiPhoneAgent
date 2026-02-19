@@ -7,7 +7,8 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
 
-from yuntai.gui_view import ThemeColors
+from yuntai.gui.gui_view import GUIView
+from yuntai.core.config import ThemeColors
 
 
 class TTSHandler:

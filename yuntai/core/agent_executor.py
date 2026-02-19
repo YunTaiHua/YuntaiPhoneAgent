@@ -10,15 +10,17 @@ import threading
 from phone_agent import PhoneAgent
 from phone_agent.model import ModelConfig
 from phone_agent.agent import AgentConfig
-from yuntai.config import DEVICE_TYPE_ANDROID
+from yuntai.core.config import DEVICE_TYPE_ANDROID
 from yuntai.prompts.agent_executor_prompt import CHAT_MESSAGE_PROMPT
 
 
 class AgentExecutor:
-    _stdin_pipe = None
+    _stdin_read = None
+    _stdin_write = None
     _original_stdin = None
     _user_confirmation_event = threading.Event()
     _is_waiting_for_confirmation = threading.Event()
+    _lock = threading.Lock()
 
     def __init__(self, device_type: str = DEVICE_TYPE_ANDROID):
         """
@@ -38,43 +40,58 @@ class AgentExecutor:
     @classmethod
     def _setup_stdin_pipe(cls):
         """设置stdin管道用于模拟用户输入"""
-        if not hasattr(cls, '_stdin_write') or cls._stdin_write is None:
-            cls._original_stdin = sys.stdin
-            r, w = os.pipe()
-            cls._stdin_read = r
-            cls._stdin_write = w
-            sys.stdin = os.fdopen(r, 'r')
+        with cls._lock:
+            if cls._stdin_write is None:
+                cls._original_stdin = sys.stdin
+                r, w = os.pipe()
+                cls._stdin_read = r
+                cls._stdin_write = w
+                sys.stdin = os.fdopen(r, 'r')
 
     @classmethod
     def _cleanup_stdin_pipe(cls):
         """清理stdin管道"""
-        if hasattr(cls, '_stdin_write') and cls._stdin_write is not None:
-            try:
-                os.close(cls._stdin_write)
-            except:
-                pass
-            cls._stdin_write = None
-        if hasattr(cls, '_stdin_read') and cls._stdin_read is not None:
-            try:
-                os.close(cls._stdin_read)
-            except:
-                pass
-            cls._stdin_read = None
-        if hasattr(cls, '_original_stdin') and cls._original_stdin is not None:
-            sys.stdin = cls._original_stdin
+        with cls._lock:
+            if cls._stdin_write is not None:
+                try:
+                    os.close(cls._stdin_write)
+                except:
+                    pass
+                cls._stdin_write = None
+            if cls._stdin_read is not None:
+                try:
+                    os.close(cls._stdin_read)
+                except:
+                    pass
+                cls._stdin_read = None
+            if cls._original_stdin is not None:
+                sys.stdin = cls._original_stdin
+                cls._original_stdin = None
 
     @classmethod
-    def user_confirm(cls) -> None:
+    def user_confirm(cls) -> bool:
         """用户点击确认按钮时调用此方法"""
-        if cls._stdin_write is not None:
-            try:
-                os.write(cls._stdin_write, b'\n')
-                sys.stdout.flush()
-                #print("✅ 已发送确认信号")
-            except Exception as e:
-                print(f"\n⚠️  发送确认信号失败: {e}")
-        cls._user_confirmation_event.set()
-        cls._is_waiting_for_confirmation.clear()
+        with cls._lock:
+            if cls._stdin_write is not None:
+                try:
+                    os.write(cls._stdin_write, b'\n')
+                    print("✅ 已发送确认信号到管道")
+                    cls._user_confirmation_event.set()
+                    cls._is_waiting_for_confirmation.clear()
+                    return True
+                except Exception as e:
+                    print(f"\n⚠️  发送确认信号失败: {e}")
+                    return False
+            else:
+                print("⚠️  stdin管道未初始化，无法发送确认信号")
+                cls._user_confirmation_event.set()
+                cls._is_waiting_for_confirmation.clear()
+                return False
+
+    @classmethod
+    def is_pipe_ready(cls) -> bool:
+        """检查管道是否就绪"""
+        return cls._stdin_write is not None
 
     def phone_agent_exec(self, task: str, args, task_type: str, device_id: str) -> tuple[str, list]:
         """phone_agent执行 - 仅支持Android设备"""
@@ -115,7 +132,6 @@ class AgentExecutor:
             return "指令为空", ["指令为空"]
 
         if "聊天" in task or "发消息" in task or "提取" in task:
-            # 从prompts目录导入聊天消息提示词
             task = task + "\n\n" + CHAT_MESSAGE_PROMPT
 
         raw_result = agent.run(task)

@@ -33,54 +33,88 @@ Version: 1.3.0
 #### Directory Structure
 ```
 YuntaiPhoneAgent/
-├── yuntai/  # Core Module
-│   ├── handlers/ # Functions for GUI controller (gui_controller.py)
-│   │      ├──__init__.py
-│   │      ├──connection_handler.py
-│   │      ├──dynamic_handler.py
-│   │      ├──system_handler.py
-│   │      └──tts_handler.py
-│   ├── managers/ # Functions for task management (task_manager.py)
-│   │      ├──__init__.py
-│   │      ├──task_logic.py
-│   │      ├──tts_audio.py
-│   │      ├──tts_database.py
-│   │      ├──tts_engine.py
-│   │      └──tts_text.py
-│   ├──views/ # Functions for GUI view (gui_view.py)
-│   │      ├──__init__.py
-│   │      ├──connection.py
-│   │      ├──dashboard.py
-│   │      ├──dynamic.py
-│   │      ├──history.py
-│   │      ├──pages.py
-│   │      ├──settings.py
-│   │      ├──theme.py
-│   │      └──tts.py
-│   ├── __init__.py
-│   ├── agent_core.py  # Agent Core
-│   ├── agent_executor.py  # Executor
-│   ├── audio_processor.py  # Audio Processing
-│   ├── config.py  # Configuration
-│   ├── connection_manager.py  # Connection Management
-│   ├── file_manager.py  # File Management
-│   ├── gui_controller.py  # GUI Controller
-│   ├── gui_view.py  # GUI View
-│   ├── main_app.py  # Main Application
-│   ├── multimodal_other.py  # Multimodal Others
-│   ├── multimodal_processor.py  # Multimodal Processor
-│   ├── output_capture.py  # Output Capture
-│   ├── reply_manager.py  # Reply Management
-│   ├── task_manager.py  # Task Management
-│   ├── task_recognizer.py  # Task Recognition
-│   └── utils.py  # Utility Functions
-├── phone_agent/  # Agent Module
+├── yuntai/                    # Core Module
+│   ├── core/                  # Core Infrastructure
+│   │   ├── __init__.py
+│   │   ├── config.py          # Configuration Management
+│   │   ├── main_app.py        # Main Application
+│   │   ├── utils.py           # Utility Functions
+│   │   └── agent_executor.py  # Agent Executor
+│   ├── processors/            # Processors
+│   │   ├── __init__.py
+│   │   ├── audio_processor.py      # Audio Processing (Whisper)
+│   │   ├── multimodal_processor.py # Multimodal Processor
+│   │   └── multimodal_other.py     # Image/Video Generation
+│   ├── services/              # Service Layer
+│   │   ├── __init__.py
+│   │   ├── connection_manager.py   # Connection Management
+│   │   ├── file_manager.py         # File Management
+│   │   └── task_manager.py         # Task Management
+│   ├── gui/                   # GUI Layer
+│   │   ├── __init__.py
+│   │   ├── gui_controller.py  # GUI Controller
+│   │   ├── gui_view.py        # GUI View
+│   │   └── output_capture.py  # Output Capture
+│   ├── handlers/              # GUI Event Handlers
+│   │   ├── __init__.py
+│   │   ├── connection_handler.py
+│   │   ├── dynamic_handler.py
+│   │   ├── system_handler.py
+│   │   └── tts_handler.py
+│   ├── managers/              # TTS Management Module
+│   │   ├── __init__.py
+│   │   ├── tts_audio.py
+│   │   ├── tts_database.py
+│   │   ├── tts_engine.py
+│   │   └── tts_text.py
+│   ├── views/                 # GUI View Components
+│   │   ├── __init__.py
+│   │   ├── connection.py
+│   │   ├── dashboard.py
+│   │   ├── dynamic.py
+│   │   ├── history.py
+│   │   ├── pages.py
+│   │   ├── settings.py
+│   │   ├── theme.py
+│   │   └── tts.py
+│   ├── agents/                # LangChain Agent Module
+│   │   ├── __init__.py
+│   │   ├── base_agent.py
+│   │   ├── chat_agent.py
+│   │   ├── judgement_agent.py
+│   │   ├── phone_agent.py
+│   │   └── reply_agent.py
+│   ├── chains/                # LangChain Chain Module
+│   │   ├── __init__.py
+│   │   ├── task_chain.py
+│   │   └── reply_chain.py
+│   ├── models/                # Model Initialization Module
+│   │   ├── __init__.py
+│   │   └── zhipu_model.py
+│   ├── prompts/               # Prompts Module
+│   │   ├── __init__.py
+│   │   ├── agent_executor_prompt.py
+│   │   ├── chat_prompt.py
+│   │   ├── judgement_prompt.py
+│   │   ├── phone_prompt.py
+│   │   └── reply_prompt.py
+│   ├── tools/                 # Tools Module
+│   │   ├── __init__.py
+│   │   ├── chat_tools.py
+│   │   ├── message_tools.py
+│   │   ├── phone_tools.py
+│   │   └── time_tool.py
+│   ├── memory/                # Memory Module
+│   │   ├── __init__.py
+│   │   └── conversation_memory.py
+│   └── __init__.py
+├── phone_agent/               # External PhoneAgent Module
 │   ├── agent.py
 │   └── model/
 │       └── client.py
 ├── __init__.py
-├── forever.txt  # Can be created manually, fill absolute path in .env
-├── main.py  # Main Entry
+├── forever.txt               # Permanent Memory File
+├── main.py                   # Main Entry
 ├── requirements.txt
 └── setup.py
 ```

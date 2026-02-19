@@ -64,7 +64,8 @@ Phone Agent  - 智能版 v1.3.0  -第1321次迭代
 --------------------2.优化 ui 界面，重构 ui 组件的布局
 --------------------3.切换主题（light/dark）
 --------------------4.优化 ui 组件显示异常问题
-1.3.0  （2026.02.19）使用 langchain 重构任务判断和分发逻辑
+1.3.0  （2026.02.19）1.使用 langchain 重构任务判断和分发逻辑
+--------------------2.整理 yuntai 目录中的零散文件
 
 """
 
@@ -89,10 +90,10 @@ logger = logging.getLogger(__name__)
 warnings.filterwarnings('ignore')
 
 # 重构模块
-from yuntai.main_app import MainApp
+from yuntai.core.main_app import MainApp
 
 # 使用统一配置
-from yuntai.config import GPT_SOVITS_ROOT
+from yuntai.core.config import GPT_SOVITS_ROOT
 
 
 # ========================================

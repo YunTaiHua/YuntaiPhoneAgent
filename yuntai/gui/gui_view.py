@@ -8,7 +8,7 @@ import customtkinter as ctk
 import os
 
 # 从 yuntai.config 导入配置
-from yuntai.config import APP_VERSION
+from yuntai.core.config import APP_VERSION
 
 # 从 yuntai.views 导入构建器和主题
 from yuntai.views import ThemeColors, PageBuilder
@@ -454,7 +454,7 @@ class GUIView:
     def _highlight_nav_button(self, index):
         """高亮导航按钮 - 现代化样式"""
         import customtkinter as ctk
-        from .views.theme import DarkThemeColors, ThemeColors
+        from yuntai.views.theme import DarkThemeColors, ThemeColors
 
         current_mode = ctk.get_appearance_mode().lower()
         colors = DarkThemeColors if current_mode == "dark" else ThemeColors

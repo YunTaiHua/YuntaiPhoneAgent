@@ -9,13 +9,14 @@ from phone_agent import PhoneAgent as ExternalPhoneAgent
 from phone_agent.model import ModelConfig
 from phone_agent.agent import AgentConfig
 
-from yuntai.config import (
+from yuntai.core.config import (
     ZHIPU_API_KEY,
     ZHIPU_API_BASE_URL,
     ZHIPU_MODEL,
     ZHIPU_CHAT_MODEL,
 )
 from yuntai.prompts import PHONE_OPERATION_PROMPT, PHONE_EXTRACT_CHAT_PROMPT
+from yuntai.core.agent_executor import AgentExecutor
 
 
 class PhoneAgentWrapper:
@@ -52,6 +53,14 @@ class PhoneAgentWrapper:
             self._agent.reset()
             self._agent = None
     
+    def _setup_pipe(self):
+        """设置管道"""
+        AgentExecutor._setup_stdin_pipe()
+    
+    def _cleanup_pipe(self):
+        """清理管道"""
+        AgentExecutor._cleanup_stdin_pipe()
+    
     def execute(self, task: str) -> Tuple[bool, str]:
         """
         执行手机操作
@@ -62,6 +71,7 @@ class PhoneAgentWrapper:
         Returns:
             (是否成功, 执行结果)
         """
+        self._setup_pipe()
         try:
             agent = self._get_agent()
             task_with_prompt = task + "\n\n" + PHONE_OPERATION_PROMPT
@@ -72,6 +82,8 @@ class PhoneAgentWrapper:
             return success, result
         except Exception as e:
             return False, f"执行失败: {str(e)}"
+        finally:
+            self._cleanup_pipe()
     
     def open_app(self, app_name: str) -> Tuple[bool, str]:
         """打开 APP"""
@@ -105,6 +117,7 @@ class PhoneAgentWrapper:
 """
         task_with_prompt = task + "\n\n" + PHONE_EXTRACT_CHAT_PROMPT
         
+        self._setup_pipe()
         try:
             agent = self._get_agent()
             result = agent.run(task_with_prompt)
@@ -112,6 +125,8 @@ class PhoneAgentWrapper:
             return True, result
         except Exception as e:
             return False, f"提取失败: {str(e)}"
+        finally:
+            self._cleanup_pipe()
     
     def send_message(
         self, 
@@ -137,6 +152,7 @@ class PhoneAgentWrapper:
         else:
             task = f"在{app_name}中给{chat_object}发送消息：{message}，然后点击发送按钮，然后使用Back按钮关闭键盘"
         
+        self._setup_pipe()
         try:
             agent = self._get_agent()
             result = agent.run(task)
@@ -147,6 +163,8 @@ class PhoneAgentWrapper:
             return success, result
         except Exception as e:
             return False, f"发送失败: {str(e)}"
+        finally:
+            self._cleanup_pipe()
 
 
 class PhoneAgent:

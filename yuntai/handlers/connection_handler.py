@@ -6,8 +6,8 @@ import customtkinter as ctk
 import pyperclip
 from typing import Optional, Dict, Any, Callable
 
-from yuntai.gui_view import ThemeColors
-from yuntai.config import DEVICE_TYPE_HARMONY
+from yuntai.gui.gui_view import GUIView
+from yuntai.core.config import ThemeColors, DEVICE_TYPE_HARMONY
 
 
 class ConnectionHandler:

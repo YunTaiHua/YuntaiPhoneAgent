@@ -20,10 +20,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # 重构模块
-from .gui_controller import GUIController
+from yuntai.gui.gui_controller import GUIController
 
 # 使用新的统一配置
-from .config import PROJECT_ROOT, SCRCPY_PATH, validate_config, print_config_summary
+from yuntai.core.config import PROJECT_ROOT, SCRCPY_PATH, validate_config, print_config_summary
 
 
 

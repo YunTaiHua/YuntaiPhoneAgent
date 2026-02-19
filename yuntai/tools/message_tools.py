@@ -9,7 +9,7 @@ from difflib import SequenceMatcher
 
 from zhipuai import ZhipuAI
 
-from yuntai.config import ZHIPU_CHAT_MODEL
+from yuntai.core.config import ZHIPU_CHAT_MODEL
 
 
 SIMILARITY_THRESHOLD = 0.6

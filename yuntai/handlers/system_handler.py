@@ -3,13 +3,14 @@ import threading
 import customtkinter as ctk
 from tkinter import messagebox
 
-from yuntai.config import (
+from yuntai.core.config import (
     CONVERSATION_HISTORY_FILE, RECORD_LOGS_DIR,
     FOREVER_MEMORY_FILE, CONNECTION_CONFIG_FILE,
     ZHIPU_API_BASE_URL, ZHIPU_MODEL, ZHIPU_API_KEY,
     DEVICE_TYPE_HARMONY
 )
-from yuntai.gui_view import ThemeColors
+from yuntai.gui.gui_view import GUIView
+from yuntai.core.config import ThemeColors
 import tkinter as tk
 
 
@@ -122,7 +123,7 @@ class SystemHandler:
 
     def check_system_gui(self):
         """可视化系统检查"""
-        from yuntai.config import ZHIPU_API_BASE_URL, ZHIPU_MODEL, ZHIPU_API_KEY
+        from yuntai.core.config import ZHIPU_API_BASE_URL, ZHIPU_MODEL, ZHIPU_API_KEY
 
         device_type_var = self.view.get_component("device_type_var")
         is_harmony = False

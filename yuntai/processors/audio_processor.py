@@ -12,7 +12,7 @@ from typing import Optional, Tuple
 import threading
 import time
 
-from .config import (
+from yuntai.core.config import (
     FFMPEG_PATH,
     WHISPER_MODEL,
     WHISPER_LANGUAGE,

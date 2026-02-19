@@ -10,7 +10,7 @@ from phone_agent import PhoneAgent
 from phone_agent.model import ModelConfig
 from phone_agent.agent import AgentConfig
 
-from yuntai.config import (
+from yuntai.core.config import (
     ZHIPU_API_KEY,
     ZHIPU_API_BASE_URL,
     ZHIPU_MODEL,

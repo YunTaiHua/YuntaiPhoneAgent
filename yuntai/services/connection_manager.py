@@ -8,7 +8,7 @@ import json
 import os
 from typing import List, Tuple, Dict, Optional
 
-from yuntai.config import (
+from yuntai.core.config import (
     CONNECTION_CONFIG_FILE,
     DEFAULT_DEVICE_TYPE,
     DEVICE_TYPE_HARMONY

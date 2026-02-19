@@ -7,7 +7,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 from zhipuai import ZhipuAI
 
-from yuntai.config import (
+from yuntai.core.config import (
     ZHIPU_API_KEY,
     ZHIPU_API_BASE_URL,
     ZHIPU_MODEL,

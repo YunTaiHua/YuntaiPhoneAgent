@@ -19,10 +19,10 @@ logger = logging.getLogger(__name__)
 
 from zhipuai import ZhipuAI
 
-from yuntai.connection_manager import ConnectionManager
-from yuntai.file_manager import FileManager
-from yuntai.agent_executor import AgentExecutor
-from yuntai.utils import Utils
+from yuntai.services.connection_manager import ConnectionManager
+from yuntai.services.file_manager import FileManager
+from yuntai.core.agent_executor import AgentExecutor
+from yuntai.core.utils import Utils
 
 from yuntai.managers import (
     TTSDatabaseManager,
@@ -31,7 +31,7 @@ from yuntai.managers import (
     TTSAudioPlayer,
 )
 
-from .config import (
+from yuntai.core.config import (
     GPT_SOVITS_ROOT,
     GPT_MODEL_DIR,
     SOVITS_MODEL_DIR,

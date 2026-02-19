@@ -3,10 +3,11 @@ import threading
 import time
 import traceback
 import customtkinter as ctk
-import tkinter as tk  # 添加这个导入
-from yuntai.gui_view import ThemeColors
-from yuntai.multimodal_other import MultimodalOther  # 修复：从 yuntai 包导入
-from yuntai.config import ZHIPU_API_KEY, PROJECT_ROOT   # 修复：从 yuntai 包导入
+import tkinter as tk
+from yuntai.gui.gui_view import GUIView
+from yuntai.core.config import ThemeColors
+from yuntai.processors.multimodal_other import MultimodalOther
+from yuntai.core.config import ZHIPU_API_KEY, PROJECT_ROOT
 
 
 class DynamicHandler:
@@ -496,7 +497,7 @@ class DynamicHandler:
         """预览最新生成的图像"""
         try:
             if hasattr(self.controller, 'latest_image_path') and self.controller.latest_image_path:
-                from yuntai.multimodal_other import ImagePreviewWindow  # 修复导入路径
+                from yuntai.processors.multimodal_other import ImagePreviewWindow
 
                 # 检查PIL是否可用
                 try:
@@ -526,7 +527,7 @@ class DynamicHandler:
         """预览最新生成的视频"""
         try:
             if hasattr(self.controller, 'latest_video_path') and self.controller.latest_video_path:
-                from yuntai.multimodal_other import VideoPreviewWindow  # 修复导入路径
+                from yuntai.processors.multimodal_other import VideoPreviewWindow
 
                 cover_path = getattr(self.controller, 'latest_video_cover_path', None)
 

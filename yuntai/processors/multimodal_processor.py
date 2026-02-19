@@ -15,7 +15,7 @@ from zhipuai import ZhipuAI
 # 第三方库（解析文档专用，按需求导入）
 # 使用 markitdown 统一处理文档转换
 
-from .config import (
+from yuntai.core.config import (
     ZHIPU_API_KEY, ZHIPU_MULTIMODAL_MODEL, MAX_FILE_SIZE,
     FFMPEG_PATH, WHISPER_MODEL, WHISPER_LANGUAGE, WHISPER_DEVICE,
     ALLOWED_AUDIO_EXTENSIONS
@@ -39,7 +39,7 @@ class MultimodalProcessor:
         self.client = ZhipuAI(api_key=self.api_key)
 
         # 支持的扩展名
-        from .config import (
+        from yuntai.core.config import (
             ALLOWED_IMAGE_EXTENSIONS,
             ALLOWED_VIDEO_EXTENSIONS,
             ALLOWED_FILE_EXTENSIONS,
@@ -57,7 +57,7 @@ class MultimodalProcessor:
     def get_audio_processor(self):
         """延迟初始化音频处理器"""
         if self.audio_processor is None:
-            from .audio_processor import AudioProcessor
+            from yuntai.processors.audio_processor import AudioProcessor
             self.audio_processor = AudioProcessor(ffmpeg_path=FFMPEG_PATH)
         return self.audio_processor
 

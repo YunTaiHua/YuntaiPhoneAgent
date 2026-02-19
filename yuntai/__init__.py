@@ -5,7 +5,7 @@ Yuntai - 芸薹手机助手模块包
 """
 
 # 导出配置
-from .config import (
+from yuntai.core.config import (
     SHORTCUTS, ZHIPU_API_KEY,
     CONVERSATION_HISTORY_FILE, RECORD_LOGS_DIR, FOREVER_MEMORY_FILE,
     MAX_HISTORY_LENGTH, MAX_CYCLE_TIMES, MAX_RETRY_TIMES, WAIT_INTERVAL,
@@ -13,54 +13,54 @@ from .config import (
 )
 
 # 导出管理器类
-from .connection_manager import ConnectionManager
-from .file_manager import FileManager
-from .agent_executor import AgentExecutor
-from .utils import Utils
+from yuntai.services.connection_manager import ConnectionManager
+from yuntai.services.file_manager import FileManager
+from yuntai.core.agent_executor import AgentExecutor
+from yuntai.core.utils import Utils
 
 # 重构模块
-from .gui_view import GUIView
-from .gui_controller import GUIController
-from .task_manager import TaskManager
-from .main_app import MainApp
-from .output_capture import SimpleOutputCapture
-from .multimodal_processor import MultimodalProcessor
-from .multimodal_other import MultimodalOther, ImagePreviewWindow, VideoPreviewWindow
-from .audio_processor import AudioProcessor
+from yuntai.gui.gui_view import GUIView
+from yuntai.gui.gui_controller import GUIController
+from yuntai.services.task_manager import TaskManager
+from yuntai.core.main_app import MainApp
+from yuntai.gui.output_capture import SimpleOutputCapture
+from yuntai.processors.multimodal_processor import MultimodalProcessor
+from yuntai.processors.multimodal_other import MultimodalOther, ImagePreviewWindow, VideoPreviewWindow
+from yuntai.processors.audio_processor import AudioProcessor
 
 # TTS 工具函数
-from .utils import (
+from yuntai.core.utils import (
     load_synthesized_files,
     get_current_tts_status,
     cleanup_tts_resources
 )
 
 # 时间工具
-from .tools import TimeTool
+from yuntai.tools import TimeTool
 
 # 新模块 - LangChain 重构
-from .models import (
+from yuntai.models import (
     get_judgement_model,
     get_chat_model,
     get_phone_model,
     get_zhipu_client,
 )
 
-from .agents import (
+from yuntai.agents import (
     JudgementAgent,
     ChatAgent,
     PhoneAgent,
     ReplyAgent,
 )
 
-from .chains import (
+from yuntai.chains import (
     TaskChain,
     ReplyChain,
 )
 
-from .memory import ConversationMemoryManager
+from yuntai.memory import ConversationMemoryManager
 
-from .prompts import (
+from yuntai.prompts import (
     TASK_JUDGEMENT_PROMPT,
     TASK_TYPE_FREE_CHAT,
     TASK_TYPE_BASIC_OPERATION,

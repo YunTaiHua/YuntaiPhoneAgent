@@ -21,7 +21,7 @@ import webbrowser
 from PIL import Image, ImageTk
 
 # 从统一配置导入
-from .config import (
+from yuntai.core.config import (
     ThemeColors,
     PROJECT_ROOT,
     ZHIPU_API_KEY,

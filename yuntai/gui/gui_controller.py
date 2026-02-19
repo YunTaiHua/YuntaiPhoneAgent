@@ -19,24 +19,25 @@ from typing import Optional, Dict, Any, Callable
 from zhipuai import ZhipuAI
 
 # 项目模块
-from yuntai.config import (
+from yuntai.core.config import (
     SHORTCUTS, ZHIPU_API_KEY,
     CONVERSATION_HISTORY_FILE, RECORD_LOGS_DIR, FOREVER_MEMORY_FILE,
     CONNECTION_CONFIG_FILE
 )
 # 引用 TaskManager（保留用于连接管理和TTS）
-from yuntai.task_manager import TaskManager
+from yuntai.services.task_manager import TaskManager
 # 引用新的 TaskChain
 from yuntai.chains import TaskChain, ReplyChain
 from yuntai.agents import JudgementAgent
 # 引用 Handlers
-from .handlers import ConnectionHandler, TTSHandler, DynamicHandler, SystemHandler
+from yuntai.handlers import ConnectionHandler, TTSHandler, DynamicHandler, SystemHandler
 
 # 使用新的统一配置
-from .config import SCRCPY_PATH, validate_config, print_config_summary, ZHIPU_CHAT_MODEL, ZHIPU_MODEL, \
+from yuntai.core.config import SCRCPY_PATH, validate_config, print_config_summary, ZHIPU_CHAT_MODEL, ZHIPU_MODEL, \
     ZHIPU_API_BASE_URL
-from .gui_view import GUIView, ThemeColors
-from .output_capture import SimpleOutputCapture
+from yuntai.gui.gui_view import GUIView
+from yuntai.core.config import ThemeColors
+from yuntai.gui.output_capture import SimpleOutputCapture
 
 
 class GUIController:
@@ -248,7 +249,7 @@ class GUIController:
     def _check_file_supported(self, file_path: str) -> tuple[bool, str]:
         """检查文件是否支持"""
         if not self.multimodal_processor:
-            from .multimodal_processor import MultimodalProcessor
+            from yuntai.processors.multimodal_processor import MultimodalProcessor
             self.multimodal_processor = MultimodalProcessor()
 
         if not os.path.exists(file_path):
@@ -443,7 +444,7 @@ class GUIController:
                 return self.chat_agent.chat(text) if hasattr(self, 'chat_agent') else "无法处理"
 
             if not self.multimodal_processor:
-                from .multimodal_processor import MultimodalProcessor
+                from yuntai.processors.multimodal_processor import MultimodalProcessor
                 self.multimodal_processor = MultimodalProcessor()
 
             history = self._get_chat_history_for_multimodal()
@@ -484,7 +485,7 @@ class GUIController:
 
     def _get_chat_history_for_multimodal(self) -> list[Dict]:
         try:
-            from .config import CONVERSATION_HISTORY_FILE
+            from yuntai.core.config import CONVERSATION_HISTORY_FILE
             history_data = self.task_manager.file_manager.safe_read_json_file(
                 CONVERSATION_HISTORY_FILE, {"sessions": [], "free_chats": []}
             )
@@ -543,7 +544,7 @@ class GUIController:
         """模拟回车键效果"""
         print("\n[用户点击模拟回车按钮]")
         try:
-            from yuntai.agent_executor import AgentExecutor
+            from yuntai.core.agent_executor import AgentExecutor
             AgentExecutor.user_confirm()
         except Exception as e:
             print(f"\n⚠️  发送确认信号失败: {e}")
@@ -823,7 +824,7 @@ class GUIController:
     def toggle_theme(self):
         """切换深色/浅色主题"""
         import customtkinter as ctk
-        from .views.theme import DarkThemeColors, ThemeColors
+        from yuntai.views.theme import DarkThemeColors, ThemeColors
         import tkinter as tk
 
         current_mode = ctk.get_appearance_mode().lower()
@@ -1185,7 +1186,7 @@ class GUIController:
     def execute_shortcut(self, shortcut_key):
         """执行快捷键对应的应用打开命令"""
         # 从 SHORTCUTS 获取完整的命令
-        from .config import SHORTCUTS
+        from yuntai.core.config import SHORTCUTS
         command = SHORTCUTS.get(shortcut_key, "")
         if not command:
             return
