@@ -10,7 +10,8 @@ from typing import Any, List, Dict
 
 from yuntai.core.config import (
     CONVERSATION_HISTORY_FILE, RECORD_LOGS_DIR,
-    FOREVER_MEMORY_FILE, MAX_HISTORY_LENGTH, CONNECTION_CONFIG_FILE
+    FOREVER_MEMORY_FILE, MAX_HISTORY_LENGTH, CONNECTION_CONFIG_FILE,
+    TEMP_DIR
 )
 
 
@@ -21,6 +22,11 @@ class FileManager:
     def init_file_system(self):
         """初始化文件系统，创建必要的目录"""
         try:
+            # 创建临时目录
+            if not os.path.exists(TEMP_DIR):
+                os.makedirs(TEMP_DIR)
+                print(f"📁 创建目录: {TEMP_DIR}")
+
             # 创建record_logs目录
             if not os.path.exists(RECORD_LOGS_DIR):
                 os.makedirs(RECORD_LOGS_DIR)

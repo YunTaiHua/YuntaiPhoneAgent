@@ -24,6 +24,7 @@ from PIL import Image, ImageTk
 from yuntai.core.config import (
     ThemeColors,
     PROJECT_ROOT,
+    TEMP_DIR,
     ZHIPU_API_KEY,
     ZHIPU_API_BASE_URL,
     ZHIPU_IMAGE_MODEL,
@@ -58,8 +59,8 @@ class MultimodalOther:
         self.project_root = project_root or PROJECT_ROOT
 
         # 创建输出目录
-        self.image_output_dir = os.path.join(self.project_root, "images")
-        self.video_output_dir = os.path.join(self.project_root, "videos")
+        self.image_output_dir = os.path.join(TEMP_DIR, "images")
+        self.video_output_dir = os.path.join(TEMP_DIR, "videos")
 
         os.makedirs(self.image_output_dir, exist_ok=True)
         os.makedirs(self.video_output_dir, exist_ok=True)

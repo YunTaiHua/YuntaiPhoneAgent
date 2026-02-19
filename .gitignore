@@ -58,6 +58,9 @@ connection_config.json
 conversation_history.json
 forever.txt
 
+# 临时文件目录（运行时生成）
+temp/
+
 # 过渡阶段保留的旧文件
 call_model.py
 app_package_name.py

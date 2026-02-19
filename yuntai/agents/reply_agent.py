@@ -286,12 +286,12 @@ class ReplyAgent:
                                     }
                                     self.file_manager.save_conversation_history(session_data)
                                 
-                                print("✅ 回复已发送")
+                                print("\n✅ 回复已发送")
                                 
                                 if self.tts_manager and self.tts_manager.tts_enabled:
                                     threading.Timer(0.5, lambda: self.tts_manager.speak_text_intelligently(reply)).start()
                             else:
-                                print("❌ 回复发送失败")
+                                print("\n❌ 回复发送失败")
                     else:
                         print("\n⏭️ 未能生成有效回复")
                     

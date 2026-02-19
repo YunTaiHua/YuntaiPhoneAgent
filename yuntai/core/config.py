@@ -19,6 +19,10 @@ load_dotenv()
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.dirname(CURRENT_DIR))
 
+# 临时文件目录（YuntaiPhoneAgent/temp）
+PROJECT_ROOT_ABS = os.path.abspath(os.path.dirname(PROJECT_ROOT))
+TEMP_DIR = os.path.join(PROJECT_ROOT_ABS, "temp")
+
 # ==================== GPT-SoVITS 配置 ====================
 # GPT-SoVITS 相关的路径配置，用于语音合成功能
 
@@ -40,7 +44,7 @@ HUBERT_MODEL_PATH = os.path.join(GPT_SOVITS_ROOT, "GPT_SoVITS", "pretrained_mode
                                  "chinese-hubert-base")
 
 # TTS 输出目录
-TTS_OUTPUT_DIR = os.path.join(PROJECT_ROOT, "tts_output_audio")
+TTS_OUTPUT_DIR = os.path.join(TEMP_DIR, "tts_output_audio")
 
 # ==================== 手机投屏配置 ====================
 # 手机投屏功能相关配置，使用scrcpy工具
@@ -93,17 +97,17 @@ WHISPER_CONVERT_TO_SIMPLIFIED = True  # 是否将繁体转换为简体
 # ==================== 文件配置 ====================
 # 各种数据文件的路径配置
 
-# 对话历史记录文件 - 相对路径
-CONVERSATION_HISTORY_FILE = os.path.join(PROJECT_ROOT, "conversation_history.json")
+# 对话历史记录文件
+CONVERSATION_HISTORY_FILE = os.path.join(TEMP_DIR, "conversation_history.json")
 
-# 记录日志目录 - 相对路径
-RECORD_LOGS_DIR = os.path.join(PROJECT_ROOT, "record_logs")
+# 记录日志目录
+RECORD_LOGS_DIR = os.path.join(TEMP_DIR, "record_logs")
 
 # 永久记忆文件 - 通过环境变量配置，支持自定义路径
 FOREVER_MEMORY_FILE = os.getenv('FOREVER_MEMORY_FILE')
 
-# 连接配置文件 - 相对路径
-CONNECTION_CONFIG_FILE = os.path.join(PROJECT_ROOT, "connection_config.json")
+# 连接配置文件
+CONNECTION_CONFIG_FILE = os.path.join(TEMP_DIR, "connection_config.json")
 
 # ==================== 设备类型配置 ====================
 # 设备类型常量
