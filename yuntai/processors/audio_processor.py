@@ -147,7 +147,7 @@ class AudioProcessor:
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
             # 使用 FFmpeg 提取音频
-            print(f"\n🎵 正在从视频中提取音频: {os.path.basename(video_path)}")
+            print(f"🎵 正在从视频中提取音频: {os.path.basename(video_path)}")
 
             cmd = [
                 self.ffmpeg_path,
@@ -167,7 +167,7 @@ class AudioProcessor:
             )
 
             if result.returncode == 0:
-                print(f"\n✅ 音频提取成功: {output_path}")
+                print(f"✅ 音频提取成功: {output_path}")
                 return True, output_path
             else:
                 error_msg = result.stderr.decode('utf-8', errors='ignore')
@@ -234,7 +234,7 @@ class AudioProcessor:
                 if not model_ok:
                     return False, error_msg
 
-            print(f"\n🎙️正在转录音频: {os.path.basename(audio_path)}")
+            print(f"🎙️正在转录音频: {os.path.basename(audio_path)}")
 
             # 转录音频
             result = self.whisper_model.transcribe(
@@ -295,7 +295,7 @@ class AudioProcessor:
                 "prompt": prompt
             }
 
-            print(f"\n✅ 视频+音频处理完成")
+            print(f"✅ 视频+音频处理完成")
             #print(f"\n📝 音频内容: {transcription[:100]}..." if len(transcription) > 100 else f"📝 音频内容: {transcription}")
 
             return True, result
@@ -334,7 +334,7 @@ class AudioProcessor:
                 "prompt": prompt
             }
 
-            print(f"\n✅ 音频处理完成")
+            print(f"✅ 音频处理完成")
             #print(f"\n📝 音频内容: {transcription[:100]}..." if len(transcription) > 100 else f"📝 音频内容: {transcription}")
 
             return True, result
@@ -371,12 +371,12 @@ class AudioProcessor:
                     try:
                         os.remove(filepath)
                         deleted_count += 1
-                        print(f"\n🗑️清理临时文件: {filename}")
+                        print(f"🗑️清理临时文件: {filename}")
                     except Exception as e:
-                        print(f"\n⚠️清理失败 {filename}: {e}")
+                        print(f"⚠️清理失败 {filename}: {e}")
 
             if deleted_count > 0:
-                print(f"\n✅清理了 {deleted_count} 个临时音频文件")
+                print(f"✅清理了 {deleted_count} 个临时音频文件")
 
         except Exception as e:
-            print(f"\n⚠️ 清理临时文件失败: {e}")
+            print(f"⚠️ 清理临时文件失败: {e}")

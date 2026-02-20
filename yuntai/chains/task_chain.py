@@ -122,7 +122,7 @@ class TaskChain:
     
     def _handle_basic_operation(self, task: str) -> str:
         """处理基础操作"""
-        print(f"\n📱 执行：{task}")
+        print(f"📱 执行：{task}")
         success, result = self.phone_agent.execute_operation(task)
         
         if success:
@@ -145,7 +145,7 @@ class TaskChain:
     
     def _handle_complex_operation(self, task: str) -> str:
         """处理复杂操作"""
-        print(f"\n⚙️ 执行复杂操作：{task}")
+        print(f"⚙️ 执行复杂操作：{task}")
         success, result = self.phone_agent.execute_operation(task)
         
         if success:

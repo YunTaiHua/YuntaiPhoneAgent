@@ -234,7 +234,7 @@ class TTSManager:
             ref_text = self.get_current_model("text")
 
             if not ref_audio or not ref_text:
-                print("\n⚠️  无法语音播报：未选择参考音频或文本")
+                print("⚠️  无法语音播报：未选择参考音频或文本")
                 return False
 
             if not self.tts_enabled:

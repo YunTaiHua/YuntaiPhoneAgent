@@ -213,7 +213,7 @@ class MultimodalProcessor:
                     file_type, mime_type = self.get_file_type(file_path)
                     file_name = Path(file_path).name
 
-                    print(f"\n📄 准备文件: {file_name} (类型: {file_type})")
+                    print(f"📄 准备文件: {file_name} (类型: {file_type})")
 
                     # 特殊处理：视频文件需要提取音频
                     if file_type == "video":
@@ -236,12 +236,12 @@ class MultimodalProcessor:
                             # 添加音频转录文本
                             audio_transcription = result.get("audio_transcription", "")
                             if audio_transcription:
-                                audio_text = f"\n[视频中的音频内容]\n{audio_transcription}"
+                                audio_text = f"[视频中的音频内容]\n{audio_transcription}"
                                 current_message["content"].append({
                                     "type": "text",
                                     "text": audio_text
                                 })
-                                print(f"\n✅ 已添加视频+音频内容")
+                                print(f"✅ 已添加视频+音频内容")
                         else:
                             print(f"⚠️ 音频处理失败，仅使用视频: {result.get('error', 'unknown error')}")
                             # 仅添加视频内容
@@ -264,7 +264,7 @@ class MultimodalProcessor:
 
                             # 添加音频转录文本
                             if audio_transcription:
-                                audio_text = f"\n[音频内容]\n{audio_transcription}"
+                                audio_text = f"[音频内容]\n{audio_transcription}"
                                 current_message["content"].append({
                                     "type": "text",
                                     "text": audio_text
@@ -275,7 +275,7 @@ class MultimodalProcessor:
                             # 添加错误信息
                             current_message["content"].append({
                                 "type": "text",
-                                "text": f"\n[音频处理失败: {result.get('error', 'unknown error')}]"
+                                "text": f"[音频处理失败: {result.get('error', 'unknown error')}]"
                             })
 
                     # 图片类型
@@ -374,8 +374,8 @@ class MultimodalProcessor:
                 return False, "没有有效的支持文件", None
 
             #print(f"🔄 正在准备消息...")
-            print(f"\n📄 有效文件: {len(valid_file_paths)} 个")
-            print(f"\n📊 文件类型分布: {', '.join(set(file_types))}")
+            print(f"📄 有效文件: {len(valid_file_paths)} 个")
+            print(f"📊 文件类型分布: {', '.join(set(file_types))}")
 
             # 准备消息（返回消息和音频处理结果）
             messages, audio_result = self.prepare_multimodal_messages(text, valid_file_paths, history)

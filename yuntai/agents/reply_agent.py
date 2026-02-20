@@ -84,8 +84,8 @@ class ReplyAgent:
         Returns:
             (是否成功, 结果消息)
         """
-        print(f"\n🔄 启动单次回复流程")
-        print(f"\n🎯 目标：{app_name} -> {chat_object}\n")
+        print(f"🔄 启动单次回复流程")
+        print(f"🎯 目标：{app_name} -> {chat_object}")
         
         success, records = self.phone_agent.extract_chat_records(app_name, chat_object)
         if not success:
@@ -172,9 +172,9 @@ class ReplyAgent:
         Returns:
             (是否成功, 结果消息)
         """
-        print(f"\n🔄 启动持续回复流程")
-        print(f"\n🎯 目标：{app_name} -> {chat_object}")
-        print(f"\n💡 点击终止按钮结束\n")
+        print(f"🔄 启动持续回复流程")
+        print(f"🎯 目标：{app_name} -> {chat_object}")
+        print(f"💡 点击终止按钮结束")
         
         self.clear_message_lists()
         self.clear_terminate_flag()
@@ -186,7 +186,7 @@ class ReplyAgent:
         
         while cycle < max_cycles:
             if self.terminate_flag.is_set():
-                print("\n🛑 检测到终止信号，正在退出...")
+                print("🛑 检测到终止信号，正在退出...")
                 break
             
             cycle += 1
@@ -226,7 +226,7 @@ class ReplyAgent:
                 messages, self.my_messages_list, self.other_messages_list
             )
             
-            print(f"\n📋 对方消息 {len(other_messages)} 条，我方消息 {len(my_messages)} 条")
+            print(f"📋 对方消息 {len(other_messages)} 条，我方消息 {len(my_messages)} 条")
             
             if other_messages:
                 latest_message = other_messages[-1]
@@ -243,7 +243,7 @@ class ReplyAgent:
                         is_new = False
                 
                 if is_new:
-                    print(f"\n💬 发现新消息: {latest_message[:50]}...")
+                    print(f"💬 发现新消息: {latest_message[:50]}...")
                     
                     if self.terminate_flag.is_set():
                         break
@@ -259,9 +259,9 @@ class ReplyAgent:
                             break
                         
                         if last_sent_reply and is_message_similar(reply, last_sent_reply, 0.7):
-                            print("\n⏭️ 回复与上次相似，跳过发送")
+                            print("⏭️ 回复与上次相似，跳过发送")
                         else:
-                            print(f"\n📤 准备发送回复: {reply[:50]}...")
+                            print(f"📤 准备发送回复: {reply[:50]}...")
                             
                             if self.terminate_flag.is_set():
                                 break
@@ -286,20 +286,20 @@ class ReplyAgent:
                                     }
                                     self.file_manager.save_conversation_history(session_data)
                                 
-                                print("\n✅ 回复已发送")
+                                print("✅ 回复已发送")
                                 
                                 if self.tts_manager and self.tts_manager.tts_enabled:
                                     threading.Timer(0.5, lambda: self.tts_manager.speak_text_intelligently(reply)).start()
                             else:
-                                print("\n❌ 回复发送失败")
+                                print("❌ 回复发送失败")
                     else:
-                        print("\n⏭️ 未能生成有效回复")
+                        print("⏭️ 未能生成有效回复")
                     
                     previous_latest_message = latest_message
                 else:
-                    print("\n⏭️ 没有新消息")
+                    print("⏭️ 没有新消息")
             else:
-                print("\n⏭️ 没有对方消息")
+                print("⏭️ 没有对方消息")
             
             for msg in my_messages:
                 if not any(is_message_similar(msg, m, 0.6) for m in self.my_messages_list):
@@ -313,7 +313,7 @@ class ReplyAgent:
             if self.terminate_flag.is_set():
                 break
             
-            print(f"\n⏳ 等待 {WAIT_INTERVAL} 秒...")
+            print(f"⏳ 等待 {WAIT_INTERVAL} 秒...")
             for _ in range(int(WAIT_INTERVAL)):
                 if self.terminate_flag.is_set():
                     break

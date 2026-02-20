@@ -327,12 +327,12 @@ class GUIController:
                     sys.stderr = self.output_capture.custom_stderr
 
                 timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                print(f"\n{'═' * 9} [{timestamp} 对话开始] {'═' * 9}\n")
+                print(f"{'═' * 9} [{timestamp} 对话开始] {'═' * 9}")
                 if has_attachments:
                     print(f"\n💭 多模态指令: {command if command else '[无文本]'}")
-                    print(f"📎 附件数量: {len(self.attached_files)} 个文件\n")
+                    print(f"📎 附件数量: {len(self.attached_files)} 个文件")
                 else:
-                    print(f"\n💭 指令: {command}\n")
+                    print(f"\n💭 指令: {command}")
 
                 # 特殊命令处理
                 if command.lower() == "quit":
@@ -354,19 +354,19 @@ class GUIController:
                     return
                 elif command.lower() == "detect" or command.lower() == "检测":
                     devices = self.task_manager.detect_devices()
-                    self._append_output(f"📱 可用设备列表:\n")
+                    self._append_output(f"📱 可用设备列表:")
                     if devices:
                         for i, device in enumerate(devices, 1):
-                            self._append_output(f"  {i}. {device}\n")
+                            self._append_output(f"  {i}. {device}")
                     else:
-                        self._append_output(f"  未找到可用设备\n")
+                        self._append_output(f"  未找到可用设备")
                     return
 
                 if not has_attachments and not self.task_manager.is_connected:
                     task_result = self.judgement_agent.judge(command)
                     task_type = task_result.task_type
                     if task_type != "free_chat":
-                        self._append_output(f"❌ 设备未连接，请先连接设备\n")
+                        self._append_output(f"❌ 设备未连接，请先连接设备")
                         return
 
                 result = None
@@ -383,27 +383,26 @@ class GUIController:
                         if len(parts) == 2:
                             target_app, target_object = parts
                             if not self.task_manager.is_connected:
-                                self._append_output(f"❌ 设备未连接，无法启动持续回复\n")
+                                self._append_output(f"❌ 设备未连接，无法启动持续回复")
                                 return
-                            self._append_output(f"\n🚀 检测到持续回复模式: {target_app} -> {target_object}\n")
+                            self._append_output(f"⏱ 检测到持续回复模式: {target_app} -> {target_object}\n")
                             self.start_continuous_reply_thread(
                                 self.task_manager.task_args, target_app, target_object, self.task_manager.device_id
                             )
-                            print("\n🔄 持续回复模式已启动，保持按钮状态")
                             return
                     except Exception as e:
                         print(f"❌ 解析持续回复标记失败: {e}")
                         result = f"❌ 解析持续回复参数失败: {str(e)}"
 
                 if result:
-                    self._append_output(f"\n🎉 结果：{result}\n")
+                    self._append_output(f"🎉 结果：{result}\n")
 
                 if "持续回复模式" in str(result) or "continuous_reply" in str(result).lower():
                     print(f"🔄 检测到持续回复模式，保持按钮状态")
                     return
 
             except Exception as e:
-                self._append_output(f"\n❌ 错误：{str(e)}\n")
+                self._append_output(f"❌ 错误：{str(e)}\n")
                 traceback.print_exc()
             finally:
                 def safe_clear():
@@ -427,8 +426,8 @@ class GUIController:
 
     def _handle_multimodal_chat(self, text: str, file_paths: list[str]) -> str:
         """处理多模态聊天"""
-        print(f"\n📋 文本: {text}")
-        print(f"\n📎 附件: {len(file_paths)} 个文件")
+        print(f"📋 文本: {text}")
+        print(f"📎 附件: {len(file_paths)} 个文件")
 
         try:
             if not file_paths or len(file_paths) == 0:
@@ -456,7 +455,7 @@ class GUIController:
             )
 
             if success:
-                print(f"\n✅ 多模态分析完成")
+                print(f"✅ 多模态分析完成")
                 if audio_result:
                     audio_transcription = audio_result.get("audio_transcription", "")
                     if audio_transcription: pass
@@ -522,7 +521,7 @@ class GUIController:
     def terminate_operation(self):
         """终止当前操作"""
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"\n{'═' * 9} [{timestamp} 操作终止] {'═' * 9}\n")
+        print(f"\n{'═' * 9} [{timestamp} 操作终止] {'═' * 9}")
         print("🛑 正在发送终止信号...")
         self._cleanup_active_threads()
         
@@ -537,25 +536,25 @@ class GUIController:
         self._disable_terminate_button()
 
         if self.is_continuous_mode:
-            self._append_output(f"\n🛑 正在终止持续回复模式...\n")
+            self._append_output(f"🛑 正在终止持续回复模式...")
         else:
-            self._append_output(f"\n🛑 正在终止当前任务...\n")
+            self._append_output(f"🛑 正在终止当前任务...")
         self.show_toast("已发送终止信号", "warning")
 
     def simulate_enter(self):
         """模拟回车键效果"""
-        print("\n[用户点击模拟回车按钮]")
+        print("[用户点击模拟回车按钮]")
         try:
             from yuntai.core.agent_executor import AgentExecutor
             AgentExecutor.user_confirm()
         except Exception as e:
-            print(f"\n⚠️  发送确认信号失败: {e}")
+            print(f"⚠️  发送确认信号失败: {e}")
 
         output_text = self.view.get_component("output_text")
         if output_text:
             try:
                 output_text.configure(state="normal")
-                output_text.insert("end", "\n[用户已确认]\n")
+                output_text.insert("end", "[用户已确认]")
                 output_text.see("end")
                 output_text.configure(state="disabled")
             except Exception:
@@ -589,7 +588,7 @@ class GUIController:
 
         def continuous_thread():
             try:
-                print(f"\n🚀 持续回复线程启动: {target_app} -> {target_object}")
+                print(f"🚀 持续回复线程启动: {target_app} -> {target_object}")
                 
                 from yuntai.agents import ReplyAgent
                 reply_agent = ReplyAgent(
@@ -602,11 +601,11 @@ class GUIController:
                 success, result = reply_agent.continuous_reply(target_app, target_object)
                 
                 if success:
-                    print(f"\n✅ {result}")
+                    print(f"✅ {result}")
                 else:
-                    print(f"\n⏹️  {result}")
+                    print(f"⏹️  {result}")
             except Exception as e:
-                print(f"\n❌ 持续回复错误：{str(e)}\n")
+                print(f"❌ 持续回复错误：{str(e)}\n")
                 traceback.print_exc()
             finally:
                 self.is_continuous_mode = False
@@ -766,38 +765,38 @@ class GUIController:
         history = self.task_manager.file_manager.safe_read_json_file(
             "conversation_history.json", {"sessions": [], "free_chats": []}
         )
-        self._append_output(f"\n📚 对话历史\n")
+        self._append_output(f"📚 对话历史")
         sessions = history.get("sessions", [])
         if sessions:
-            self._append_output(f"📱 聊天会话 ({len(sessions)}条):\n")
+            self._append_output(f"📱 聊天会话 ({len(sessions)}条):")
             for i, session in enumerate(sessions[-5:], 1):
-                self._append_output(f"\n{i}. {session.get('timestamp', '未知时间')}\n")
+                self._append_output(f"\n{i}. {session.get('timestamp', '未知时间')}")
                 self._append_output(
-                    f"   目标: {session.get('target_app', '未知')} -> {session.get('target_object', '未知')}\n")
-                self._append_output(f"   回复: {session.get('reply_generated', '')}\n")
+                    f"   目标: {session.get('target_app', '未知')} -> {session.get('target_object', '未知')}")
+                self._append_output(f"   回复: {session.get('reply_generated', '')}")
         free_chats = history.get("free_chats", [])
         if free_chats:
-            self._append_output(f"\n💬 自由聊天 ({len(free_chats)}条):\n")
+            self._append_output(f"💬 自由聊天 ({len(free_chats)}条):\n")
             for i, chat in enumerate(free_chats[-5:], 1):
-                self._append_output(f"\n{i}. {chat.get('timestamp', '未知时间')}\n")
-                self._append_output(f"   用户: {chat.get('user_input', '')}\n")
-                self._append_output(f"   回复: {chat.get('assistant_reply', '')}\n")
+                self._append_output(f"{i}. {chat.get('timestamp', '未知时间')}")
+                self._append_output(f"   用户: {chat.get('user_input', '')}")
+                self._append_output(f"   回复: {chat.get('assistant_reply', '')}")
         if not sessions and not free_chats:
-            self._append_output(f"暂无对话历史\n")
+            self._append_output(f"暂无对话历史")
 
     def _clear_history_command(self):
         """清空历史记录命令"""
         try:
             if os.path.exists("conversation_history.json"):
                 os.remove("conversation_history.json")
-                self._append_output(f"✅ 对话历史已清空\n")
+                self._append_output(f"✅ 对话历史已清空")
                 with open("conversation_history.json", 'w', encoding='utf-8') as f:
                     import json
                     json.dump({"sessions": [], "free_chats": []}, f, ensure_ascii=False, indent=2)
             else:
-                self._append_output(f"⚠️  没有对话历史文件\n")
+                self._append_output(f"⚠️  没有对话历史文件")
         except Exception as e:
-            self._append_output(f"❌ 清空历史失败：{e}\n")
+            self._append_output(f"❌ 清空历史失败：{e}")
 
     def _cleanup_active_threads(self):
         self.active_threads = [t for t in self.active_threads if t.is_alive()]
