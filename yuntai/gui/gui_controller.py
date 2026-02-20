@@ -326,7 +326,8 @@ class GUIController:
                     sys.stdout = self.output_capture.custom_stdout
                     sys.stderr = self.output_capture.custom_stderr
 
-                print(f"\n{'=' * 180}\n")
+                timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                print(f"\n{'═' * 9} [{timestamp} 对话开始] {'═' * 9}\n")
                 if has_attachments:
                     print(f"\n💭 多模态指令: {command if command else '[无文本]'}")
                     print(f"📎 附件数量: {len(self.attached_files)} 个文件\n")
@@ -520,7 +521,8 @@ class GUIController:
 
     def terminate_operation(self):
         """终止当前操作"""
-        print("\n" + "=" * 180 + "\n")
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"\n{'═' * 9} [{timestamp} 操作终止] {'═' * 9}\n")
         print("🛑 正在发送终止信号...")
         self._cleanup_active_threads()
         
