@@ -327,12 +327,12 @@ class GUIController:
                     sys.stderr = self.output_capture.custom_stderr
 
                 timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                print(f"{'═' * 9} [{timestamp} 对话开始] {'═' * 9}")
+                print(f"\n{'═' * 9} [{timestamp} 对话开始] {'═' * 9}\n")
                 if has_attachments:
-                    print(f"\n💭 多模态指令: {command if command else '[无文本]'}")
+                    print(f"💭 多模态指令: {command if command else '[无文本]'}")
                     print(f"📎 附件数量: {len(self.attached_files)} 个文件")
                 else:
-                    print(f"\n💭 指令: {command}")
+                    print(f"💭 指令: {command}")
 
                 # 特殊命令处理
                 if command.lower() == "quit":
@@ -385,7 +385,6 @@ class GUIController:
                             if not self.task_manager.is_connected:
                                 self._append_output(f"❌ 设备未连接，无法启动持续回复")
                                 return
-                            self._append_output(f"⏱ 检测到持续回复模式: {target_app} -> {target_object}\n")
                             self.start_continuous_reply_thread(
                                 self.task_manager.task_args, target_app, target_object, self.task_manager.device_id
                             )
@@ -395,7 +394,7 @@ class GUIController:
                         result = f"❌ 解析持续回复参数失败: {str(e)}"
 
                 if result:
-                    self._append_output(f"🎉 结果：{result}\n")
+                    self._append_output(f"🎉 结果：{result}")
 
                 if "持续回复模式" in str(result) or "continuous_reply" in str(result).lower():
                     print(f"🔄 检测到持续回复模式，保持按钮状态")
@@ -427,7 +426,7 @@ class GUIController:
     def _handle_multimodal_chat(self, text: str, file_paths: list[str]) -> str:
         """处理多模态聊天"""
         print(f"📋 文本: {text}")
-        print(f"📎 附件: {len(file_paths)} 个文件")
+        print(f"📌 附件: {len(file_paths)} 个文件")
 
         try:
             if not file_paths or len(file_paths) == 0:
@@ -522,7 +521,7 @@ class GUIController:
         """终止当前操作"""
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"\n{'═' * 9} [{timestamp} 操作终止] {'═' * 9}")
-        print("🛑 正在发送终止信号...")
+        print("🛑 正在发送终止信号...\n")
         self._cleanup_active_threads()
         
         self.task_chain.stop_continuous_reply()
@@ -536,9 +535,9 @@ class GUIController:
         self._disable_terminate_button()
 
         if self.is_continuous_mode:
-            self._append_output(f"🛑 正在终止持续回复模式...")
+            self._append_output(f"\n🛑 正在终止持续回复模式...")
         else:
-            self._append_output(f"🛑 正在终止当前任务...")
+            self._append_output(f"\n🛑 正在终止当前任务...")
         self.show_toast("已发送终止信号", "warning")
 
     def simulate_enter(self):
