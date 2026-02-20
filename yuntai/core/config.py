@@ -275,7 +275,7 @@ def print_config_summary():
 • Scrcpy 路径: {SCRCPY_PATH}
 • 对话历史文件: {CONVERSATION_HISTORY_FILE}
 • 永久记忆文件: {FOREVER_MEMORY_FILE}
-• API 模型: {ZHIPU_MODEL} / {ZHIPU_CHAT_MODEL}
+• API 模型: {ZHIPU_MODEL} | {ZHIPU_CHAT_MODEL}
 ────────────────────────────────────
 """
     print(summary)
