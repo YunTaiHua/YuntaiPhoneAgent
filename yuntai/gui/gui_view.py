@@ -55,6 +55,9 @@ class GUIView:
         # 创建状态栏
         self._create_status_bar()
 
+        # 创建TTS加载遮罩层
+        self._create_tts_loading_overlay()
+
     def _create_navigation_frame(self):
         """创建左侧导航栏 - 现代化米白色风格"""
         self.nav_frame = ctk.CTkFrame(
@@ -244,6 +247,55 @@ class GUIView:
             text_color=ThemeColors.TEXT_SECONDARY
         )
         self.components["status_label"].pack(side="left", padx=20)
+
+    def _create_tts_loading_overlay(self):
+        """创建TTS加载遮罩层"""
+        self.tts_loading_overlay = ctk.CTkFrame(
+            self.root,
+            fg_color=ThemeColors.BG_MAIN,
+            corner_radius=0
+        )
+        self.tts_loading_overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self.tts_loading_overlay.lift()
+
+        loading_frame = ctk.CTkFrame(
+            self.tts_loading_overlay,
+            fg_color=ThemeColors.BG_CARD,
+            corner_radius=16,
+            border_width=1,
+            border_color=ThemeColors.BORDER_LIGHT
+        )
+        loading_frame.place(relx=0.5, rely=0.5, anchor="center")
+
+        self.components["tts_loading_label"] = ctk.CTkLabel(
+            loading_frame,
+            text="正在加载TTS语音资源中...",
+            font=("Microsoft YaHei", 18),
+            text_color=ThemeColors.TEXT_PRIMARY
+        )
+        self.components["tts_loading_label"].pack(padx=60, pady=(30, 20))
+
+        self.components["tts_loading_progress"] = ctk.CTkProgressBar(
+            loading_frame,
+            width=200,
+            height=8,
+            mode="indeterminate"
+        )
+        self.components["tts_loading_progress"].pack(padx=60, pady=(0, 30))
+        self.components["tts_loading_progress"].start()
+
+    def show_tts_loading(self, message: str = "正在加载TTS语音资源中..."):
+        """显示TTS加载遮罩"""
+        if hasattr(self, 'tts_loading_overlay'):
+            if "tts_loading_label" in self.components:
+                self.components["tts_loading_label"].configure(text=message)
+            self.tts_loading_overlay.lift()
+            self.tts_loading_overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+    def hide_tts_loading(self):
+        """隐藏TTS加载遮罩"""
+        if hasattr(self, 'tts_loading_overlay'):
+            self.tts_loading_overlay.place_forget()
 
     # ========== 页面创建方法（委托给PageBuilder）==========
 

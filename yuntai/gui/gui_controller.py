@@ -625,8 +625,6 @@ class GUIController:
             try:
                 output_text.configure(state="normal")
                 output_text.delete("1.0", tk.END)
-                output_text.insert("end", "📱 Phone Agent 控制台\n")
-                output_text.insert("end", "=" * 80 + "\n\n")
                 output_text.configure(state="disabled")
                 output_text.see("end")
             except tk.TclError:
@@ -692,10 +690,60 @@ class GUIController:
         """预加载TTS模块"""
 
         def load_async():
+            self.view.show_tts_loading("正在加载TTS语音资源中...")
             success = self.task_manager.preload_tts_modules()
             self.update_tts_indicator(success)
+            if success:
+                self._synthesize_welcome_message()
+            else:
+                self.view.hide_tts_loading()
 
         threading.Thread(target=load_async, daemon=True).start()
+
+    def _synthesize_welcome_message(self):
+        """启动时合成欢迎语（自动降级）"""
+        try:
+            tts = self.task_manager.tts_manager
+
+            for model_type, db_key in [("gpt", "gpt"), ("sovits", "sovits"), ("audio", "audio")]:
+                if not tts.get_current_model(model_type) and tts.tts_files_database[db_key]:
+                    tts.set_current_model(model_type, list(tts.tts_files_database[db_key].keys())[0])
+
+            if tts.get_current_model("audio") and not tts.get_current_model("text"):
+                audio_name = os.path.splitext(os.path.basename(tts.get_current_model("audio")))[0]
+                txt_file = f"{audio_name}.txt"
+                if txt_file in tts.tts_files_database["text"]:
+                    tts.set_current_model("text", txt_file)
+
+            if not tts.get_current_model("text") and tts.tts_files_database["text"]:
+                tts.set_current_model("text", list(tts.tts_files_database["text"].keys())[0])
+
+            if not all([tts.get_current_model(t) for t in ["gpt", "sovits", "audio", "text"]]):
+                self.view.hide_tts_loading()
+                return
+
+            self.view.show_tts_loading("正在合成欢迎语...")
+            tts.speak_text_intelligently("你好，我是小芸，很高兴为您服务")
+            self._wait_audio_then_hide()
+        except Exception:
+            self.view.hide_tts_loading()
+
+    def _wait_audio_then_hide(self):
+        """等待欢迎语音频播放完成后隐藏加载遮罩"""
+        def check_audio():
+            try:
+                import time
+                time.sleep(2)
+                tts = self.task_manager.tts_manager
+                for _ in range(30):
+                    if not tts.is_playing_audio and not tts.is_tts_synthesizing:
+                        self.root.after(0, self.view.hide_tts_loading)
+                        return
+                    time.sleep(0.5)
+                self.root.after(0, self.view.hide_tts_loading())
+            except Exception:
+                self.root.after(0, self.view.hide_tts_loading)
+        threading.Thread(target=check_audio, daemon=True).start()
 
     def update_tts_indicator(self, enabled):
         """更新TTS状态指示器"""
