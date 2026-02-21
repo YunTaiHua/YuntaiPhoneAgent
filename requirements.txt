@@ -8,6 +8,7 @@ soundfile==0.12.1
 torch==2.5.1+cu121
 zhipuai==2.1.5.20250825
 markitdown[all]>=0.1.4
+pyperclip==1.11.0
 
 # LangChain (兼容版本)
 langchain>=0.3.20,<0.4.0
