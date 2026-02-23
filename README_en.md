@@ -82,12 +82,25 @@ YuntaiPhoneAgent/
 │   │   ├── base_agent.py
 │   │   ├── chat_agent.py
 │   │   ├── judgement_agent.py
-│   │   ├── phone_agent.py
-│   │   └── reply_agent.py
+│   │   └── phone_agent.py
 │   ├── chains/                # LangChain Chain Module
 │   │   ├── __init__.py
 │   │   ├── task_chain.py
 │   │   └── reply_chain.py
+│   ├── graphs/                # LangGraph Workflow Module
+│   │   ├── __init__.py
+│   │   ├── state.py           # State Definition
+│   │   ├── reply_graph.py     # Continuous Reply Workflow
+│   │   └── nodes/             # Workflow Nodes
+│   │       ├── __init__.py
+│   │       ├── extract.py     # Extract Chat Records
+│   │       ├── parse.py       # Parse Messages
+│   │       ├── ownership.py   # Message Ownership
+│   │       ├── check_new.py   # Check New Messages
+│   │       ├── reply.py       # Generate Reply
+│   │       ├── send.py        # Send Message
+│   │       ├── memory.py      # Update Memory
+│   │       └── control.py     # Flow Control
 │   ├── models/                # Model Initialization Module
 │   │   ├── __init__.py
 │   │   └── zhipu_model.py
@@ -130,11 +143,13 @@ YuntaiPhoneAgent/
 - Support multiple operations: click, input, swipe, long press, double click, back, Home
 - Coordinate system: (0,0) top-left → (999,999) bottom-right
 
-#### 3. Continuous Reply Management (agent_core.py)
-- Termination mechanism: support stopping continuous reply midway
+#### 3. Continuous Reply Management (graphs/reply_graph.py)
+- Use LangGraph to orchestrate workflow, centralized state management
+- Node-based design: Extract→Parse→Ownership→Check New→Reply→Send→Update Memory
+- Termination mechanism: support stopping continuous reply midway, global termination signal detection
 - Message attribution judgment: based on avatar position (left→other, right→me) and bubble color
-- Similarity comparison: use longest common subsequence algorithm to avoid duplicate replies
-- Loop detection: check new messages each round, maximum 30 rounds
+- Similarity comparison: avoid duplicate replies
+- Loop detection: check new messages each round, maximum 30 rounds, configurable recursion limit
 
 #### 4. TTS Voice Synthesis (task_manager.py)
 - Integrate GPT-SoVITS model
@@ -159,6 +174,7 @@ YuntaiPhoneAgent/
 |------|------|
 | GUI | tkinter + customtkinter |
 | AI Models | Zhipu AI GLM-4.6v-flash, autoglm-phone, cogview-3-flash, cogvideox-flash |
+| Workflow | LangGraph + LangChain |
 | TTS | GPT-SoVITS |
 | Phone Control | ADB + scrcpy |
 | SDK | zhipuai, openai |
@@ -211,6 +227,7 @@ GLM-4.6v-flash (Task Classification)
 - v1.0: Basic CLI version
 - v1.1: Integrate TTS, GUI, screen casting
 - v1.2: Upgrade GLM-4.6v-flash multimodal, introduce dual AI assist system
+- v1.3: Refactor continuous reply flow with LangGraph, centralized state management, node-based design
 
 This project demonstrates deep integration of AI Agent, multimodal, and automation technologies, making it a fully functional smartphone operation agent system.
 

@@ -82,12 +82,25 @@ YuntaiPhoneAgent/
 │   │   ├── base_agent.py
 │   │   ├── chat_agent.py
 │   │   ├── judgement_agent.py
-│   │   ├── phone_agent.py
-│   │   └── reply_agent.py
+│   │   └── phone_agent.py
 │   ├── chains/                # LangChain Chain模块
 │   │   ├── __init__.py
 │   │   ├── task_chain.py
 │   │   └── reply_chain.py
+│   ├── graphs/                # LangGraph 工作流模块
+│   │   ├── __init__.py
+│   │   ├── state.py           # 状态定义
+│   │   ├── reply_graph.py     # 持续回复工作流
+│   │   └── nodes/             # 工作流节点
+│   │       ├── __init__.py
+│   │       ├── extract.py     # 提取聊天记录
+│   │       ├── parse.py       # 解析消息
+│   │       ├── ownership.py   # 消息归属判断
+│   │       ├── check_new.py   # 检查新消息
+│   │       ├── reply.py       # 生成回复
+│   │       ├── send.py        # 发送消息
+│   │       ├── memory.py      # 更新记忆
+│   │       └── control.py     # 流程控制
 │   ├── models/                # 模型初始化模块
 │   │   ├── __init__.py
 │   │   └── zhipu_model.py
@@ -130,11 +143,13 @@ YuntaiPhoneAgent/
 - 支持多种操作：点击、输入、滑动、长按、双击、返回、Home
 - 坐标系统：(0,0)左上角 → (999,999)右下角
 
-#### 3. 持续回复管理 (agent_core.py)
-- 终止机制：支持中途停止持续回复
+#### 3. 持续回复管理 (graphs/reply_graph.py)
+- 使用 LangGraph 编排工作流，状态集中管理
+- 节点化设计：提取→解析→归属判断→检查新消息→生成回复→发送→更新记忆
+- 终止机制：支持中途停止持续回复，全局终止信号检测
 - 消息归属判断：基于头像位置（左→对方，右→我方）和气泡颜色
-- 相似度比对：使用最长公共子序列算法避免重复回复
-- 循环检测：每轮检查新消息，最多30轮
+- 相似度比对：避免重复回复
+- 循环检测：每轮检查新消息，最多30轮，可配置递归限制
 
 #### 4. TTS语音合成 (task_manager.py)
 - 集成 GPT-SoVITS 模型
@@ -159,6 +174,7 @@ YuntaiPhoneAgent/
 |------|------|
 | GUI | tkinter + customtkinter |
 | AI模型 | 智谱AI GLM-4.6v-flash, autoglm-phone, cogview-3-flash, cogvideox-flash |
+| 工作流 | LangGraph + LangChain |
 | TTS | GPT-SoVITS |
 | 手机控制 | ADB + scrcpy |
 | SDK | zhipuai, openai |
@@ -211,6 +227,7 @@ GLM-4.6v-flash (任务分类)
 - v1.0: 基础CLI版
 - v1.1: 集成TTS、GUI、投屏
 - v1.2: 升级GLM-4.6v-flash多模态、引入双AI辅助系统
+- v1.3: 使用 LangGraph 重构持续回复流程，状态集中管理，节点化设计
 
  项目展现了AI Agent、多模态、自动化技术的深度整合，是一个功能完善的智能手机操作代理系统。
 
