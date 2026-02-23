@@ -75,6 +75,7 @@ class GUIController:
         self.is_continuous_mode = False
         self.terminating = threading.Event()
         self.terminate_flag = threading.Event()
+        self._current_reply_chain = None
 
         # 活动线程和进程
         self.active_threads = []
@@ -526,6 +527,9 @@ class GUIController:
         
         self.task_chain.stop_continuous_reply()
         
+        if hasattr(self, '_current_reply_chain') and self._current_reply_chain:
+            self._current_reply_chain.stop()
+        
         if not self.active_threads and not self.is_continuous_mode:
             self.show_toast("没有正在执行的操作", "info")
             return
@@ -589,15 +593,14 @@ class GUIController:
             try:
                 print(f"🚀 持续回复线程启动: {target_app} -> {target_object}")
                 
-                from yuntai.agents import ReplyAgent
-                reply_agent = ReplyAgent(
+                from yuntai.chains import ReplyChain
+                self._current_reply_chain = ReplyChain(
                     device_id=device_id,
                     file_manager=self.task_manager.file_manager,
                     tts_manager=self.task_manager.tts_manager
                 )
-                reply_agent.terminate_flag = self.terminate_flag
                 
-                success, result = reply_agent.continuous_reply(target_app, target_object)
+                success, result = self._current_reply_chain.continuous_reply(target_app, target_object)
                 
                 if success:
                     print(f"✅ {result}")

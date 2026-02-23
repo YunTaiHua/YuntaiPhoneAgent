@@ -5,7 +5,8 @@
 import threading
 from typing import Dict, Any, Optional, Tuple
 
-from yuntai.agents import JudgementAgent, ChatAgent, PhoneAgent, ReplyAgent
+from yuntai.agents import JudgementAgent, ChatAgent, PhoneAgent
+from yuntai.chains.reply_chain import ReplyChain
 from yuntai.prompts import (
     TASK_TYPE_FREE_CHAT,
     TASK_TYPE_BASIC_OPERATION,
@@ -32,7 +33,7 @@ class TaskChain:
         self.judgement_agent = JudgementAgent()
         self.chat_agent = ChatAgent(file_manager=file_manager, tts_manager=tts_manager)
         self.phone_agent = PhoneAgent(device_id=device_id)
-        self.reply_agent = ReplyAgent(
+        self.reply_chain = ReplyChain(
             device_id=device_id,
             file_manager=file_manager,
             tts_manager=tts_manager
@@ -44,13 +45,12 @@ class TaskChain:
         """设置设备 ID"""
         self.device_id = device_id
         self.phone_agent.set_device_id(device_id)
-        self.reply_agent.set_device_id(device_id)
+        self.reply_chain.set_device_id(device_id)
     
     def set_tts_manager(self, tts_manager):
         """设置 TTS 管理器"""
         self.tts_manager = tts_manager
         self.chat_agent.tts_manager = tts_manager
-        self.reply_agent.tts_manager = tts_manager
     
     def process(self, user_input: str) -> Tuple[str, Dict[str, Any]]:
         """
@@ -73,14 +73,12 @@ class TaskChain:
             letter = user_input.strip().lower()
             if letter in SHORTCUTS:
                 task = SHORTCUTS[letter]
-                return self._handle_basic_operation(task)
+                return self._handle_basic_operation(task), {}
         
         judgement_result = self.judgement_agent.judge(user_input)
         task_info = judgement_result.to_dict()
         
         print(f"📋 任务类型: {judgement_result.task_type}")
-        #print(f"\n📋 目标 APP: {judgement_result.target_app}")
-        #print(f"\n📋 目标对象: {judgement_result.target_object}")
         
         if judgement_result.task_type == TASK_TYPE_FREE_CHAT:
             result = self._handle_free_chat(user_input)
@@ -126,7 +124,7 @@ class TaskChain:
         success, result = self.phone_agent.execute_operation(task)
         
         if success:
-            if self.tts_manager and self.tts_manager.tts_enabled and result:
+            if self.tts_manager and getattr(self.tts_manager, 'tts_enabled', False) and result:
                 threading.Timer(0.3, lambda: self.tts_manager.speak_text_intelligently(result)).start()
             return f"✅ 操作完成"
         else:
@@ -134,7 +132,7 @@ class TaskChain:
     
     def _handle_single_reply(self, app_name: str, chat_object: str) -> str:
         """处理单次回复"""
-        success, result = self.reply_agent.single_reply(app_name, chat_object)
+        success, result = self.reply_chain.single_reply(app_name, chat_object)
         return result
     
     def _handle_continuous_reply(self, app_name: str, chat_object: str) -> str:
@@ -149,7 +147,7 @@ class TaskChain:
         success, result = self.phone_agent.execute_operation(task)
         
         if success:
-            if self.tts_manager and self.tts_manager.tts_enabled and result:
+            if self.tts_manager and getattr(self.tts_manager, 'tts_enabled', False) and result:
                 threading.Timer(0.3, lambda: self.tts_manager.speak_text_intelligently(result)).start()
             return f"✅ 操作完成"
         else:
@@ -157,5 +155,5 @@ class TaskChain:
     
     def stop_continuous_reply(self):
         """停止持续回复"""
-        if self.reply_agent:
-            self.reply_agent.set_terminate_flag()
+        if self.reply_chain:
+            self.reply_chain.stop()
