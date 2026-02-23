@@ -41,7 +41,7 @@ class TestIsSimilar:
     def test_threshold_sensitivity(self):
         """测试阈值敏感性"""
         msg1 = "明天要点名，可千万不能迟到"
-        msg2 = "明天要点名"
+        msg2 = "明天要上课"
         
         assert is_similar(msg1, msg2, 0.3) is True
         assert is_similar(msg1, msg2, 0.9) is False
