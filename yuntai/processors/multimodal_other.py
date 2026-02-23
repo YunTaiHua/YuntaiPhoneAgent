@@ -39,7 +39,7 @@ TIMEOUT = 30
 MAX_IMAGE_COUNT = 2
 INITIAL_DELAY_TEXT = 10
 INITIAL_DELAY_IMAGE = 30
-MAX_ATTEMPTS = 30
+MAX_ATTEMPTS = 100
 CHECK_INTERVAL = 10
 DOWNLOAD_TIMEOUT = 30
 
@@ -496,7 +496,7 @@ class MultimodalOther:
     def wait_for_video_completion(self, task_id: str,
                                    image_count: int = 0,  # 新增：图片数量
                                    interval: int = 10,
-                                   max_attempts: int = 30,
+                                   max_attempts: int = 100,
                                    callback=None) -> Dict[str, Any]:
         """
         等待视频生成完成

@@ -415,19 +415,19 @@ class DynamicHandler:
                         log_text.insert("end", f"{wait_text}\n")
 
                     elif event_type == "CHECK":
-                        log_text.insert("end", f"📊 第{attempt}/30次检查: 任务ID={task_id}, 状态={status}\n")
+                        log_text.insert("end", f"📊 第{attempt}次检查: 任务ID={task_id}, 状态={status}\n")
                         log_text.see("end")
 
                     elif event_type == "SUCCESS":
-                        log_text.insert("end", f"🎉 第{attempt}/30次检查成功！\n")
+                        log_text.insert("end", f"🎉 第{attempt}次检查成功！\n")
                         log_text.insert("end", "-" * 50 + "\n")
 
                     elif event_type == "FAIL":
-                        log_text.insert("end", f"❌ 第{attempt}/30次检查失败: {status}\n")
+                        log_text.insert("end", f"❌ 第{attempt}次检查失败: {status}\n")
                         log_text.insert("end", "-" * 50 + "\n")
 
                     elif event_type == "TIMEOUT":
-                        log_text.insert("end", f"⚠️ 达到最大尝试次数(30次)，停止轮询\n")
+                        log_text.insert("end", f"⚠️ 达到最大尝试次数，停止轮询\n")
                         log_text.insert("end", "-" * 50 + "\n")
 
                     log_text.configure(state="disabled")
@@ -437,7 +437,7 @@ class DynamicHandler:
                     task_id,
                     image_count=image_count,
                     interval=10,
-                    max_attempts=30,
+                    max_attempts=100,
                     callback=polling_callback
                 )
 
