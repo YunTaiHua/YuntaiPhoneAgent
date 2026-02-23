@@ -148,7 +148,7 @@ class ReplyGraph:
         )
         
         try:
-            config = {"recursion_limit": max_cycles + 10}
+            config = {"recursion_limit": max_cycles * 12}
             final_state = self.graph.invoke(initial_state, config=config)
             
             if self.terminate_event.is_set():

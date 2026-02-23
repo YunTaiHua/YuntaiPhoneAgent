@@ -46,6 +46,8 @@ class ReplyState(TypedDict):
     wait_seconds: int
     
     result_message: str
+    
+    seen_other_messages: List[str]
 
 
 class ReplyStateBuilder:
@@ -77,4 +79,5 @@ class ReplyStateBuilder:
             retry_count=0,
             wait_seconds=1,
             result_message="",
+            seen_other_messages=[],
         )

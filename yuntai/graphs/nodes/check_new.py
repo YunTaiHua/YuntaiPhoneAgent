@@ -10,13 +10,11 @@ def check_new_message(state: ReplyState) -> dict:
     """
     检查是否有新消息节点
     
-    输入: current_other_messages, previous_latest_message, last_sent_reply
-    输出: is_new_message, latest_message
+    输入: current_other_messages, seen_other_messages
+    输出: is_new_message, latest_message, seen_other_messages
     """
     other_messages = state["current_other_messages"]
-    previous_latest = state["previous_latest_message"]
-    last_sent_reply = state["last_sent_reply"]
-    cycle_count = state["cycle_count"]
+    seen_messages = state.get("seen_other_messages", [])
     
     if not other_messages:
         print("⏭️ 没有对方消息")
@@ -25,25 +23,26 @@ def check_new_message(state: ReplyState) -> dict:
             "latest_message": "",
         }
     
-    latest_message = other_messages[-1]
+    truly_new = []
+    for msg in other_messages:
+        is_seen = any(is_similar(msg, seen, 0.7) for seen in seen_messages)
+        if not is_seen:
+            truly_new.append(msg)
     
-    is_new = True
+    is_new = len(truly_new) > 0
+    latest_new = truly_new[-1] if truly_new else ""
     
-    if cycle_count > 1 and previous_latest:
-        if is_similar(previous_latest, latest_message, 0.6):
-            is_new = False
-    
-    if last_sent_reply and is_similar(latest_message, last_sent_reply, 0.7):
-        is_new = False
+    updated_seen = seen_messages + other_messages
     
     if is_new:
-        print(f"💬 发现新消息: {latest_message[:50]}...")
+        print(f"💬 发现新消息: {latest_new[:50]}...")
     else:
         print("⏭️ 没有新消息")
     
     return {
         "is_new_message": is_new,
-        "latest_message": latest_message,
+        "latest_message": latest_new,
+        "seen_other_messages": updated_seen,
     }
 
 
