@@ -335,34 +335,6 @@ class GUIController:
                 else:
                     print(f"💭 指令: {command}")
 
-                # 特殊命令处理
-                if command.lower() == "quit":
-                    self._append_output("👋 再见！\n")
-                    self.root.after(1000, self.root.quit)
-                    return
-                elif command.lower() == "s":
-                    self._append_output(f"🛑 检测到终止命令's'\n")
-                    self.root.after(0, self.terminate_operation)
-                    return
-                elif command.lower() in ["setup", "设置", "连接设置"]:
-                    self.task_manager.setup_connection()
-                    return
-                elif command.lower() in ["show", "history", "历史", "查看历史"]:
-                    self._show_history_command()
-                    return
-                elif command.lower() in ["clear", "清除", "清空", "清空历史"]:
-                    self._clear_history_command()
-                    return
-                elif command.lower() == "detect" or command.lower() == "检测":
-                    devices = self.task_manager.detect_devices()
-                    self._append_output(f"📱 可用设备列表:")
-                    if devices:
-                        for i, device in enumerate(devices, 1):
-                            self._append_output(f"  {i}. {device}")
-                    else:
-                        self._append_output(f"  未找到可用设备")
-                    return
-
                 if not has_attachments and not self.task_manager.is_connected:
                     task_result = self.judgement_agent.judge(command)
                     task_type = task_result.task_type
@@ -761,44 +733,6 @@ class GUIController:
                 tts_indicator.configure(text="● TTS: 关闭", text_color=ThemeColors.WARNING)
 
     # ============ 辅助方法 ============
-
-    def _show_history_command(self):
-        """显示历史记录命令"""
-        history = self.task_manager.file_manager.safe_read_json_file(
-            "conversation_history.json", {"sessions": [], "free_chats": []}
-        )
-        self._append_output(f"📚 对话历史")
-        sessions = history.get("sessions", [])
-        if sessions:
-            self._append_output(f"📱 聊天会话 ({len(sessions)}条):")
-            for i, session in enumerate(sessions[-5:], 1):
-                self._append_output(f"\n{i}. {session.get('timestamp', '未知时间')}")
-                self._append_output(
-                    f"   目标: {session.get('target_app', '未知')} -> {session.get('target_object', '未知')}")
-                self._append_output(f"   回复: {session.get('reply_generated', '')}")
-        free_chats = history.get("free_chats", [])
-        if free_chats:
-            self._append_output(f"💬 自由聊天 ({len(free_chats)}条):\n")
-            for i, chat in enumerate(free_chats[-5:], 1):
-                self._append_output(f"{i}. {chat.get('timestamp', '未知时间')}")
-                self._append_output(f"   用户: {chat.get('user_input', '')}")
-                self._append_output(f"   回复: {chat.get('assistant_reply', '')}")
-        if not sessions and not free_chats:
-            self._append_output(f"暂无对话历史")
-
-    def _clear_history_command(self):
-        """清空历史记录命令"""
-        try:
-            if os.path.exists("conversation_history.json"):
-                os.remove("conversation_history.json")
-                self._append_output(f"✅ 对话历史已清空")
-                with open("conversation_history.json", 'w', encoding='utf-8') as f:
-                    import json
-                    json.dump({"sessions": [], "free_chats": []}, f, ensure_ascii=False, indent=2)
-            else:
-                self._append_output(f"⚠️  没有对话历史文件")
-        except Exception as e:
-            self._append_output(f"❌ 清空历史失败：{e}")
 
     def _cleanup_active_threads(self):
         self.active_threads = [t for t in self.active_threads if t.is_alive()]
