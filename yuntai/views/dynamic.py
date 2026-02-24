@@ -416,16 +416,12 @@ class DynamicBuilder:
             button_hover_color=ThemeColors.OPTION_BUTTON_HOVER,
             text_color=ThemeColors.TEXT_PRIMARY
         )
-        self.components["video_quality_menu"].pack(side="left")
-
-        # 第二行参数
-        row2 = ctk.CTkFrame(params_frame, fg_color="transparent")
-        row2.pack(fill="x", padx=15, pady=(0, 15))
+        self.components["video_quality_menu"].pack(side="left", padx=(0, 15))
 
         # 音效开关
         self.components["video_audio_var"] = ctk.BooleanVar(value=True)
         self.components["video_audio_check"] = ctk.CTkCheckBox(
-            row2,
+            row1,
             text="🔊 生成音效",
             variable=self.components["video_audio_var"],
             font=("Microsoft YaHei", 12),
