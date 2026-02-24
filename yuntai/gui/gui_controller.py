@@ -367,7 +367,7 @@ class GUIController:
                         result = f"❌ 解析持续回复参数失败: {str(e)}"
 
                 if result:
-                    self._append_output(f"🎉 结果：{result}")
+                    self._append_output(f"🎉 结果：{result}\n")
 
                 if "持续回复模式" in str(result) or "continuous_reply" in str(result).lower():
                     print(f"🔄 检测到持续回复模式，保持按钮状态")
