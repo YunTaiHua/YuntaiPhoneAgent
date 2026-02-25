@@ -182,13 +182,12 @@ YuntaiPhoneAgent/
 ### ⚙️ Key Configuration
 
 ```python
-# yun/config.py:17-59
+# .env,only ZHIPU_API_KEY is necessary
 GPT_SOVITS_ROOT = r"GPT-SoVITS actual root directory"
 SCRCPY_PATH = r"scrcpy actual root directory"
 ZHIPU_API_KEY = "Replace with your API key"
-MAX_CYCLE_TIMES = 30
-WAIT_INTERVAL = 1 s
-MAX_FILE_SIZE = 10 MB
+FFMPEG_PATH = r"FFmpeg actual root directory" 
+FOREVER_MEMORY_FILE = r"forever.txt（forever memory） actual root directory"
 ```
 
 ### 🔄 Dual AI Collaboration Flow
@@ -208,12 +207,11 @@ GLM-4.6v-flash (Task Classification)
 
 ### 💡 Special Features
 
-1. **Smart Color Output**: Gold(GLM-4), Green(phone_agent), Blue(result)【No color support in GUI version】
-2. **Message Similarity Algorithm**: LCS algorithm to avoid duplicate replies
-3. **Thread-Safe Design**: use locks to protect state in multi-threaded environment
-4. **Modular Refactoring**: TTS, GUI, business logic separation
-5. **Configuration Validation Mechanism**: automatically check path validity at startup
-6. **Persistent Memory**: forever.txt manual maintenance, conversation_history.json automatic recording
+1. **Message Similarity Algorithm**: LCS algorithm to avoid duplicate replies
+2. **Thread-Safe Design**: use locks to protect state in multi-threaded environment
+3. **Modular Refactoring**: TTS, GUI, business logic separation
+4. **Configuration Validation Mechanism**: automatically check path validity at startup
+5. **Persistent Memory**: forever.txt manual maintenance, conversation_history.json automatic recording
 
 ### ⚠️ Configuration Requirements
 

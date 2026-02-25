@@ -182,13 +182,12 @@ YuntaiPhoneAgent/
 ### ⚙️ 关键配置
 
 ```python
-# yun/config.py:17-59
+# .env,只有ZHIPU_API_KEY是必填的
 GPT_SOVITS_ROOT = r"GPT-SoVITS实际根目录"
 SCRCPY_PATH = r"scrcpy实际根目录"
 ZHIPU_API_KEY = "替换为你的API key"
-MAX_CYCLE_TIMES = 30
-WAIT_INTERVAL = 1 s
-MAX_FILE_SIZE = 10 MB
+FFMPEG_PATH = r"FFmpeg实际根目录"
+FOREVER_MEMORY_FILE = r"自定义记忆文件(forever.txt)路径"
 ```
 
 ### 🔄 双AI协作流程
@@ -208,12 +207,11 @@ GLM-4.6v-flash (任务分类)
 
 ### 💡 特色功能
 
-1. **智能颜色输出**：金色(GLM-4)、绿色(phone_agent)、蓝色(结果)【GUI版本无颜色支持功能】
-2. **消息相似度算法**：LCS算法避免重复回复
-3. **线程安全设计**：多线程环境下使用锁保护状态
-4. **模块化重构**：TTS、GUI、业务逻辑分离
-5. **配置验证机制**：启动时自动检查路径有效性
-6. **持久化记忆**：forever.txt手动维护，conversation_history.json自动记录
+1. **消息相似度算法**：LCS算法避免重复回复
+2. **线程安全设计**：多线程环境下使用锁保护状态
+3. **模块化重构**：TTS、GUI、业务逻辑分离
+4. **配置验证机制**：启动时自动检查路径有效性
+5. **持久化记忆**：forever.txt手动维护，conversation_history.json自动记录
 
 ### ⚠️ 配置要求
 
