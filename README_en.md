@@ -126,7 +126,6 @@ YuntaiPhoneAgent/
 │   ├── agent.py
 │   └── model/
 │       └── client.py
-├── __init__.py
 ├── forever.txt               # Permanent Memory File
 ├── main.py                   # Main Entry
 ├── requirements.txt
