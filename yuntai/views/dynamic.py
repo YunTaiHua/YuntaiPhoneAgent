@@ -1,10 +1,36 @@
 """
-DynamicBuilder - 动态功能页面构建器
+DynamicBuilder - 动态功能页面构建器（PyQt6 重构版）
 浅色米白色主题版本 - 左右分栏布局
 """
-import tkinter as tk
-import customtkinter as ctk
-from .theme import ThemeColors
+
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+    QLabel, QPushButton, QFrame, QTextEdit, QLineEdit,
+    QComboBox, QCheckBox, QTabWidget, QSizePolicy
+)
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QCursor, QFont
+
+from yuntai.gui.styles import ThemeColors, ThemeFonts, ThemeCorner, ThemeSpacing
+
+
+# 动态页面布局常量 - 避免魔法数字
+class DynamicLayoutConstants:
+    """动态页面布局常量"""
+    # 左侧区域布局常量
+    LEFT_MARGIN = 20            # 左侧区域内边距
+    LEFT_SPACING = 8            # 左侧元素间距（减小）
+    
+    # 描述框常量
+    PROMPT_MIN_HEIGHT = 80      # 描述框最小高度
+    
+    # 参数框架常量
+    PARAMS_MARGIN = 15          # 参数框架内边距
+    PARAMS_SPACING = 12         # 参数元素间距
+    
+    # 按钮区域常量
+    BUTTON_TOP_MARGIN = 8       # 按钮区域顶部边距（减小）
+    BUTTON_SPACING = 12         # 按钮间距
 
 
 class DynamicBuilder:
@@ -13,481 +39,497 @@ class DynamicBuilder:
     def __init__(self, view_instance):
         self.view = view_instance
         self.components = view_instance.components
+    
+    @property
+    def colors(self):
+        """动态获取当前主题颜色"""
+        return self.view.colors
 
     def create_page(self):
         """创建动态功能页面（只执行一次）"""
         self.view._highlight_nav_button(4)
 
-        content_frame = ctk.CTkFrame(
-            self.view.content_pages[4],
-            fg_color="transparent"
-        )
-        content_frame.pack(fill="both", expand=True, padx=30, pady=30)
+        # 获取页面容器
+        page = self.view.content_pages[4]
+        
+        # 检查是否已有布局，如果有则直接返回（页面已创建）
+        if page.layout() is not None:
+            return
+        
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(30, 30, 30, 30)
+        page_layout.setSpacing(0)
 
         # 标题卡片 - 居中对齐
-        header_card = ctk.CTkFrame(
-            content_frame,
-            corner_radius=16,
-            fg_color=ThemeColors.BG_CARD,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
-        )
-        header_card.pack(fill="x", pady=(0, 20))
+        header_card = self._create_card(corner_radius=ThemeCorner.LG)
+        header_layout = QVBoxLayout(header_card)
+        header_layout.setContentsMargins(30, 20, 30, 20)
+        header_layout.setSpacing(8)
 
-        header_inner = ctk.CTkFrame(header_card, fg_color="transparent")
-        header_inner.pack(expand=True, padx=30, pady=20)
+        title_label = QLabel("动态功能")
+        title_label.setFont(ThemeFonts.TITLE_LARGE)
+        title_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_layout.addWidget(title_label)
 
-        ctk.CTkLabel(
-            header_inner,
-            text="动态功能",
-            font=("Microsoft YaHei", 28, "bold"),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(pady=(0, 8))
+        subtitle_label = QLabel("图像生成与视频合成")
+        subtitle_label.setFont(ThemeFonts.BODY_MEDIUM)
+        subtitle_label.setStyleSheet(f"color: {self.colors.TEXT_SECONDARY}; background: transparent; border: none;")
+        subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_layout.addWidget(subtitle_label)
 
-        ctk.CTkLabel(
-            header_inner,
-            text="图像生成与视频合成",
-            font=("Microsoft YaHei", 14),
-            text_color=ThemeColors.TEXT_SECONDARY
-        ).pack()
+        page_layout.addWidget(header_card)
+        page_layout.addSpacing(20)
 
-        # 创建选项卡 - 现代化样式
-        self.components["dynamic_tabview"] = ctk.CTkTabview(
-            content_frame,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD,
-            segmented_button_fg_color=ThemeColors.BG_CARD_ALT,
-            segmented_button_selected_color=ThemeColors.PRIMARY,
-            segmented_button_selected_hover_color=ThemeColors.PRIMARY_HOVER,
-            segmented_button_unselected_color=ThemeColors.BG_INPUT,
-            segmented_button_unselected_hover_color=ThemeColors.BG_HOVER,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
-        )
-        self.components["dynamic_tabview"].pack(fill="both", expand=True)
+        # 创建选项卡
+        self.components["dynamic_tabview"] = QTabWidget()
+        self.components["dynamic_tabview"].setStyleSheet(f"""
+            QTabWidget::pane {{
+                border: 1px solid {self.colors.BORDER_LIGHT};
+                border-radius: {ThemeCorner.MD}px;
+                background-color: {self.colors.BG_CARD};
+            }}
+            QTabBar {{
+                alignment: center;
+            }}
+            QTabBar::tab {{
+                font-family: "{ThemeFonts.FONT_FAMILY}";
+                font-size: 13px;
+                padding: 10px 20px;
+                background-color: {self.colors.BG_CARD_ALT};
+                border-top-left-radius: {ThemeCorner.SM}px;
+                border-top-right-radius: {ThemeCorner.SM}px;
+                margin-right: 2px;
+            }}
+            QTabBar::tab:selected {{
+                background-color: {self.colors.PRIMARY};
+                color: {self.colors.TEXT_LIGHT};
+            }}
+            QTabBar::tab:hover {{
+                background-color: {self.colors.BG_HOVER};
+            }}
+        """)
 
-        # 添加选项卡
-        self.components["dynamic_tabview"].add("🖼️ 图像生成")
-        self.components["dynamic_tabview"].add("🎬 视频生成")
+        # 创建图像生成选项卡
+        image_tab = QWidget()
+        self._create_image_generation_tab(image_tab)
+        self.components["dynamic_tabview"].addTab(image_tab, "🖼️ 图像生成")
+        self.components["image_tab"] = image_tab
 
-        # 确保组件字典中有这两个选项卡的引用
-        self.components["image_tab"] = self.components["dynamic_tabview"].tab("🖼️ 图像生成")
-        self.components["video_tab"] = self.components["dynamic_tabview"].tab("🎬 视频生成")
+        # 创建视频生成选项卡
+        video_tab = QWidget()
+        self._create_video_generation_tab(video_tab)
+        self.components["dynamic_tabview"].addTab(video_tab, "🎬 视频生成")
+        self.components["video_tab"] = video_tab
 
-        # 创建图像生成选项卡内容
-        self._create_image_generation_tab(self.components["image_tab"])
+        page_layout.addWidget(self.components["dynamic_tabview"], 1)
 
-        # 创建视频生成选项卡内容
-        self._create_video_generation_tab(self.components["video_tab"])
+    def _create_card(self, corner_radius=ThemeCorner.MD):
+        """创建卡片样式的Frame"""
+        card = QFrame()
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.colors.BG_CARD};
+                border: 1px solid {self.colors.BORDER_LIGHT};
+                border-radius: {corner_radius}px;
+            }}
+        """)
+        return card
+
+    def _create_button(self, text: str, style_type: str, height: int = 40) -> QPushButton:
+        """创建按钮"""
+        btn = QPushButton(text)
+        btn.setFont(ThemeFonts.BODY_MEDIUM)
+        btn.setFixedHeight(height)
+        btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+
+        colors_map = {
+            "primary": (self.colors.PRIMARY, self.colors.PRIMARY_HOVER),
+            "secondary": (self.colors.SECONDARY, self.colors.SECONDARY_HOVER),
+            "danger": (self.colors.DANGER, self.colors.DANGER_HOVER),
+            "success": (self.colors.SUCCESS, self.colors.SUCCESS_HOVER),
+            "warning": (self.colors.WARNING, self.colors.WARNING_HOVER),
+            "accent": (self.colors.ACCENT, self.colors.ACCENT_HOVER),
+        }
+
+        bg_color, hover_color = colors_map.get(style_type, (self.colors.PRIMARY, self.colors.PRIMARY_HOVER))
+
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {bg_color};
+                color: {self.colors.TEXT_LIGHT};
+                border: none;
+                border-radius: 20px;
+                padding: 0 15px;
+            }}
+            QPushButton:hover {{
+                background-color: {hover_color};
+            }}
+        """)
+
+        return btn
+
+    def _create_combobox(self, items: list, width: int = 150, height: int = 38) -> QComboBox:
+        """创建下拉框"""
+        combo = QComboBox()
+        combo.addItems(items)
+        combo.setFont(ThemeFonts.BODY_XSMALL)
+        combo.setFixedSize(width, height)
+        combo.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {self.colors.BG_INPUT};
+                color: {self.colors.TEXT_PRIMARY};
+                border: none;
+                border-radius: {ThemeCorner.MD}px;
+                padding: 0 12px;
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 30px;
+            }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 6px solid {self.colors.TEXT_SECONDARY};
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {self.colors.BG_CARD};
+                color: {self.colors.TEXT_PRIMARY};
+                border: 1px solid {self.colors.BORDER_LIGHT};
+                selection-background-color: {self.colors.PRIMARY};
+                selection-color: {self.colors.TEXT_LIGHT};
+            }}
+        """)
+        return combo
 
     def _create_image_generation_tab(self, parent):
         """创建图像生成选项卡 - 左右分栏布局"""
-        # 创建主容器，使用grid布局实现左右分栏
-        main_container = ctk.CTkFrame(parent, fg_color="transparent")
-        main_container.pack(fill="both", expand=True, padx=20, pady=20)
-        main_container.grid_columnconfigure(0, weight=3)  # 左侧占3份
-        main_container.grid_columnconfigure(1, weight=2)  # 右侧占2份
-        main_container.grid_rowconfigure(0, weight=1)
+        layout = QHBoxLayout(parent)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
 
         # 左侧：描述输入和参数设置
-        left_frame = ctk.CTkFrame(
-            main_container,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
+        left_frame = self._create_card()
+        left_layout = QVBoxLayout(left_frame)
+        left_layout.setContentsMargins(
+            DynamicLayoutConstants.LEFT_MARGIN, 
+            DynamicLayoutConstants.LEFT_MARGIN, 
+            DynamicLayoutConstants.LEFT_MARGIN, 
+            DynamicLayoutConstants.LEFT_MARGIN
         )
-        left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        left_layout.setSpacing(DynamicLayoutConstants.LEFT_SPACING)
 
-        # 左侧内容容器
-        left_content = ctk.CTkFrame(left_frame, fg_color="transparent")
-        left_content.pack(fill="both", expand=True, padx=20, pady=20)
+        # 提示词输入
+        prompt_label = QLabel("📝 图像描述")
+        prompt_label.setFont(ThemeFonts.BODY_LARGE)
+        prompt_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        left_layout.addWidget(prompt_label)
 
-        # 提示词输入 - 加高到200
-        ctk.CTkLabel(
-            left_content,
-            text="📝 图像描述",
-            font=("Microsoft YaHei", 16, "bold"),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w", pady=(0, 12))
-
-        self.components["image_prompt_text"] = ctk.CTkTextbox(
-            left_content,
-            font=("Microsoft YaHei", 13),
-            height=200,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD_ALT,
-            text_color=ThemeColors.TEXT_PRIMARY,
-            border_color=ThemeColors.BORDER_MEDIUM,
-            border_width=1
-        )
-        self.components["image_prompt_text"].pack(fill="x", pady=(0, 20))
+        self.components["image_prompt_text"] = QTextEdit()
+        self.components["image_prompt_text"].setFont(ThemeFonts.BODY_SMALL)
+        self.components["image_prompt_text"].setMinimumHeight(DynamicLayoutConstants.PROMPT_MIN_HEIGHT)
+        self.components["image_prompt_text"].setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {self.colors.BG_CARD_ALT};
+                color: {self.colors.TEXT_PRIMARY};
+                border: 1px solid {self.colors.BORDER_MEDIUM};
+                border-radius: {ThemeCorner.MD}px;
+                padding: 8px;
+            }}
+        """)
+        left_layout.addWidget(self.components["image_prompt_text"], 1)
 
         # 参数设置框架
-        params_frame = ctk.CTkFrame(
-            left_content, 
-            fg_color=ThemeColors.BG_CARD_ALT,
-            corner_radius=12
+        params_frame = QFrame()
+        params_frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.colors.BG_CARD_ALT};
+                border-radius: {ThemeCorner.MD}px;
+            }}
+        """)
+        params_layout = QVBoxLayout(params_frame)
+        params_layout.setContentsMargins(
+            DynamicLayoutConstants.PARAMS_MARGIN, 
+            DynamicLayoutConstants.PARAMS_MARGIN, 
+            DynamicLayoutConstants.PARAMS_MARGIN, 
+            DynamicLayoutConstants.PARAMS_MARGIN
         )
-        params_frame.pack(fill="x", pady=(0, 20))
+        params_layout.setSpacing(DynamicLayoutConstants.PARAMS_SPACING)
 
         # 尺寸选择
-        size_frame = ctk.CTkFrame(params_frame, fg_color="transparent")
-        size_frame.pack(fill="x", padx=15, pady=(15, 12))
+        size_frame = QFrame()
+        size_frame.setStyleSheet("background: transparent; border: none;")
+        size_layout = QHBoxLayout(size_frame)
+        size_layout.setContentsMargins(0, 0, 0, 0)
+        size_layout.setSpacing(15)
 
-        ctk.CTkLabel(
-            size_frame,
-            text="📐 图像尺寸",
-            font=("Microsoft YaHei", 13),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(side="left", padx=(0, 15))
+        size_label = QLabel("📐 图像尺寸")
+        size_label.setFont(ThemeFonts.BODY_SMALL)
+        size_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        size_layout.addWidget(size_label)
 
-        self.components["image_size_var"] = ctk.StringVar(value="1280x1280")
-        self.components["image_size_menu"] = ctk.CTkOptionMenu(
-            size_frame,
-            variable=self.components["image_size_var"],
-            values=["1280x1280", "1024x1024", "1024x768", "768x1024", "1920x1080", "1080x1920"],
-            font=("Microsoft YaHei", 12),
-            width=150,
-            height=38,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_INPUT,
-            button_color=ThemeColors.OPTION_BUTTON_COLOR,
-            button_hover_color=ThemeColors.OPTION_BUTTON_HOVER,
-            text_color=ThemeColors.TEXT_PRIMARY
+        self.components["image_size_menu"] = self._create_combobox(
+            ["1280x1280", "1024x1024", "1024x768", "768x1024", "1920x1080", "1080x1920"]
         )
-        self.components["image_size_menu"].pack(side="left")
+        size_layout.addWidget(self.components["image_size_menu"])
+        size_layout.addStretch()
+
+        params_layout.addWidget(size_frame)
 
         # 质量选择
-        quality_frame = ctk.CTkFrame(params_frame, fg_color="transparent")
-        quality_frame.pack(fill="x", padx=15, pady=(0, 15))
+        quality_frame = QFrame()
+        quality_frame.setStyleSheet("background: transparent; border: none;")
+        quality_layout = QHBoxLayout(quality_frame)
+        quality_layout.setContentsMargins(0, 0, 0, 0)
+        quality_layout.setSpacing(15)
 
-        ctk.CTkLabel(
-            quality_frame,
-            text="✨ 图像质量",
-            font=("Microsoft YaHei", 13),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(side="left", padx=(0, 15))
+        quality_label = QLabel("✨ 图像质量")
+        quality_label.setFont(ThemeFonts.BODY_SMALL)
+        quality_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        quality_layout.addWidget(quality_label)
 
-        self.components["image_quality_var"] = ctk.StringVar(value="standard")
-        self.components["image_quality_menu"] = ctk.CTkOptionMenu(
-            quality_frame,
-            variable=self.components["image_quality_var"],
-            values=["standard", "hd"],
-            font=("Microsoft YaHei", 12),
-            width=150,
-            height=38,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_INPUT,
-            button_color=ThemeColors.OPTION_BUTTON_COLOR,
-            button_hover_color=ThemeColors.OPTION_BUTTON_HOVER,
-            text_color=ThemeColors.TEXT_PRIMARY
-        )
-        self.components["image_quality_menu"].pack(side="left")
+        self.components["image_quality_menu"] = self._create_combobox(["standard", "hd"])
+        quality_layout.addWidget(self.components["image_quality_menu"])
+        quality_layout.addStretch()
+
+        params_layout.addWidget(quality_frame)
+
+        left_layout.addWidget(params_frame)
 
         # 按钮区域
-        button_frame = ctk.CTkFrame(left_content, fg_color="transparent")
-        button_frame.pack(fill="x", pady=(10, 0))
+        button_frame = QFrame()
+        button_frame.setStyleSheet("background: transparent; border: none;")
+        button_layout = QHBoxLayout(button_frame)
+        button_layout.setContentsMargins(0, DynamicLayoutConstants.BUTTON_TOP_MARGIN, 0, 0)
+        button_layout.setSpacing(DynamicLayoutConstants.BUTTON_SPACING)
 
-        self.components["generate_image_btn"] = ctk.CTkButton(
-            button_frame,
-            text="🖼️ 生成图像",
-            font=("Microsoft YaHei", 14),
-            height=40,
-            corner_radius=20,
-            fg_color=ThemeColors.PRIMARY,
-            hover_color=ThemeColors.PRIMARY_HOVER,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.components["generate_image_btn"].pack(side="left", padx=(0, 12))
+        self.components["generate_image_btn"] = self._create_button("🖼️ 生成图像", "primary")
+        button_layout.addWidget(self.components["generate_image_btn"])
 
-        self.components["preview_image_btn"] = ctk.CTkButton(
-            button_frame,
-            text="👁️ 预览",
-            font=("Microsoft YaHei", 14),
-            height=40,
-            corner_radius=20,
-            fg_color=ThemeColors.SECONDARY,
-            hover_color=ThemeColors.SECONDARY_HOVER,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.components["preview_image_btn"].pack(side="left")
+        self.components["preview_image_btn"] = self._create_button("👁️ 图像预览", "secondary")
+        button_layout.addWidget(self.components["preview_image_btn"])
+
+        button_layout.addStretch()
+        left_layout.addWidget(button_frame)
+
+        layout.addWidget(left_frame, 3)
 
         # 右侧：日志输出区域
-        right_frame = ctk.CTkFrame(
-            main_container,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
-        )
-        right_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
+        right_frame = self._create_card()
+        right_layout = QVBoxLayout(right_frame)
+        right_layout.setContentsMargins(15, 15, 15, 15)
+        right_layout.setSpacing(12)
 
-        # 日志内容容器
-        log_content = ctk.CTkFrame(right_frame, fg_color="transparent")
-        log_content.pack(fill="both", expand=True, padx=15, pady=15)
+        log_label = QLabel("📋 生成日志")
+        log_label.setFont(ThemeFonts.BODY_LARGE)
+        log_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        right_layout.addWidget(log_label)
 
-        ctk.CTkLabel(
-            log_content,
-            text="📋 生成日志",
-            font=("Microsoft YaHei", 16, "bold"),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w", pady=(0, 12))
+        self.components["image_log_text"] = QTextEdit()
+        self.components["image_log_text"].setFont(ThemeFonts.CODE_SMALL)
+        self.components["image_log_text"].setReadOnly(True)
+        self.components["image_log_text"].setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {self.colors.BG_CARD_ALT};
+                color: {self.colors.TEXT_PRIMARY};
+                border: 1px solid {self.colors.BORDER_LIGHT};
+                border-radius: {ThemeCorner.MD}px;
+                padding: 8px;
+            }}
+        """)
+        right_layout.addWidget(self.components["image_log_text"], 1)
 
-        self.components["image_log_text"] = ctk.CTkTextbox(
-            log_content,
-            font=("Consolas", 11),
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD_ALT,
-            text_color=ThemeColors.TEXT_PRIMARY,
-            border_color=ThemeColors.BORDER_LIGHT,
-            border_width=1
-        )
-        self.components["image_log_text"].pack(fill="both", expand=True)
-        self.components["image_log_text"].configure(state="disabled")
+        layout.addWidget(right_frame, 2)
 
     def _create_video_generation_tab(self, parent):
         """创建视频生成选项卡 - 左右分栏布局"""
-        # 创建主容器，使用grid布局实现左右分栏
-        main_container = ctk.CTkFrame(parent, fg_color="transparent")
-        main_container.pack(fill="both", expand=True, padx=20, pady=20)
-        main_container.grid_columnconfigure(0, weight=3)  # 左侧占3份
-        main_container.grid_columnconfigure(1, weight=2)  # 右侧占2份
-        main_container.grid_rowconfigure(0, weight=1)
+        layout = QHBoxLayout(parent)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
 
         # 左侧：描述输入、URL输入和参数设置
-        left_frame = ctk.CTkFrame(
-            main_container,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
+        left_frame = self._create_card()
+        left_layout = QVBoxLayout(left_frame)
+        left_layout.setContentsMargins(
+            DynamicLayoutConstants.LEFT_MARGIN, 
+            DynamicLayoutConstants.LEFT_MARGIN, 
+            DynamicLayoutConstants.LEFT_MARGIN, 
+            DynamicLayoutConstants.LEFT_MARGIN
         )
-        left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        left_layout.setSpacing(DynamicLayoutConstants.LEFT_SPACING)
 
-        # 左侧内容容器
-        left_content = ctk.CTkFrame(left_frame, fg_color="transparent")
-        left_content.pack(fill="both", expand=True, padx=20, pady=20)
+        # 提示词输入
+        prompt_label = QLabel("📝 视频描述")
+        prompt_label.setFont(ThemeFonts.BODY_LARGE)
+        prompt_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        left_layout.addWidget(prompt_label)
 
-        # 提示词输入 - 加高到180
-        ctk.CTkLabel(
-            left_content,
-            text="📝 视频描述",
-            font=("Microsoft YaHei", 16, "bold"),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w", pady=(0, 12))
-
-        self.components["video_prompt_text"] = ctk.CTkTextbox(
-            left_content,
-            font=("Microsoft YaHei", 13),
-            height=180,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD_ALT,
-            text_color=ThemeColors.TEXT_PRIMARY,
-            border_color=ThemeColors.BORDER_MEDIUM,
-            border_width=1
-        )
-        self.components["video_prompt_text"].pack(fill="x", pady=(0, 15))
+        self.components["video_prompt_text"] = QTextEdit()
+        self.components["video_prompt_text"].setFont(ThemeFonts.BODY_SMALL)
+        self.components["video_prompt_text"].setMinimumHeight(DynamicLayoutConstants.PROMPT_MIN_HEIGHT)
+        self.components["video_prompt_text"].setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {self.colors.BG_CARD_ALT};
+                color: {self.colors.TEXT_PRIMARY};
+                border: 1px solid {self.colors.BORDER_MEDIUM};
+                border-radius: {ThemeCorner.MD}px;
+                padding: 8px;
+            }}
+        """)
+        left_layout.addWidget(self.components["video_prompt_text"], 1)
 
         # 图片URL输入区域
-        ctk.CTkLabel(
-            left_content,
-            text="🖼️ 参考图片URL (可选，最多2个)",
-            font=("Microsoft YaHei", 14, "bold"),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w", pady=(0, 10))
+        url_label = QLabel("🖼️ 参考图片URL (可选，最多2个)")
+        url_label.setFont(QFont(ThemeFonts.FONT_FAMILY, 14, QFont.Weight.Bold))
+        url_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        left_layout.addWidget(url_label)
 
         # URL输入框1
-        url_frame1 = ctk.CTkFrame(left_content, fg_color="transparent")
-        url_frame1.pack(fill="x", pady=(0, 8))
-
-        self.components["image_url1_entry"] = ctk.CTkEntry(
-            url_frame1,
-            placeholder_text="图片URL 1 - 必须是公开可访问的HTTP/HTTPS链接",
-            font=("Microsoft YaHei", 12),
-            height=38,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD_ALT,
-            text_color=ThemeColors.TEXT_PRIMARY,
-            border_color=ThemeColors.BORDER_MEDIUM,
-            border_width=1
-        )
-        self.components["image_url1_entry"].pack(fill="x")
+        self.components["image_url1_entry"] = QLineEdit()
+        self.components["image_url1_entry"].setPlaceholderText("图片URL 1 - 必须是公开可访问的HTTP/HTTPS链接")
+        self.components["image_url1_entry"].setFont(ThemeFonts.BODY_XSMALL)
+        self.components["image_url1_entry"].setFixedHeight(38)
+        self.components["image_url1_entry"].setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {self.colors.BG_CARD_ALT};
+                color: {self.colors.TEXT_PRIMARY};
+                border: 1px solid {self.colors.BORDER_MEDIUM};
+                border-radius: {ThemeCorner.MD}px;
+                padding: 0 12px;
+            }}
+        """)
+        left_layout.addWidget(self.components["image_url1_entry"])
 
         # URL输入框2
-        url_frame2 = ctk.CTkFrame(left_content, fg_color="transparent")
-        url_frame2.pack(fill="x", pady=(0, 15))
-
-        self.components["image_url2_entry"] = ctk.CTkEntry(
-            url_frame2,
-            placeholder_text="图片URL 2 - 双图生成时建议图片尺寸一致",
-            font=("Microsoft YaHei", 12),
-            height=38,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD_ALT,
-            text_color=ThemeColors.TEXT_PRIMARY,
-            border_color=ThemeColors.BORDER_MEDIUM,
-            border_width=1
-        )
-        self.components["image_url2_entry"].pack(fill="x")
+        self.components["image_url2_entry"] = QLineEdit()
+        self.components["image_url2_entry"].setPlaceholderText("图片URL 2 - 双图生成时建议图片尺寸一致")
+        self.components["image_url2_entry"].setFont(ThemeFonts.BODY_XSMALL)
+        self.components["image_url2_entry"].setFixedHeight(38)
+        self.components["image_url2_entry"].setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {self.colors.BG_CARD_ALT};
+                color: {self.colors.TEXT_PRIMARY};
+                border: 1px solid {self.colors.BORDER_MEDIUM};
+                border-radius: {ThemeCorner.MD}px;
+                padding: 0 12px;
+            }}
+        """)
+        left_layout.addWidget(self.components["image_url2_entry"])
 
         # 参数设置框架
-        params_frame = ctk.CTkFrame(
-            left_content, 
-            fg_color=ThemeColors.BG_CARD_ALT,
-            corner_radius=12
+        params_frame = QFrame()
+        params_frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.colors.BG_CARD_ALT};
+                border-radius: {ThemeCorner.MD}px;
+            }}
+        """)
+        params_layout = QHBoxLayout(params_frame)
+        params_layout.setContentsMargins(
+            DynamicLayoutConstants.PARAMS_MARGIN, 
+            DynamicLayoutConstants.PARAMS_MARGIN, 
+            DynamicLayoutConstants.PARAMS_MARGIN, 
+            DynamicLayoutConstants.PARAMS_MARGIN
         )
-        params_frame.pack(fill="x", pady=(0, 15))
-
-        # 参数行
-        row1 = ctk.CTkFrame(params_frame, fg_color="transparent")
-        row1.pack(fill="x", padx=15, pady=(15, 12))
+        params_layout.setSpacing(15)
 
         # 尺寸选择
-        size_label = ctk.CTkLabel(
-            row1,
-            text="📐 尺寸",
-            font=("Microsoft YaHei", 12),
-            text_color=ThemeColors.TEXT_PRIMARY
-        )
-        size_label.pack(side="left", padx=(0, 10))
+        size_label = QLabel("📐 尺寸")
+        size_label.setFont(ThemeFonts.BODY_XSMALL)
+        size_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        params_layout.addWidget(size_label)
 
-        self.components["video_size_var"] = ctk.StringVar(value="1920x1080")
-        self.components["video_size_menu"] = ctk.CTkOptionMenu(
-            row1,
-            variable=self.components["video_size_var"],
-            values=["1920x1080", "1080x1920", "1280x720", "720x1280", "1024x1024"],
-            font=("Microsoft YaHei", 11),
-            width=120,
-            height=34,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_INPUT,
-            button_color=ThemeColors.OPTION_BUTTON_COLOR,
-            button_hover_color=ThemeColors.OPTION_BUTTON_HOVER,
-            text_color=ThemeColors.TEXT_PRIMARY
+        self.components["video_size_menu"] = self._create_combobox(
+            ["1920x1080", "1080x1920", "1280x720", "720x1280", "1024x1024"], 120, 34
         )
-        self.components["video_size_menu"].pack(side="left", padx=(0, 15))
+        params_layout.addWidget(self.components["video_size_menu"])
 
         # 帧率选择
-        fps_label = ctk.CTkLabel(
-            row1,
-            text="🎞️ 帧率",
-            font=("Microsoft YaHei", 12),
-            text_color=ThemeColors.TEXT_PRIMARY
-        )
-        fps_label.pack(side="left", padx=(0, 10))
+        fps_label = QLabel("🎞️ 帧率")
+        fps_label.setFont(ThemeFonts.BODY_XSMALL)
+        fps_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        params_layout.addWidget(fps_label)
 
-        self.components["video_fps_var"] = ctk.StringVar(value="30")
-        self.components["video_fps_menu"] = ctk.CTkOptionMenu(
-            row1,
-            variable=self.components["video_fps_var"],
-            values=["30", "60"],
-            font=("Microsoft YaHei", 11),
-            width=80,
-            height=34,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_INPUT,
-            button_color=ThemeColors.OPTION_BUTTON_COLOR,
-            button_hover_color=ThemeColors.OPTION_BUTTON_HOVER,
-            text_color=ThemeColors.TEXT_PRIMARY
-        )
-        self.components["video_fps_menu"].pack(side="left", padx=(0, 15))
+        self.components["video_fps_menu"] = self._create_combobox(["30", "60"], 80, 34)
+        params_layout.addWidget(self.components["video_fps_menu"])
 
         # 质量选择
-        quality_label = ctk.CTkLabel(
-            row1,
-            text="✨ 质量",
-            font=("Microsoft YaHei", 12),
-            text_color=ThemeColors.TEXT_PRIMARY
-        )
-        quality_label.pack(side="left", padx=(0, 10))
+        quality_label = QLabel("✨ 质量")
+        quality_label.setFont(ThemeFonts.BODY_XSMALL)
+        quality_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        params_layout.addWidget(quality_label)
 
-        self.components["video_quality_var"] = ctk.StringVar(value="quality")
-        self.components["video_quality_menu"] = ctk.CTkOptionMenu(
-            row1,
-            variable=self.components["video_quality_var"],
-            values=["quality", "speed"],
-            font=("Microsoft YaHei", 11),
-            width=100,
-            height=34,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_INPUT,
-            button_color=ThemeColors.OPTION_BUTTON_COLOR,
-            button_hover_color=ThemeColors.OPTION_BUTTON_HOVER,
-            text_color=ThemeColors.TEXT_PRIMARY
-        )
-        self.components["video_quality_menu"].pack(side="left", padx=(0, 15))
+        self.components["video_quality_menu"] = self._create_combobox(["quality", "speed"], 100, 34)
+        params_layout.addWidget(self.components["video_quality_menu"])
 
         # 音效开关
-        self.components["video_audio_var"] = ctk.BooleanVar(value=True)
-        self.components["video_audio_check"] = ctk.CTkCheckBox(
-            row1,
-            text="🔊 生成音效",
-            variable=self.components["video_audio_var"],
-            font=("Microsoft YaHei", 12),
-            fg_color=ThemeColors.PRIMARY,
-            hover_color=ThemeColors.PRIMARY_HOVER,
-            text_color=ThemeColors.TEXT_PRIMARY
-        )
-        self.components["video_audio_check"].pack(side="left")
+        self.components["video_audio_check"] = QCheckBox("🔊 生成音效")
+        self.components["video_audio_check"].setFont(ThemeFonts.BODY_XSMALL)
+        self.components["video_audio_check"].setChecked(True)
+        self.components["video_audio_check"].setStyleSheet(f"""
+            QCheckBox {{
+                color: {self.colors.TEXT_PRIMARY};
+                spacing: 8px;
+            }}
+            QCheckBox::indicator {{
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 2px solid {self.colors.BORDER_MEDIUM};
+                background-color: {self.colors.BG_INPUT};
+            }}
+            QCheckBox::indicator:checked {{
+                border: 2px solid {self.colors.PRIMARY};
+                background-color: {self.colors.PRIMARY};
+            }}
+        """)
+        params_layout.addWidget(self.components["video_audio_check"])
+
+        left_layout.addWidget(params_frame)
 
         # 按钮区域
-        button_frame = ctk.CTkFrame(left_content, fg_color="transparent")
-        button_frame.pack(fill="x", pady=(10, 0))
+        button_frame = QFrame()
+        button_frame.setStyleSheet("background: transparent; border: none;")
+        button_layout = QHBoxLayout(button_frame)
+        button_layout.setContentsMargins(0, DynamicLayoutConstants.BUTTON_TOP_MARGIN, 0, 0)
+        button_layout.setSpacing(DynamicLayoutConstants.BUTTON_SPACING)
 
-        self.components["generate_video_btn"] = ctk.CTkButton(
-            button_frame,
-            text="🎬 生成视频",
-            font=("Microsoft YaHei", 14),
-            height=40,
-            corner_radius=20,
-            fg_color=ThemeColors.ACCENT,
-            hover_color=ThemeColors.ACCENT_HOVER,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.components["generate_video_btn"].pack(side="left", padx=(0, 12))
+        self.components["generate_video_btn"] = self._create_button("🎬 生成视频", "accent")
+        button_layout.addWidget(self.components["generate_video_btn"])
 
-        self.components["preview_video_btn"] = ctk.CTkButton(
-            button_frame,
-            text="👁️ 预览",
-            font=("Microsoft YaHei", 14),
-            height=40,
-            corner_radius=20,
-            fg_color=ThemeColors.WARNING,
-            hover_color=ThemeColors.WARNING_HOVER,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.components["preview_video_btn"].pack(side="left")
+        self.components["preview_video_btn"] = self._create_button("👁️ 视频预览", "warning")
+        button_layout.addWidget(self.components["preview_video_btn"])
+
+        button_layout.addStretch()
+        left_layout.addWidget(button_frame)
+
+        layout.addWidget(left_frame, 3)
 
         # 右侧：日志输出区域
-        right_frame = ctk.CTkFrame(
-            main_container,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
-        )
-        right_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
+        right_frame = self._create_card()
+        right_layout = QVBoxLayout(right_frame)
+        right_layout.setContentsMargins(15, 15, 15, 15)
+        right_layout.setSpacing(12)
 
-        # 日志内容容器
-        log_content = ctk.CTkFrame(right_frame, fg_color="transparent")
-        log_content.pack(fill="both", expand=True, padx=15, pady=15)
+        log_label = QLabel("📋 生成日志")
+        log_label.setFont(ThemeFonts.BODY_LARGE)
+        log_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        right_layout.addWidget(log_label)
 
-        ctk.CTkLabel(
-            log_content,
-            text="📋 生成日志",
-            font=("Microsoft YaHei", 16, "bold"),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w", pady=(0, 12))
+        self.components["video_log_text"] = QTextEdit()
+        self.components["video_log_text"].setFont(ThemeFonts.CODE_SMALL)
+        self.components["video_log_text"].setReadOnly(True)
+        self.components["video_log_text"].setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {self.colors.BG_CARD_ALT};
+                color: {self.colors.TEXT_PRIMARY};
+                border: 1px solid {self.colors.BORDER_LIGHT};
+                border-radius: {ThemeCorner.MD}px;
+                padding: 8px;
+            }}
+        """)
+        right_layout.addWidget(self.components["video_log_text"], 1)
 
-        self.components["video_log_text"] = ctk.CTkTextbox(
-            log_content,
-            font=("Consolas", 11),
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD_ALT,
-            text_color=ThemeColors.TEXT_PRIMARY,
-            border_color=ThemeColors.BORDER_LIGHT,
-            border_width=1
-        )
-        self.components["video_log_text"].pack(fill="both", expand=True)
-        self.components["video_log_text"].configure(state="disabled")
+        layout.addWidget(right_frame, 2)

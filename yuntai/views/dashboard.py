@@ -1,10 +1,42 @@
-"""
-DashboardBuilder - 控制中心页面构建器
+﻿"""
+DashboardBuilder - 控制中心页面构建器（PyQt6 重构版）
 浅色米白色主题版本
 """
-import tkinter as tk
-import customtkinter as ctk
-from .theme import ThemeColors
+
+import os
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+    QLabel, QPushButton, QFrame, QTextEdit, QScrollArea,
+    QSizePolicy, QSpacerItem
+)
+from PyQt6.QtCore import Qt, QSize, pyqtSignal
+from PyQt6.QtGui import QFont, QTextCursor, QCursor, QKeyEvent
+
+from yuntai.gui.styles import ThemeColors, ThemeFonts, ThemeCorner, ThemeSpacing
+
+
+class CommandTextEdit(QTextEdit):
+    """自定义命令输入框，支持回车发送和Ctrl+回车换行"""
+    
+    enter_pressed = pyqtSignal()  # 回车键按下信号
+    
+    def keyPressEvent(self, event: QKeyEvent):
+        """处理键盘事件"""
+        # 回车键
+        if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+            # Ctrl+回车：换行
+            if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+                cursor = self.textCursor()
+                cursor.insertText('\n')
+                self.setTextCursor(cursor)
+            # 普通回车：发送命令
+            else:
+                self.enter_pressed.emit()
+                event.accept()
+                return
+        else:
+            # 其他按键正常处理
+            super().keyPressEvent(event)
 
 
 class DashboardBuilder:
@@ -22,269 +54,272 @@ class DashboardBuilder:
             'd': ('打开抖音', '🎵'),
             'k': ('打开快手', '🎬'),
             't': ('打开淘宝', '🛒'),
-            'm': ('打开QQ音乐', '🎶')
+            'm': ('QQ音乐', '🎶')
         }
+    
+    @property
+    def colors(self):
+        """动态获取当前主题颜色"""
+        return self.view.colors
 
     def create_page(self):
         """创建控制中心页面（只执行一次）"""
         self.view._highlight_nav_button(0)
 
-        content_frame = ctk.CTkFrame(
-            self.view.content_pages[0],
-            fg_color="transparent"
-        )
-        content_frame.pack(fill="both", expand=True, padx=25, pady=25)
+        # 获取页面容器
+        page = self.view.content_pages[0]
+        
+        # 检查是否已有布局，如果有则直接返回（页面已创建）
+        if page.layout() is not None:
+            return
+        
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(25, 25, 25, 25)
+        page_layout.setSpacing(0)
 
         # 标题卡片 - 居中对齐
-        header_card = ctk.CTkFrame(
-            content_frame,
-            corner_radius=16,
-            fg_color=ThemeColors.BG_CARD,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
-        )
-        header_card.pack(fill="x", pady=(0, 20))
+        header_card = self._create_card()
+        header_layout = QVBoxLayout(header_card)
+        header_layout.setContentsMargins(30, 20, 30, 20)
+        header_layout.setSpacing(8)
 
-        header_inner = ctk.CTkFrame(header_card, fg_color="transparent")
-        header_inner.pack(expand=True, padx=30, pady=20)
+        title_label = QLabel("控制中心")
+        title_label.setFont(ThemeFonts.TITLE_LARGE)
+        title_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_layout.addWidget(title_label)
 
-        ctk.CTkLabel(
-            header_inner,
-            text="控制中心",
-            font=("Microsoft YaHei", 28, "bold"),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(pady=(0, 8))
+        subtitle_label = QLabel("执行输出和命令控制中心")
+        subtitle_label.setFont(ThemeFonts.BODY_MEDIUM)
+        subtitle_label.setStyleSheet(f"color: {self.colors.TEXT_SECONDARY}; background: transparent; border: none;")
+        subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_layout.addWidget(subtitle_label)
 
-        ctk.CTkLabel(
-            header_inner,
-            text="执行输出和命令控制中心",
-            font=("Microsoft YaHei", 14),
-            text_color=ThemeColors.TEXT_SECONDARY
-        ).pack()
+        page_layout.addWidget(header_card)
+        page_layout.addSpacing(20)
 
         # 主内容区域 - 左右两列布局
-        main_content = ctk.CTkFrame(content_frame, fg_color="transparent")
-        main_content.pack(fill="both", expand=True)
-
-        main_content.grid_rowconfigure(0, weight=1)
-        main_content.grid_columnconfigure(0, weight=3)
-        main_content.grid_columnconfigure(1, weight=1)
+        main_content = QFrame()
+        main_content.setStyleSheet("background: transparent; border: none;")
+        main_layout = QHBoxLayout(main_content)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(12)
 
         # 左侧：执行输出区域
-        output_container = ctk.CTkFrame(main_content, fg_color="transparent")
-        output_container.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
+        left_panel = self._create_left_panel()
+        main_layout.addWidget(left_panel, 3)
+
+        # 右侧：快捷键和文件管理卡片
+        right_panel = self._create_right_panel()
+        main_layout.addWidget(right_panel, 1)
+
+        page_layout.addWidget(main_content, 1)
+
+    def _create_card(self, corner_radius=ThemeCorner.MD):
+        """创建卡片样式的Frame"""
+        card = QFrame()
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.colors.BG_CARD};
+                border: 1px solid {self.colors.BORDER_LIGHT};
+                border-radius: {corner_radius}px;
+            }}
+        """)
+        return card
+
+    def _create_left_panel(self):
+        """创建左侧面板（执行输出和命令输入）"""
+        panel = QFrame()
+        panel.setStyleSheet("background: transparent; border: none;")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(16)
 
         # 执行输出卡片
-        output_frame = ctk.CTkFrame(
-            output_container,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
-        )
-        output_frame.pack(fill="both", expand=True, pady=(0, 16))
+        output_frame = self._create_card()
+        output_layout = QVBoxLayout(output_frame)
+        output_layout.setContentsMargins(20, 15, 20, 15)
+        output_layout.setSpacing(0)
         self.components["output_frame"] = output_frame
 
         # 标题行：执行输出标签 + 模拟回车按钮
-        output_header_frame = ctk.CTkFrame(output_frame, fg_color="transparent")
-        output_header_frame.pack(fill="x", padx=20, pady=15)
+        output_header = QFrame()
+        output_header.setStyleSheet("background: transparent; border: none;")
+        header_layout = QHBoxLayout(output_header)
+        header_layout.setContentsMargins(0, 0, 0, 0)
 
-        ctk.CTkLabel(
-            output_header_frame,
-            text="📋 执行输出",
-            font=("Microsoft YaHei", 16, "bold"),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(side="left")
+        output_title = QLabel("📋 执行输出")
+        output_title.setFont(ThemeFonts.BODY_LARGE)
+        output_title.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        header_layout.addWidget(output_title)
+        header_layout.addStretch()
 
         # 模拟回车按钮
-        self.components["enter_button"] = ctk.CTkButton(
-            output_header_frame,
-            text="↵ 模拟回车",
-            font=("Microsoft YaHei", 12),
-            width=100,
-            height=36,
-            fg_color=ThemeColors.PRIMARY,
-            hover_color=ThemeColors.PRIMARY_HOVER,
-            corner_radius=18,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.view.hide_enter_button()
+        self.components["enter_button"] = QPushButton("↵ 模拟回车")
+        self.components["enter_button"].setFont(ThemeFonts.BODY_XSMALL)
+        self.components["enter_button"].setFixedSize(100, 36)
+        self.components["enter_button"].setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.components["enter_button"].setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.colors.PRIMARY};
+                color: {self.colors.TEXT_LIGHT};
+                border: none;
+                border-radius: 18px;
+            }}
+            QPushButton:hover {{
+                background-color: {self.colors.PRIMARY_HOVER};
+            }}
+        """)
+        header_layout.addWidget(self.components["enter_button"])
+        self.components["enter_button"].hide()
+
+        output_layout.addWidget(output_header)
+        output_layout.addSpacing(10)
 
         # 输出文本框
-        self.components["output_text"] = ctk.CTkTextbox(
-            output_frame,
-            font=("Consolas", 13),
-            activate_scrollbars=True,
-            wrap="none",
-            fg_color=ThemeColors.BG_CARD_ALT,
-            text_color=ThemeColors.TEXT_PRIMARY,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT,
-            corner_radius=12
-        )
-        self.components["output_text"].pack(fill="both", expand=True, padx=15, pady=(0, 15))
-        self.components["output_text"].configure(state="disabled")
+        self.components["output_text"] = QTextEdit()
+        self.components["output_text"].setFont(ThemeFonts.CODE_MEDIUM)
+        self.components["output_text"].setReadOnly(True)
+        self.components["output_text"].setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+        self.components["output_text"].setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {self.colors.BG_CARD_ALT};
+                color: {self.colors.TEXT_PRIMARY};
+                border: 1px solid {self.colors.BORDER_LIGHT};
+                border-radius: {ThemeCorner.MD}px;
+                padding: 8px;
+            }}
+        """)
+        output_layout.addWidget(self.components["output_text"], 1)
+
+        layout.addWidget(output_frame, 1)
 
         # 命令输入区域
-        input_frame = ctk.CTkFrame(
-            output_container,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
-        )
-        input_frame.pack(fill="x")
+        input_frame = self._create_card()
+        input_layout = QVBoxLayout(input_frame)
+        input_layout.setContentsMargins(20, 15, 20, 15)
+        input_layout.setSpacing(10)
         self.components["input_frame"] = input_frame
 
-        ctk.CTkLabel(
-            input_frame,
-            text="💬 命令输入",
-            font=("Microsoft YaHei", 16, "bold"),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w", padx=20, pady=15)
-
-        # 输入框和附件区域容器
-        input_container = ctk.CTkFrame(input_frame, fg_color="transparent")
-        input_container.pack(fill="x", padx=20, pady=(0, 15))
+        input_title = QLabel("💬 命令输入")
+        input_title.setFont(ThemeFonts.BODY_LARGE)
+        input_title.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        input_layout.addWidget(input_title)
 
         # 命令输入框
-        self.components["command_input"] = ctk.CTkTextbox(
-            input_container,
-            font=("Microsoft YaHei", 13),
-            height=42,
-            wrap="word",
-            activate_scrollbars=False,
-            fg_color=ThemeColors.BG_CARD_ALT,
-            text_color=ThemeColors.TEXT_PRIMARY,
-            border_width=2,
-            border_color=ThemeColors.BORDER_LIGHT,
-            corner_radius=12
-        )
-        self.components["command_input"].pack(fill="x")
-        self.components["command_input"].bind("<KeyRelease>", self._on_input_keyrelease)
+        self.components["command_input"] = CommandTextEdit()
+        self.components["command_input"].setFont(ThemeFonts.BODY_SMALL)
+        self.components["command_input"].setFixedHeight(42)
+        self.components["command_input"].setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        self.components["command_input"].setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.components["command_input"].setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {self.colors.BG_CARD_ALT};
+                color: {self.colors.TEXT_PRIMARY};
+                border: 2px solid {self.colors.BORDER_LIGHT};
+                border-radius: {ThemeCorner.MD}px;
+                padding: 8px;
+            }}
+            QTextEdit:focus {{
+                border: 2px solid {self.colors.BORDER_FOCUS};
+            }}
+        """)
+        self.components["command_input"].textChanged.connect(self._on_input_text_changed)
+        # 连接回车键信号到执行命令
+        self.components["command_input"].enter_pressed.connect(self._on_enter_pressed)
+        input_layout.addWidget(self.components["command_input"])
 
-        # 已选文件显示区域（输入框下方）
-        self.components["attached_files_frame"] = ctk.CTkFrame(
-            input_container,
-            fg_color="transparent"
-        )
-        self.components["attached_files_frame"].pack(fill="x", pady=(10, 0))
-        self.components["attached_files_frame"].pack_forget()
+        # 已选文件显示区域
+        self.components["attached_files_frame"] = QFrame()
+        self.components["attached_files_frame"].setStyleSheet("background: transparent; border: none;")
+        files_layout = QVBoxLayout(self.components["attached_files_frame"])
+        files_layout.setContentsMargins(0, 10, 0, 0)
+        files_layout.setSpacing(0)
+        input_layout.addWidget(self.components["attached_files_frame"])
+        self.components["attached_files_frame"].hide()
 
         # 按钮区域
-        button_frame = ctk.CTkFrame(
-            input_container,
-            fg_color="transparent"
-        )
-        button_frame.pack(fill="x", pady=(15, 0))
+        button_frame = QFrame()
+        button_frame.setStyleSheet("background: transparent; border: none;")
+        button_layout = QHBoxLayout(button_frame)
+        button_layout.setContentsMargins(0, 5, 0, 0)
+        button_layout.setSpacing(10)
 
-        # 各功能按钮
-        self.components["execute_button"] = ctk.CTkButton(
-            button_frame,
-            text="▶ 执行命令",
-            font=("Microsoft YaHei", 14),
-            height=40,
-            fg_color=ThemeColors.PRIMARY,
-            hover_color=ThemeColors.PRIMARY_HOVER,
-            corner_radius=20,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.components["execute_button"].pack(side="left", padx=(0, 10))
+        # 执行命令按钮
+        self.components["execute_button"] = self._create_button("▶ 执行命令", "primary")
+        button_layout.addWidget(self.components["execute_button"])
 
-        self.components["terminate_button"] = ctk.CTkButton(
-            button_frame,
-            text="⏹ 终止",
-            font=("Microsoft YaHei", 14),
-            height=40,
-            fg_color=ThemeColors.DANGER,
-            hover_color=ThemeColors.DANGER_HOVER,
-            corner_radius=20,
-            text_color=ThemeColors.TEXT_LIGHT,
-            state="disabled"
-        )
-        self.components["terminate_button"].pack(side="left", padx=(0, 10))
+        # 终止按钮
+        self.components["terminate_button"] = self._create_button("⏹ 终止操作", "danger")
+        self.components["terminate_button"].setEnabled(False)
+        button_layout.addWidget(self.components["terminate_button"])
 
-        self.components["tts_button"] = ctk.CTkButton(
-            button_frame,
-            text="🔊 语音播报",
-            font=("Microsoft YaHei", 14),
-            height=40,
-            fg_color=ThemeColors.SECONDARY,
-            hover_color=ThemeColors.SECONDARY_HOVER,
-            corner_radius=20,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.components["tts_button"].pack(side="left", padx=(0, 10))
+        # 语音播报按钮
+        self.components["tts_button"] = self._create_button("🔊 语音播报", "secondary")
+        button_layout.addWidget(self.components["tts_button"])
 
-        self.components["clear_output_btn"] = ctk.CTkButton(
-            button_frame,
-            text="🗑 清空",
-            font=("Microsoft YaHei", 14),
-            height=40,
-            fg_color=ThemeColors.ACCENT,
-            hover_color=ThemeColors.ACCENT_HOVER,
-            corner_radius=20,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.components["clear_output_btn"].pack(side="left")
+        # 清空按钮
+        self.components["clear_output_btn"] = self._create_button("🗑 清空历史", "accent")
+        button_layout.addWidget(self.components["clear_output_btn"])
 
-        self.components["scrcpy_button"] = ctk.CTkButton(
-            button_frame,
-            text="📱 手机投屏",
-            font=("Microsoft YaHei", 14),
-            height=40,
-            fg_color=ThemeColors.SECONDARY,
-            hover_color=ThemeColors.SECONDARY_HOVER,
-            corner_radius=20,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.components["scrcpy_button"].pack(side="left", padx=(10, 0))
+        # 手机投屏按钮
+        self.components["scrcpy_button"] = self._create_button("📱 手机投屏", "secondary")
+        button_layout.addWidget(self.components["scrcpy_button"])
 
-        # 右侧：快捷键和文件管理卡片
-        right_panel = ctk.CTkFrame(main_content, fg_color="transparent")
-        right_panel.grid(row=0, column=1, sticky="nsew", padx=(12, 0))
-        right_panel.grid_rowconfigure(0, weight=0)
-        right_panel.grid_rowconfigure(1, weight=1)
-        right_panel.grid_columnconfigure(0, weight=1)
+        button_layout.addStretch()
+        input_layout.addWidget(button_frame)
 
-        # 快捷键卡片（固定高度）- 放在最上面
-        shortcuts_card = ctk.CTkFrame(
-            right_panel,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
-        )
-        shortcuts_card.grid(row=0, column=0, sticky="ew", pady=(0, 12))
+        layout.addWidget(input_frame)
+
+        return panel
+
+    def _create_right_panel(self):
+        """创建右侧面板（快捷键和文件管理）"""
+        panel = QFrame()
+        panel.setStyleSheet("background: transparent; border: none;")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
+
+        # 快捷键卡片
+        shortcuts_card = self._create_card()
+        shortcuts_layout = QVBoxLayout(shortcuts_card)
+        shortcuts_layout.setContentsMargins(15, 15, 15, 15)
+        shortcuts_layout.setSpacing(0)
         self.components["shortcuts_card"] = shortcuts_card
 
-        ctk.CTkLabel(
-            shortcuts_card,
-            text="⚡ 快捷键",
-            font=("Microsoft YaHei", 16, "bold"),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w", padx=15, pady=(15, 15))
+        shortcuts_title = QLabel("⚡ 快捷键")
+        shortcuts_title.setFont(ThemeFonts.BODY_LARGE)
+        shortcuts_title.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        shortcuts_layout.addWidget(shortcuts_title)
+        shortcuts_layout.addSpacing(15)
 
         # 快捷键按钮网格
-        shortcuts_grid = ctk.CTkFrame(shortcuts_card, fg_color="transparent")
-        shortcuts_grid.pack(fill="x", padx=15, pady=(0, 15))
-
-        shortcuts_grid.grid_columnconfigure(0, weight=1)
-        shortcuts_grid.grid_columnconfigure(1, weight=1)
+        shortcuts_grid = QFrame()
+        shortcuts_grid.setStyleSheet("background: transparent; border: none;")
+        grid_layout = QGridLayout(shortcuts_grid)
+        grid_layout.setSpacing(8)
 
         row, col = 0, 0
         for key, (app_name, icon) in self.shortcuts.items():
-            btn = ctk.CTkButton(
-                shortcuts_grid,
-                text=f"{icon} {app_name}",
-                font=("Microsoft YaHei", 13),
-                height=45,
-                fg_color=ThemeColors.BG_HOVER,
-                hover_color=ThemeColors.PRIMARY,
-                corner_radius=12,
-                text_color=ThemeColors.TEXT_PRIMARY
-            )
-            btn.grid(row=row, column=col, sticky="ew", padx=4, pady=4)
+            btn = QPushButton(f"{icon} {app_name}")
+            btn.setFont(ThemeFonts.BODY_SMALL)
+            btn.setFixedHeight(45)
+            btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {self.colors.BG_HOVER};
+                    color: {self.colors.TEXT_PRIMARY};
+                    border: none;
+                    border-radius: {ThemeCorner.MD}px;
+                    padding: 0 15px;
+                }}
+                QPushButton:hover {{
+                    background-color: {self.colors.PRIMARY};
+                    color: {self.colors.TEXT_LIGHT};
+                }}
+            """)
+            grid_layout.addWidget(btn, row, col)
             self.components[f"shortcut_btn_{key}"] = btn
 
             col += 1
@@ -292,77 +327,143 @@ class DashboardBuilder:
                 col = 0
                 row += 1
 
-        # 文件管理卡片（可扩展高度）- 包含上传按钮和文件列表
-        file_management_card = ctk.CTkFrame(
-            right_panel,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
-        )
-        file_management_card.grid(row=1, column=0, sticky="nsew")
-        self.components["file_management_card"] = file_management_card
+        shortcuts_layout.addWidget(shortcuts_grid)
+        layout.addWidget(shortcuts_card)
 
-        ctk.CTkLabel(
-            file_management_card,
-            text="📁 文件管理",
-            font=("Microsoft YaHei", 16, "bold"),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(anchor="w", padx=15, pady=(15, 10))
+        # 文件管理卡片
+        file_card = self._create_card()
+        file_layout = QVBoxLayout(file_card)
+        file_layout.setContentsMargins(15, 15, 15, 15)
+        file_layout.setSpacing(10)
+        self.components["file_management_card"] = file_card
 
-        # 文件列表容器（带边框的日志框样式）
-        files_list_container = ctk.CTkFrame(
-            file_management_card,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD_ALT,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
-        )
-        files_list_container.pack(fill="both", expand=True, padx=15, pady=(0, 10))
-        self.components["files_list_container"] = files_list_container
+        file_title = QLabel("📁 文件管理")
+        file_title.setFont(ThemeFonts.BODY_LARGE)
+        file_title.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        file_layout.addWidget(file_title)
 
-        # 创建可滚动的文件列表
-        files_scroll_frame = ctk.CTkScrollableFrame(
-            files_list_container,
-            label_text="",
-            fg_color="transparent",
-            scrollbar_button_color=ThemeColors.BG_HOVER,
-            scrollbar_button_hover_color=ThemeColors.PRIMARY
-        )
-        files_scroll_frame.pack(fill="both", expand=True, padx=8, pady=8)
-        self.components["files_list_scroll_frame"] = files_scroll_frame
+        # 文件列表容器
+        files_container = QFrame()
+        files_container.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.colors.BG_CARD_ALT};
+                border: 1px solid {self.colors.BORDER_LIGHT};
+                border-radius: {ThemeCorner.MD}px;
+            }}
+        """)
+        files_container_layout = QVBoxLayout(files_container)
+        files_container_layout.setContentsMargins(8, 8, 8, 8)
+        files_container_layout.setSpacing(0)
 
-        # 上传文件按钮（放在底部）
-        self.components["file_upload_button"] = ctk.CTkButton(
-            file_management_card,
-            text="📤 上传文件",
-            font=("Microsoft YaHei", 14),
-            height=40,
-            fg_color=ThemeColors.PRIMARY,
-            hover_color=ThemeColors.PRIMARY_HOVER,
-            corner_radius=20,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.components["file_upload_button"].pack(fill="x", padx=15, pady=(0, 15))
+        # 可滚动的文件列表
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setStyleSheet(f"""
+            QScrollArea {{
+                background: transparent; border: none;
+                border: none;
+            }}
+            QScrollBar:vertical {{
+                background-color: {self.colors.BG_CARD_ALT};
+                width: 8px;
+                border-radius: 4px;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {self.colors.BG_SCROLLBAR};
+                border-radius: 4px;
+                min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {self.colors.PRIMARY};
+            }}
+        """)
 
-        # 初始化已选文件显示区域
-        self._init_attached_files_display()
+        self.components["files_list_scroll_frame"] = QFrame()
+        self.components["files_list_scroll_frame"].setStyleSheet("background: transparent; border: none;")
+        self.components["files_list_scroll_frame"].setLayout(QVBoxLayout())
+        self.components["files_list_scroll_frame"].layout().setContentsMargins(0, 0, 0, 0)
+        self.components["files_list_scroll_frame"].layout().setSpacing(2)
+        self.components["files_list_scroll_frame"].layout().addStretch(1)
 
-    def _on_input_keyrelease(self, event=None):
-        """输入框内容变化时自适应高度（只在换行时重新计算）"""
+        scroll_area.setWidget(self.components["files_list_scroll_frame"])
+        files_container_layout.addWidget(scroll_area)
+
+        file_layout.addWidget(files_container, 1)
+
+        # 上传文件按钮
+        self.components["file_upload_button"] = QPushButton("📤 上传文件")
+        self.components["file_upload_button"].setFont(ThemeFonts.BODY_MEDIUM)
+        self.components["file_upload_button"].setFixedHeight(40)
+        self.components["file_upload_button"].setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.components["file_upload_button"].setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.colors.PRIMARY};
+                color: {self.colors.TEXT_LIGHT};
+                border: none;
+                border-radius: 20px;
+            }}
+            QPushButton:hover {{
+                background-color: {self.colors.PRIMARY_HOVER};
+            }}
+        """)
+        file_layout.addWidget(self.components["file_upload_button"])
+
+        layout.addWidget(file_card, 1)
+
+        return panel
+
+    def _create_button(self, text: str, style_type: str) -> QPushButton:
+        """创建按钮"""
+        btn = QPushButton(text)
+        btn.setFont(ThemeFonts.BODY_MEDIUM)
+        btn.setFixedHeight(40)
+        btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+
+        colors_map = {
+            "primary": (self.colors.PRIMARY, self.colors.PRIMARY_HOVER),
+            "secondary": (self.colors.SECONDARY, self.colors.SECONDARY_HOVER),
+            "danger": (self.colors.DANGER, self.colors.DANGER_HOVER),
+            "success": (self.colors.SUCCESS, self.colors.SUCCESS_HOVER),
+            "warning": (self.colors.WARNING, self.colors.WARNING_HOVER),
+            "accent": (self.colors.ACCENT, self.colors.ACCENT_HOVER),
+        }
+
+        bg_color, hover_color = colors_map.get(style_type, (self.colors.PRIMARY, self.colors.PRIMARY_HOVER))
+
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {bg_color};
+                color: {self.colors.TEXT_LIGHT};
+                border: none;
+                border-radius: 20px;
+                padding: 0 15px;
+            }}
+            QPushButton:hover {{
+                background-color: {hover_color};
+            }}
+            QPushButton:disabled {{
+                background-color: {self.colors.BG_HOVER};
+                color: {self.colors.TEXT_DISABLED};
+            }}
+        """)
+
+        return btn
+
+    def _on_input_text_changed(self):
+        """输入框内容变化时自适应高度"""
         text_widget = self.components.get("command_input")
         if not text_widget:
             return
 
         try:
-            content = text_widget.get("1.0", "end-1c")
-
+            content = text_widget.toPlainText()
             current_line_count = content.count('\n') + 1 if content else 1
 
             if not content:
                 if self._last_line_count == 1:
                     return
-                text_widget.configure(height=42)
+                text_widget.setFixedHeight(42)
                 self._last_line_count = 1
                 return
 
@@ -377,9 +478,16 @@ class DashboardBuilder:
             if current_height < 42:
                 current_height = 42
 
-            text_widget.configure(height=current_height)
-        except Exception as e:
+            text_widget.setFixedHeight(current_height)
+        except Exception:
             pass
+
+    def _on_enter_pressed(self):
+        """回车键按下时执行命令"""
+        # 获取执行按钮并点击
+        execute_btn = self.components.get("execute_button")
+        if execute_btn:
+            execute_btn.click()
 
     def _init_attached_files_display(self):
         """初始化已选文件显示区域"""

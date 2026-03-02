@@ -4,7 +4,7 @@ Yuntai - 芸薹手机助手模块包
 使用 LangChain 重构版本
 """
 
-# 导出配置
+# 导出配置 - 这些不会触发循环导入
 from yuntai.core.config import (
     SHORTCUTS, ZHIPU_API_KEY,
     CONVERSATION_HISTORY_FILE, RECORD_LOGS_DIR, FOREVER_MEMORY_FILE,
@@ -18,15 +18,8 @@ from yuntai.services.file_manager import FileManager
 from yuntai.core.agent_executor import AgentExecutor
 from yuntai.core.utils import Utils
 
-# 重构模块
-from yuntai.gui.gui_view import GUIView
-from yuntai.gui.gui_controller import GUIController
-from yuntai.services.task_manager import TaskManager
-from yuntai.core.main_app import MainApp
-from yuntai.gui.output_capture import SimpleOutputCapture
-from yuntai.processors.multimodal_processor import MultimodalProcessor
-from yuntai.processors.multimodal_other import MultimodalOther, ImagePreviewWindow, VideoPreviewWindow
-from yuntai.processors.audio_processor import AudioProcessor
+# ZHIPU_CLIENT 需要在主文件中初始化
+ZHIPU_CLIENT = None
 
 # TTS 工具函数
 from yuntai.core.utils import (
@@ -69,8 +62,44 @@ from yuntai.prompts import (
     CHAT_SYSTEM_PROMPT,
 )
 
-# ZHIPU_CLIENT 需要在主文件中初始化
-ZHIPU_CLIENT = None
+
+# ==================== 延迟导入 ====================
+# 以下模块使用延迟导入，避免循环依赖
+
+def __getattr__(name):
+    """延迟导入机制，避免循环依赖"""
+    if name == 'GUIView':
+        from yuntai.gui.gui_view import GUIView
+        return GUIView
+    elif name == 'GUIController':
+        from yuntai.gui.gui_controller import GUIController
+        return GUIController
+    elif name == 'TaskManager':
+        from yuntai.services.task_manager import TaskManager
+        return TaskManager
+    elif name == 'MainApp':
+        from yuntai.core.main_app import MainApp
+        return MainApp
+    elif name == 'SimpleOutputCapture':
+        from yuntai.gui.output_capture import SimpleOutputCapture
+        return SimpleOutputCapture
+    elif name == 'MultimodalProcessor':
+        from yuntai.processors.multimodal_processor import MultimodalProcessor
+        return MultimodalProcessor
+    elif name == 'MultimodalOther':
+        from yuntai.processors.multimodal_other import MultimodalOther
+        return MultimodalOther
+    elif name == 'ImagePreviewWindow':
+        from yuntai.processors.multimodal_other import ImagePreviewWindow
+        return ImagePreviewWindow
+    elif name == 'VideoPreviewWindow':
+        from yuntai.processors.multimodal_other import VideoPreviewWindow
+        return VideoPreviewWindow
+    elif name == 'AudioProcessor':
+        from yuntai.processors.audio_processor import AudioProcessor
+        return AudioProcessor
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     # 原来的配置

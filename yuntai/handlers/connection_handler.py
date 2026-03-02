@@ -1,23 +1,248 @@
-import tkinter as tk
+"""
+  ConnectionHandler - 设备连接管理处理器 (PyQt6 重构版)
+  负责处理设备连接、检测和投屏功能
+"""
+
 import os
 import subprocess
 import threading
-import customtkinter as ctk
 import pyperclip
 from typing import Optional, Dict, Any, Callable
 
+from PyQt6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
+    QTextEdit, QComboBox, QCheckBox, QFrame, QMessageBox
+)
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
+from PyQt6.QtGui import QFont
+
 from yuntai.gui.gui_view import GUIView
-from yuntai.core.config import ThemeColors, DEVICE_TYPE_HARMONY
+from yuntai.gui.styles import (
+    ThemeColors, ThemeFonts, ThemeCorner,
+    DialogStyle, get_dialog_stylesheet, get_dialog_button_stylesheet,
+    get_dialog_card_stylesheet, get_dialog_textedit_stylesheet,
+    get_dialog_combobox_stylesheet, get_dialog_checkbox_stylesheet
+)
+from yuntai.core.config import DEVICE_TYPE_HARMONY
 
 
-class ConnectionHandler:
+class DeviceDetectDialog(QDialog):
+    """设备检测对话框 - 带信号支持"""
+    
+    show_result_signal = pyqtSignal(list, str, str)  # devices, device_type, device_type_display
+    
+    def __init__(self, parent, task_manager, controller):
+        super().__init__(parent)
+        self.task_manager = task_manager
+        self.controller = controller
+        self.devices = []
+        self.device_type = ""
+        self.device_type_display = ""
+        
+        # 获取当前主题颜色
+        self.colors = parent.colors if hasattr(parent, 'colors') else ThemeColors
+        
+        self.setWindowTitle("设备检测结果")
+        self.setFixedSize(DialogStyle.DIALOG_WIDTH_LARGE, DialogStyle.DIALOG_HEIGHT_LARGE)
+        self.setModal(True)
+        self.setStyleSheet(get_dialog_stylesheet(self.colors))
+        
+        self._setup_ui()
+        self._connect_signals()
+        
+    def _setup_ui(self):
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(
+            DialogStyle.DIALOG_MARGIN, 
+            DialogStyle.DIALOG_MARGIN, 
+            DialogStyle.DIALOG_MARGIN, 
+            DialogStyle.DIALOG_MARGIN
+        )
+        self.layout.setSpacing(DialogStyle.DIALOG_SPACING)
+
+        # 标题
+        self.title_label = QLabel("📱 设备检测结果")
+        self.title_label.setFont(ThemeFonts.TITLE)
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        self.layout.addWidget(self.title_label)
+
+        # 设备类型
+        self.type_label = QLabel("正在检测...")
+        self.type_label.setFont(ThemeFonts.BODY_MEDIUM)
+        self.type_label.setStyleSheet(f"color: {self.colors.TEXT_SECONDARY}; background: transparent; border: none;")
+        self.type_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.layout.addWidget(self.type_label)
+
+        # 状态标签
+        self.status_label = QLabel("正在检测设备，请稍候...")
+        self.status_label.setFont(ThemeFonts.SUBTITLE)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        self.layout.addWidget(self.status_label)
+
+        # 内容区域占位
+        self.content_frame = QFrame()
+        self.content_frame.setStyleSheet(get_dialog_card_stylesheet(self.colors))
+        self.content_layout = QVBoxLayout(self.content_frame)
+        self.content_layout.setContentsMargins(15, 15, 15, 15)
+        self.layout.addWidget(self.content_frame, 1)
+
+        # 关闭按钮
+        self.close_btn = QPushButton("关闭")
+        self.close_btn.setFont(ThemeFonts.BODY_MEDIUM)
+        self.close_btn.setFixedHeight(DialogStyle.BUTTON_HEIGHT)
+        self.close_btn.setFixedWidth(DialogStyle.BUTTON_WIDTH)
+        self.close_btn.setStyleSheet(get_dialog_button_stylesheet("secondary", self.colors))
+        self.close_btn.clicked.connect(self.accept)
+        self.layout.addWidget(self.close_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+    def _connect_signals(self):
+        self.show_result_signal.connect(self._on_show_result)
+        
+    def _on_show_result(self, devices, device_type, device_type_display):
+        """在主线程中显示结果"""
+        self.devices = devices
+        self.device_type = device_type
+        self.device_type_display = device_type_display
+        
+        # 更新设备类型标签
+        self.type_label.setText(f"设备类型: {device_type_display}")
+        
+        # 清除内容区域
+        while self.content_layout.count():
+            item = self.content_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+                
+        if devices:
+            self._show_devices_found()
+        else:
+            self._show_no_devices()
+            
+    def _show_devices_found(self):
+        """显示找到设备的结果"""
+        self.status_label.setText(f"✅ 检测到 {len(self.devices)} 个设备")
+        self.status_label.setStyleSheet(f"color: {self.colors.SUCCESS}; background: transparent; border: none;")
+
+        # 工具栏
+        toolbar = QHBoxLayout()
+        toolbar_label = QLabel("设备列表（可全选复制）:")
+        toolbar_label.setFont(ThemeFonts.BODY_MEDIUM)
+        toolbar_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        toolbar.addWidget(toolbar_label)
+        toolbar.addStretch()
+
+        def copy_to_clipboard():
+            device_text = "\n".join([f"{i + 1}. {device}" for i, device in enumerate(self.devices)])
+            pyperclip.copy(device_text)
+            self.controller.show_toast("已复制到剪贴板", "success")
+
+        copy_btn = QPushButton("📋 复制")
+        copy_btn.setFont(ThemeFonts.BODY_XSMALL)
+        copy_btn.setFixedHeight(DialogStyle.BUTTON_HEIGHT_SMALL)
+        copy_btn.setFixedWidth(DialogStyle.BUTTON_WIDTH_SMALL)
+        copy_btn.setStyleSheet(get_dialog_button_stylesheet("primary", self.colors))
+        copy_btn.clicked.connect(copy_to_clipboard)
+        toolbar.addWidget(copy_btn)
+        self.content_layout.addLayout(toolbar)
+
+        # 结果文本框
+        result_text = QTextEdit()
+        result_text.setFont(ThemeFonts.CODE_SMALL)
+        result_text.setReadOnly(True)
+        result_text.setStyleSheet(get_dialog_textedit_stylesheet(self.colors))
+        text_content = "设备ID列表:\n" + "=" * 50 + "\n\n"
+        for i, device in enumerate(self.devices, 1):
+            text_content += f"{i:2d}. {device}\n"
+        text_content += "\n" + "=" * 50 + "\n"
+        text_content += "💡 使用说明:\n"
+        text_content += "1. 选择文本进行复制\n"
+        text_content += "2. 点击上方复制按钮可复制全部\n"
+        text_content += "3. 在USB连接方式下使用设备ID连接\n"
+        result_text.setText(text_content)
+        self.content_layout.addWidget(result_text, 1)
+
+        self.controller.show_toast(f"检测到 {len(self.devices)} 个设备", "success")
+
+    def _show_no_devices(self):
+        """显示未找到设备的结果"""
+        self.status_label.setText(f"❌ 未检测到任何设备 ({self.device_type_display})")
+        self.status_label.setStyleSheet(f"color: {self.colors.DANGER}; background: transparent; border: none;")
+
+        # 工具栏
+        toolbar = QHBoxLayout()
+        toolbar_label = QLabel("故障排除指南:")
+        toolbar_label.setFont(ThemeFonts.BODY_MEDIUM)
+        toolbar_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        toolbar.addWidget(toolbar_label)
+        toolbar.addStretch()
+
+        tool_name = "hdc" if self.device_type == DEVICE_TYPE_HARMONY else "adb"
+        troubleshooting_text = f"""请检查以下项目：
+1. 手机是否已通过USB线连接电脑
+2. 手机是否已开启【开发者选项】和【USB调试】
+3. 连接电脑时，手机上是否点击了【允许USB调试】
+4. 尝试重新插拔USB线或重启{tool_name.upper()}服务
+5. 如果是无线连接，请确保IP和端口正确"""
+
+        def copy_troubleshooting():
+            pyperclip.copy(troubleshooting_text)
+            self.controller.show_toast("故障排除指南已复制", "success")
+
+        copy_btn = QPushButton("📋 复制指南")
+        copy_btn.setFont(ThemeFonts.BODY_XSMALL)
+        copy_btn.setFixedHeight(DialogStyle.BUTTON_HEIGHT_SMALL)
+        copy_btn.setFixedWidth(DialogStyle.BUTTON_WIDTH_SMALL + 20)
+        copy_btn.setStyleSheet(get_dialog_button_stylesheet("warning", self.colors))
+        copy_btn.clicked.connect(copy_troubleshooting)
+        toolbar.addWidget(copy_btn)
+        self.content_layout.addLayout(toolbar)
+
+        # 结果文本框
+        result_text = QTextEdit()
+        result_text.setFont(ThemeFonts.BODY_SMALL)
+        result_text.setReadOnly(True)
+        result_text.setStyleSheet(get_dialog_textedit_stylesheet(self.colors))
+        text_content = "请检查以下项目：\n" + "=" * 50 + "\n\n"
+        checks = [
+            "1. 📱 手机是否已通过USB线连接电脑",
+            "2. ⚙️ 手机是否已开启【开发者选项】和【USB调试】",
+            "3. 📲 连接电脑时，手机上是否点击了【允许USB调试】",
+            f"4. 🔄 尝试重新插拔USB线或重启{tool_name.upper()}服务",
+            "5. 🔌 如果是无线连接，请确保IP和端口正确"
+        ]
+        for check in checks:
+            text_content += f"{check}\n"
+        text_content += "\n" + "=" * 50 + "\n"
+        text_content += "💡 解决方案:\n"
+        text_content += "• 在手机设置中搜索【开发者选项】\n"
+        text_content += "• 打开【USB调试】开关\n"
+        text_content += "• 连接电脑时授权调试权限\n"
+        result_text.setText(text_content)
+        self.content_layout.addWidget(result_text, 1)
+
+        self.controller.show_toast("未检测到设备", "warning")
+
+    def show_result(self, devices, device_type, device_type_display):
+        """线程安全的显示结果"""
+        self.show_result_signal.emit(devices, device_type, device_type_display)
+
+
+class ConnectionHandler(QObject):
     """设备连接管理处理器"""
+    
+    # 定义信号用于跨线程UI更新
+    update_status_signal = pyqtSignal(bool)  # connected
 
     def __init__(self, controller):
+        super().__init__()
         self.controller = controller
-        self.root = controller.root
         self.view = controller.view
         self.task_manager = controller.task_manager
+        
+        # 连接信号
+        self.update_status_signal.connect(self._do_update_connection_status)
 
     def show_panel(self):
         """显示设备管理页面"""
@@ -30,51 +255,77 @@ class ConnectionHandler:
         # 检测设备按钮
         detect_btn = self.view.get_component("detect_devices_btn")
         if detect_btn:
-            detect_btn.configure(command=self.detect_devices_gui)
+            try:
+                detect_btn.clicked.disconnect()
+            except:
+                pass
+            detect_btn.clicked.connect(self.detect_devices_gui)
 
         # 连接设备按钮
         connect_btn = self.view.get_component("connect_device_btn")
         if connect_btn:
-            connect_btn.configure(command=self.connect_device_gui)
+            try:
+                connect_btn.clicked.disconnect()
+            except:
+                pass
+            connect_btn.clicked.connect(self.connect_device_gui)
 
         # 断开连接按钮
         disconnect_btn = self.view.get_component("disconnect_device_btn")
         if disconnect_btn:
-            disconnect_btn.configure(command=self.disconnect_device)
+            try:
+                disconnect_btn.clicked.disconnect()
+            except:
+                pass
+            disconnect_btn.clicked.connect(self.disconnect_device)
 
-        # 连接方式切换事件
-        conn_var = self.view.get_component("conn_var")
-        if conn_var:
-            conn_var.trace("w", lambda *args: self._show_connection_form())
+        # 连接方式切换事件 - 使用 QButtonGroup
+        conn_button_group = self.view.get_component("conn_button_group")
+        if conn_button_group:
+            try:
+                conn_button_group.buttonClicked.disconnect()
+            except:
+                pass
+            conn_button_group.buttonClicked.connect(self._on_connection_type_changed)
 
-    def _show_connection_form(self):
-        """显示连接表单"""
-        conn_var = self.view.get_component("conn_var")
+    def _on_connection_type_changed(self, button):
+        """连接方式改变时的回调"""
         usb_frame = self.view.get_component("usb_frame")
         wireless_frame = self.view.get_component("wireless_frame")
 
-        if conn_var and usb_frame and wireless_frame:
-            if conn_var.get() == "usb":
-                wireless_frame.pack_forget()
-                usb_frame.pack(fill="x")
+        if usb_frame and wireless_frame:
+            if "USB" in button.text():
+                wireless_frame.hide()
+                usb_frame.show()
             else:
-                usb_frame.pack_forget()
-                wireless_frame.pack(fill="x")
+                usb_frame.hide()
+                wireless_frame.show()
+
+    def _show_connection_form(self):
+        """显示连接表单（保留兼容性）"""
+        pass
 
     def _get_device_type(self) -> str:
         """获取当前选择的设备类型"""
-        device_type_var = self.view.get_component("device_type_var")
-        if device_type_var:
-            if "HarmonyOS" in device_type_var.get():
+        device_type_combo = self.view.get_component("device_type_menu")
+        if device_type_combo:
+            if "HarmonyOS" in device_type_combo.currentText():
                 return DEVICE_TYPE_HARMONY
         return "android"
 
     def _get_device_type_display(self) -> str:
         """获取当前选择的设备类型显示文本"""
-        device_type_var = self.view.get_component("device_type_var")
-        if device_type_var:
-            return device_type_var.get()
+        device_type_combo = self.view.get_component("device_type_menu")
+        if device_type_combo:
+            return device_type_combo.currentText()
         return "Android (ADB)"
+
+    def _get_connection_type(self) -> str:
+        """获取当前选择的连接类型"""
+        usb_option = self.view.get_component("usb_option")
+        if usb_option and usb_option.isChecked():
+            return "usb"
+        return "wireless"
 
     def connect_device_gui(self):
         """GUI界面连接设备"""
@@ -98,16 +349,14 @@ class ConnectionHandler:
 
     def _get_connection_config_from_ui(self):
         """从UI获取连接配置"""
-        conn_var = self.view.get_component("conn_var")
-        if not conn_var:
-            self.controller.show_toast("UI组件未初始化", "error")
-            return None
-
+        # 获取连接类型
+        connection_type = self._get_connection_type()
+        
         device_type = self._get_device_type()
         device_type_display = self._get_device_type_display()
 
         config = {
-            "connection_type": conn_var.get(),
+            "connection_type": connection_type,
             "wireless_ip": "",
             "wireless_port": "5555",
             "usb_device_id": "",
@@ -115,10 +364,10 @@ class ConnectionHandler:
             "device_type_display": device_type_display
         }
 
-        if conn_var.get() == "usb":
+        if connection_type == "usb":
             usb_entry = self.view.get_component("usb_entry")
             if usb_entry:
-                device_id = usb_entry.get().strip()
+                device_id = usb_entry.text().strip()
                 if not device_id:
                     self.controller.show_toast("请输入USB设备ID", "warning")
                     return None
@@ -128,8 +377,8 @@ class ConnectionHandler:
             port_entry = self.view.get_component("port_entry")
 
             if ip_entry and port_entry:
-                ip = ip_entry.get().strip()
-                port = port_entry.get().strip()
+                ip = ip_entry.text().strip()
+                port = port_entry.text().strip()
 
                 if not ip:
                     self.controller.show_toast("请输入IP地址", "warning")
@@ -142,177 +391,30 @@ class ConnectionHandler:
 
     def detect_devices_gui(self):
         """GUI界面检测设备 - 弹窗显示结果"""
+        # 获取设备类型
+        device_type = self._get_device_type()
+        device_type_display = self._get_device_type_display()
+        
+        # 创建对话框
+        dialog = DeviceDetectDialog(self.view, self.task_manager, self.controller)
+        
         def detect_thread():
-            device_type = self._get_device_type()
-            device_type_display = self._get_device_type_display()
-            devices = self.task_manager.detect_devices(device_type)
+            try:
+                # 检测设备
+                devices = self.task_manager.detect_devices(device_type)
+                # 通过信号显示结果
+                dialog.show_result(devices, device_type, device_type_display)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                dialog.show_result([], device_type, device_type_display)
+                self.controller.show_toast(f"检测设备出错: {str(e)}", "error")
 
-            def show_result_dialog():
-                result_window = ctk.CTkToplevel(self.root)
-                result_window.title("设备检测结果")
-                result_window.geometry("600x500")
-                result_window.resizable(True, True)
-                result_window.transient(self.root)
-                result_window.grab_set()
-
-                ctk.CTkLabel(
-                    result_window,
-                    text="📱 设备检测结果",
-                    font=("Microsoft YaHei", 20, "bold")
-                ).pack(pady=20)
-
-                ctk.CTkLabel(
-                    result_window,
-                    text=f"设备类型: {device_type_display}",
-                    font=("Microsoft YaHei", 12),
-                    text_color=ThemeColors.TEXT_SECONDARY
-                ).pack(pady=(0, 10))
-
-                if devices:
-                    device_count = len(devices)
-                    status_text = f"✅ 检测到 {device_count} 个设备"
-
-                    ctk.CTkLabel(
-                        result_window,
-                        text=status_text,
-                        font=("Microsoft YaHei", 14, "bold"),
-                        text_color=ThemeColors.SUCCESS
-                    ).pack(pady=(0, 10))
-
-                    text_frame = ctk.CTkFrame(result_window, corner_radius=10)
-                    text_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
-
-                    toolbar = ctk.CTkFrame(text_frame, fg_color="transparent", height=40)
-                    toolbar.pack(fill="x", padx=10, pady=(10, 0))
-
-                    ctk.CTkLabel(
-                        toolbar,
-                        text="设备列表（可全选复制）:",
-                        font=("Microsoft YaHei", 12, "bold")
-                    ).pack(side="left")
-
-                    def copy_to_clipboard():
-                        device_text = "\n".join([f"{i + 1}. {device}" for i, device in enumerate(devices)])
-                        pyperclip.copy(device_text)
-                        self.controller.show_toast("已复制到剪贴板", "success")
-
-                    ctk.CTkButton(
-                        toolbar,
-                        text="📋 复制",
-                        font=("Microsoft YaHei", 12),
-                        height=30,
-                        width=80,
-                        command=copy_to_clipboard
-                    ).pack(side="right", padx=5)
-
-                    result_text = ctk.CTkTextbox(
-                        text_frame,
-                        font=("Consolas", 12),
-                        activate_scrollbars=True
-                    )
-                    result_text.pack(fill="both", expand=True, padx=10, pady=(0, 10))
-
-                    result_text.insert("1.0", "设备ID列表:\n" + "=" * 50 + "\n\n")
-                    for i, device in enumerate(devices, 1):
-                        result_text.insert("end", f"{i:2d}. {device}\n")
-
-                    result_text.insert("end", "\n" + "=" * 50 + "\n")
-                    result_text.insert("end", "💡 使用说明:\n")
-                    result_text.insert("end", "1. 选择文本进行复制\n")
-                    result_text.insert("end", "2. 点击上方复制按钮可复制全部\n")
-                    result_text.insert("end", "3. 在USB连接方式下使用设备ID连接\n")
-
-                    result_text.configure(state="normal")
-                    result_text.bind("<Control-c>", lambda e: copy_to_clipboard())
-                    result_text.configure(state="disabled")
-
-                else:
-                    status_text = f"❌ 未检测到任何设备 ({device_type_display})"
-
-                    ctk.CTkLabel(
-                        result_window,
-                        text=status_text,
-                        font=("Microsoft YaHei", 14, "bold"),
-                        text_color=ThemeColors.DANGER
-                    ).pack(pady=(0, 10))
-
-                    text_frame = ctk.CTkFrame(result_window, corner_radius=10)
-                    text_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
-
-                    toolbar = ctk.CTkFrame(text_frame, fg_color="transparent", height=40)
-                    toolbar.pack(fill="x", padx=10, pady=(10, 0))
-
-                    ctk.CTkLabel(
-                        toolbar,
-                        text="故障排除指南:",
-                        font=("Microsoft YaHei", 12, "bold")
-                    ).pack(side="left")
-
-                    tool_name = "hdc" if device_type == DEVICE_TYPE_HARMONY else "adb"
-                    troubleshooting_text = f"""请检查以下项目：
-    1. 手机是否已通过USB线连接电脑
-    2. 手机是否已开启【开发者选项】和【USB调试】
-    3. 连接电脑时，手机上是否点击了【允许USB调试】
-    4. 尝试重新插拔USB线或重启{tool_name.upper()}服务
-    5. 如果是无线连接，请确保IP和端口正确"""
-
-                    def copy_troubleshooting():
-                        pyperclip.copy(troubleshooting_text)
-                        self.controller.show_toast("故障排除指南已复制", "success")
-
-                    ctk.CTkButton(
-                        toolbar,
-                        text="📋 复制指南",
-                        font=("Microsoft YaHei", 12),
-                        height=30,
-                        width=100,
-                        command=copy_troubleshooting
-                    ).pack(side="right", padx=5)
-
-                    result_text = ctk.CTkTextbox(
-                        text_frame,
-                        font=("Microsoft YaHei", 12),
-                        activate_scrollbars=True
-                    )
-                    result_text.pack(fill="both", expand=True, padx=10, pady=(0, 10))
-
-                    result_text.insert("1.0", "请检查以下项目：\n" + "=" * 50 + "\n\n")
-                    checks = [
-                        "1. 📱 手机是否已通过USB线连接电脑",
-                        "2. ⚙️ 手机是否已开启【开发者选项】和【USB调试】",
-                        "3. 📲 连接电脑时，手机上是否点击了【允许USB调试】",
-                        f"4. 🔄 尝试重新插拔USB线或重启{tool_name.upper()}服务",
-                        "5. 🔌 如果是无线连接，请确保IP和端口正确"
-                    ]
-
-                    for check in checks:
-                        result_text.insert("end", f"{check}\n")
-
-                    result_text.insert("end", "\n" + "=" * 50 + "\n")
-                    result_text.insert("end", "💡 解决方案:\n")
-                    result_text.insert("end", "• 在手机设置中搜索【开发者选项】\n")
-                    result_text.insert("end", "• 打开【USB调试】开关\n")
-                    result_text.insert("end", "• 连接电脑时授权调试权限\n")
-
-                    result_text.configure(state="normal")
-
-                ctk.CTkButton(
-                    result_window,
-                    text="关闭",
-                    font=("Microsoft YaHei", 14),
-                    height=40,
-                    width=120,
-                    command=result_window.destroy
-                ).pack(pady=20)
-
-                if devices:
-                    self.controller.show_toast(f"检测到 {len(devices)} 个设备", "success")
-                else:
-                    self.controller.show_toast("未检测到设备", "warning")
-
-            self.root.after(0, show_result_dialog)
-
+        # 启动检测线程
         threading.Thread(target=detect_thread, daemon=True).start()
+        
+        # 显示对话框
+        dialog.exec()
 
     def disconnect_device(self):
         """断开设备连接"""
@@ -321,115 +423,101 @@ class ConnectionHandler:
         self.controller.show_toast("设备已断开", "info")
 
     def _update_connection_status_gui(self, connected):
-        """更新连接状态显示"""
-        self.root.after(0, lambda: self.__update_connection_status_gui(connected))
+        """更新连接状态显示 - 线程安全"""
+        self.update_status_signal.emit(connected)
 
-    def __update_connection_status_gui(self, connected):
+    def _do_update_connection_status(self, connected):
         """在GUI线程中更新连接状态"""
         connection_indicator = self.view.get_component("connection_indicator")
         status_label = self.view.get_component("status_label")
 
         if connected:
             if connection_indicator:
-                connection_indicator.configure(
-                    text="● 已连接",
-                    text_color=ThemeColors.SUCCESS
-                )
+                connection_indicator.setText("● 已连接")
+                connection_indicator.setStyleSheet(f"color: {ThemeColors.SUCCESS};")
             if status_label:
-                status_label.configure(text="设备已连接")
+                status_label.setText("设备已连接")
         else:
             if connection_indicator:
-                connection_indicator.configure(
-                    text="● 未连接",
-                    text_color=ThemeColors.DANGER
-                )
+                connection_indicator.setText("● 未连接")
+                connection_indicator.setStyleSheet(f"color: {ThemeColors.DANGER};")
             if status_label:
-                status_label.configure(text="设备未连接")
+                status_label.setText("设备未连接")
 
-        # 更新连接页面状态 - 只显示状态，不显示设备ID
+        # 更新连接页面状态
         conn_status_label = self.view.get_component("connection_status_label")
         if conn_status_label:
             if connected:
-                conn_status_label.configure(
-                    text="● 已连接",
-                    text_color=ThemeColors.SUCCESS,
-                    font=("Microsoft YaHei", 24, "bold")
-                )
+                conn_status_label.setText("● 已连接")
+                conn_status_label.setStyleSheet(f"color: {ThemeColors.SUCCESS}; font-size: 24px; font-weight: bold;")
             else:
-                conn_status_label.configure(
-                    text="● 未连接",
-                    text_color=ThemeColors.DANGER,
-                    font=("Microsoft YaHei", 24, "bold")
-                )
+                conn_status_label.setText("● 未连接")
+                conn_status_label.setStyleSheet(f"color: {ThemeColors.DANGER}; font-size: 24px; font-weight: bold;")
 
-        # 删除对connection_info_label的更新，让第二行不显示
+        # 清空第二行
         conn_info_label = self.view.get_component("connection_info_label")
         if conn_info_label:
-            conn_info_label.configure(text="")  # 清空第二行
+            conn_info_label.setText("")
 
     def show_scrcpy_popup(self):
         """显示投屏设置弹窗"""
-        popup = ctk.CTkToplevel(self.root)
-        popup.title("📱 手机投屏")
-        popup.geometry("400x350")  # 增加高度以容纳设备选择
-        popup.resizable(False, False)
-        popup.transient(self.root)
-        popup.grab_set()
+        dialog = QDialog(self.view)
+        dialog.setWindowTitle("📱 手机投屏")
+        dialog.setFixedSize(DialogStyle.DIALOG_WIDTH_SMALL, DialogStyle.DIALOG_HEIGHT_SMALL)
+        dialog.setModal(True)
+        dialog.setStyleSheet(get_dialog_stylesheet())
+
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(
+            DialogStyle.DIALOG_MARGIN, 
+            DialogStyle.DIALOG_MARGIN, 
+            DialogStyle.DIALOG_MARGIN, 
+            DialogStyle.DIALOG_MARGIN
+        )
+        layout.setSpacing(DialogStyle.DIALOG_SPACING)
 
         # 标题
-        ctk.CTkLabel(
-            popup,
-            text="📱 手机投屏设置",
-            font=("Microsoft YaHei", 20, "bold")
-        ).pack(pady=20)
+        title_label = QLabel("📱 手机投屏设置")
+        title_label.setFont(ThemeFonts.TITLE)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet(f"color: {ThemeColors.TEXT_PRIMARY}; background: transparent; border: none;")
+        layout.addWidget(title_label)
+
+        # 设备选择区域
+        device_frame = QFrame()
+        device_frame.setStyleSheet(get_dialog_card_stylesheet())
+        device_layout = QVBoxLayout(device_frame)
+        device_layout.setContentsMargins(15, 15, 15, 15)
+        device_layout.setSpacing(8)
+
+        device_label = QLabel("选择设备:")
+        device_label.setFont(ThemeFonts.BODY_MEDIUM)
+        device_label.setStyleSheet(f"color: {ThemeColors.TEXT_PRIMARY}; background: transparent; border: none;")
+        device_layout.addWidget(device_label)
 
         # 获取可用设备列表
         devices = self.task_manager.detect_devices()
 
-        # 设备选择区域
-        device_frame = ctk.CTkFrame(popup, fg_color="transparent")
-        device_frame.pack(fill="x", padx=30, pady=10)
-
-        ctk.CTkLabel(
-            device_frame,
-            text="选择设备:",
-            font=("Microsoft YaHei", 14)
-        ).pack(anchor="w", pady=(0, 5))
-
-        # 设备选择变量
-        device_var = ctk.StringVar()
-
         if devices:
-            # 创建设备选择下拉菜单
-            device_menu = ctk.CTkOptionMenu(
-                device_frame,
-                variable=device_var,
-                values=devices,
-                font=("Microsoft YaHei", 12),
-                width=300
-            )
-            device_menu.pack(fill="x", pady=(0, 10))
-            # 默认选择第一个设备
-            if devices:
-                device_var.set(devices[0])
+            device_combo = QComboBox()
+            device_combo.setFont(ThemeFonts.BODY_MEDIUM)
+            device_combo.setStyleSheet(get_dialog_combobox_stylesheet())
+            device_combo.addItems(devices)
+            device_layout.addWidget(device_combo)
         else:
-            ctk.CTkLabel(
-                device_frame,
-                text="⚠️ 未检测到可用设备",
-                font=("Microsoft YaHei", 12),
-                text_color=ThemeColors.WARNING
-            ).pack(pady=(0, 10))
-            device_var.set("")
+            no_device_label = QLabel("⚠️ 未检测到可用设备")
+            no_device_label.setFont(ThemeFonts.BODY_MEDIUM)
+            no_device_label.setStyleSheet(f"color: {ThemeColors.WARNING}; background: transparent; border: none;")
+            device_layout.addWidget(no_device_label)
+            device_combo = None
+
+        layout.addWidget(device_frame)
 
         # 窗口置顶勾选框
-        always_on_top_var = ctk.BooleanVar(value=False)
-        always_on_top_check = ctk.CTkCheckBox(
-            popup,
-            text="窗口置顶",
-            variable=always_on_top_var,
-            font=("Microsoft YaHei", 14)
-        )
-        always_on_top_check.pack(pady=10)
+        always_on_top_check = QCheckBox("窗口置顶")
+        always_on_top_check.setFont(ThemeFonts.BODY_MEDIUM)
+        always_on_top_check.setStyleSheet(get_dialog_checkbox_stylesheet())
+        layout.addWidget(always_on_top_check)
 
         # 启动按钮
         def start_scrcpy():
@@ -437,23 +525,24 @@ class ConnectionHandler:
                 self.controller.show_toast("没有可用设备", "warning")
                 return
 
-            selected_device = device_var.get()
+            if not device_combo:
+                self.controller.show_toast("请选择一个设备", "warning")
+                return
+
+            selected_device = device_combo.currentText()
             if not selected_device:
                 self.controller.show_toast("请选择一个设备", "warning")
                 return
 
             # 构建命令
             cmd = [self.controller.scrcpy_path, "--stay-awake"]
-
-            # 添加设备选择参数
             cmd.append("-s")
             cmd.append(selected_device)
 
-            if always_on_top_var.get():
+            if always_on_top_check.isChecked():
                 cmd.append("--always-on-top")
 
             try:
-                # 在新线程中启动scrcpy
                 def run_scrcpy():
                     try:
                         process = subprocess.Popen(
@@ -464,7 +553,6 @@ class ConnectionHandler:
                         )
                         self.controller.active_subprocesses.append(process)
                         self.controller.show_toast(f"手机投屏已启动 ({selected_device})", "success")
-                        # 等待进程结束
                         process.wait()
                         if process in self.controller.active_subprocesses:
                             self.controller.active_subprocesses.remove(process)
@@ -473,27 +561,24 @@ class ConnectionHandler:
                         self.controller.show_toast(f"启动失败: {str(e)}", "error")
 
                 threading.Thread(target=run_scrcpy, daemon=True).start()
-                popup.destroy()
+                dialog.accept()
 
             except Exception as e:
                 self.controller.show_toast(f"启动失败: {str(e)}", "error")
 
-        start_button = ctk.CTkButton(
-            popup,
-            text="启动投屏",
-            font=("Microsoft YaHei", 14),
-            height=40,
-            width=120,
-            fg_color="#9b59b6",
-            command=start_scrcpy
-        )
-        start_button.pack(pady=20)
+        start_button = QPushButton("启动投屏")
+        start_button.setFont(ThemeFonts.BODY_MEDIUM)
+        start_button.setFixedHeight(DialogStyle.BUTTON_HEIGHT)
+        start_button.setFixedWidth(DialogStyle.BUTTON_WIDTH)
+        start_button.setStyleSheet(get_dialog_button_stylesheet("accent"))
+        start_button.clicked.connect(start_scrcpy)
+        layout.addWidget(start_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # 提示信息
-        info_label = ctk.CTkLabel(
-            popup,
-            text="注意：请确保手机已开启USB调试模式\n点击其他地方时窗口会自动最小化",
-            font=("Microsoft YaHei", 12),
-            text_color=ThemeColors.TEXT_SECONDARY
-        )
-        info_label.pack(pady=10)
+        info_label = QLabel("注意：请确保手机已开启USB调试模式\n点击其他地方时窗口会自动最小化")
+        info_label.setFont(ThemeFonts.BODY_XSMALL)
+        info_label.setStyleSheet(f"color: {ThemeColors.TEXT_SECONDARY}; background: transparent; border: none;")
+        info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(info_label)
+
+        dialog.exec()

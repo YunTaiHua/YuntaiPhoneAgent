@@ -1,5 +1,5 @@
 """
-输出捕获模块 - v3
+输出捕获模块 - v3 (PyQt6 重构版)
 - 终端：保持原始输出，不做任何过滤
 - GUI：过滤TTS冗余输出 + 格式化换行
 """
@@ -7,16 +7,24 @@
 import sys
 import re
 from contextlib import contextmanager
+from PyQt6.QtCore import QObject, pyqtSignal, QMetaObject, Qt, Q_ARG
 
 
-class SimpleOutputCapture:
+class SimpleOutputCapture(QObject):
     """输出捕获类：终端保持原样，GUI过滤TTS冗余输出"""
+    
+    # 定义信号用于线程安全的GUI更新
+    text_updated = pyqtSignal(str)
 
     def __init__(self, text_widget=None):
+        super().__init__()
         self.text_widget = text_widget
         self.original_stdout = sys.stdout
         self.original_stderr = sys.stderr
         self.in_tts_block = False
+        
+        # 连接信号到槽函数
+        self.text_updated.connect(self._safe_update_text)
 
         class CustomStream:
             def __init__(self, capture, is_stdout=True):
@@ -35,9 +43,8 @@ class SimpleOutputCapture:
                 if self.capture.text_widget:
                     gui_text = self.capture._filter_for_gui(text)
                     if gui_text:
-                        self.capture.text_widget.after(
-                            0, self.capture._safe_update_text, gui_text
-                        )
+                        # 使用信号发射文本，确保线程安全
+                        self.capture.text_updated.emit(gui_text)
 
                 return len(text)
 
@@ -157,9 +164,7 @@ class SimpleOutputCapture:
                 if self.capture.text_widget:
                     gui_text = self.capture._filter_for_gui(text)
                     if gui_text:
-                        self.capture.text_widget.after(
-                            0, self.capture._safe_update_text, gui_text
-                        )
+                        self.capture.text_updated.emit(gui_text)
 
                 return len(text)
 
@@ -176,15 +181,19 @@ class SimpleOutputCapture:
             sys.stderr = original_stderr
 
     def _safe_update_text(self, text):
-        """安全更新文本控件"""
-        if not self.text_widget or not self.text_widget.winfo_exists():
+        """安全更新文本控件（通过信号槽机制确保线程安全）"""
+        if not self.text_widget:
             return
-
+            
         try:
-            self.text_widget.configure(state="normal")
-            self.text_widget.insert("end", text)
-            self.text_widget.see("end")
-            self.text_widget.configure(state="disabled")
+            # PyQt6 QTextEdit 操作
+            self.text_widget.setReadOnly(False)
+            self.text_widget.insertPlainText(text)
+            # 滚动到底部
+            scrollbar = self.text_widget.verticalScrollBar()
+            if scrollbar:
+                scrollbar.setValue(scrollbar.maximum())
+            self.text_widget.setReadOnly(True)
         except Exception:
             pass
 

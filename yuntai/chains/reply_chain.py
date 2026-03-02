@@ -3,6 +3,7 @@
 使用 LangGraph 工作流处理回复
 """
 import threading
+import datetime
 from typing import Tuple, Optional
 
 from yuntai.graphs import ReplyGraph
@@ -102,6 +103,20 @@ class ReplyChain:
         send_success, send_result = phone_agent.send_message(app_name, chat_object, reply)
         
         if send_success:
+            # 保存历史记录
+            if self.file_manager:
+                session_data = {
+                    "type": "chat_session",
+                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "target_app": app_name,
+                    "target_object": chat_object,
+                    "cycle": 1,
+                    "reply_generated": reply,
+                    "other_messages": [latest_message],
+                    "sent_success": True
+                }
+                self.file_manager.save_conversation_history(session_data)
+            
             if self.tts_manager and getattr(self.tts_manager, 'tts_enabled', False):
                 threading.Timer(0.5, lambda: self.tts_manager.speak_text_intelligently(reply)).start()
             

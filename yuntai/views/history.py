@@ -1,9 +1,16 @@
-"""
-HistoryBuilder - 历史记录页面构建器
+﻿"""
+HistoryBuilder - 历史记录页面构建器（PyQt6 重构版）
 浅色米白色主题版本
 """
-import customtkinter as ctk
-from .theme import ThemeColors
+
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+    QLabel, QPushButton, QFrame, QTextEdit, QSizePolicy
+)
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QCursor, QFont
+
+from yuntai.gui.styles import ThemeColors, ThemeFonts, ThemeCorner, ThemeSpacing
 
 
 class HistoryBuilder:
@@ -12,105 +19,131 @@ class HistoryBuilder:
     def __init__(self, view_instance):
         self.view = view_instance
         self.components = view_instance.components
+    
+    @property
+    def colors(self):
+        """动态获取当前主题颜色"""
+        return self.view.colors
 
     def create_page(self):
         """创建历史记录页面（只执行一次）"""
         self.view._highlight_nav_button(3)
 
-        content_frame = ctk.CTkFrame(
-            self.view.content_pages[3],
-            fg_color="transparent"
-        )
-        content_frame.pack(fill="both", expand=True, padx=30, pady=30)
+        # 获取页面容器
+        page = self.view.content_pages[3]
+        
+        # 检查是否已有布局，如果有则直接返回（页面已创建）
+        if page.layout() is not None:
+            return
+        
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(30, 30, 30, 30)
+        page_layout.setSpacing(0)
 
         # 标题卡片 - 居中对齐
-        header_card = ctk.CTkFrame(
-            content_frame,
-            corner_radius=16,
-            fg_color=ThemeColors.BG_CARD,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
-        )
-        header_card.pack(fill="x", pady=(0, 20))
+        header_card = self._create_card(corner_radius=ThemeCorner.LG)
+        header_layout = QVBoxLayout(header_card)
+        header_layout.setContentsMargins(30, 20, 30, 20)
+        header_layout.setSpacing(8)
 
-        header_inner = ctk.CTkFrame(header_card, fg_color="transparent")
-        header_inner.pack(expand=True, padx=30, pady=20)
+        title_label = QLabel("历史记录")
+        title_label.setFont(ThemeFonts.TITLE_LARGE)
+        title_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_layout.addWidget(title_label)
 
-        ctk.CTkLabel(
-            header_inner,
-            text="历史记录",
-            font=("Microsoft YaHei", 28, "bold"),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(pady=(0, 8))
+        subtitle_label = QLabel("查看和管理对话历史记录")
+        subtitle_label.setFont(ThemeFonts.BODY_MEDIUM)
+        subtitle_label.setStyleSheet(f"color: {self.colors.TEXT_SECONDARY}; background: transparent; border: none;")
+        subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_layout.addWidget(subtitle_label)
 
-        ctk.CTkLabel(
-            header_inner,
-            text="查看和管理对话历史记录",
-            font=("Microsoft YaHei", 14),
-            text_color=ThemeColors.TEXT_SECONDARY
-        ).pack()
+        page_layout.addWidget(header_card)
+        page_layout.addSpacing(20)
 
         # 历史记录显示区域
-        history_frame = ctk.CTkFrame(
-            content_frame,
-            corner_radius=12,
-            fg_color=ThemeColors.BG_CARD,
-            border_width=1,
-            border_color=ThemeColors.BORDER_LIGHT
-        )
-        history_frame.pack(fill="both", expand=True)
+        history_frame = self._create_card()
+        history_layout = QVBoxLayout(history_frame)
+        history_layout.setContentsMargins(20, 15, 20, 20)
+        history_layout.setSpacing(0)
 
-        # 标题和按钮区域（水平布局）
-        title_button_frame = ctk.CTkFrame(history_frame, fg_color="transparent")
-        title_button_frame.pack(fill="x", padx=20, pady=15)
+        # 标题和按钮区域
+        title_button_frame = QFrame()
+        title_button_frame.setStyleSheet("background: transparent; border: none;")
+        title_button_layout = QHBoxLayout(title_button_frame)
+        title_button_layout.setContentsMargins(0, 0, 0, 0)
 
-        ctk.CTkLabel(
-            title_button_frame,
-            text="📋 历史记录列表",
-            font=("Microsoft YaHei", 16, "bold"),
-            text_color=ThemeColors.TEXT_PRIMARY
-        ).pack(side="left")
+        title_label = QLabel("📋 历史记录列表")
+        title_label.setFont(ThemeFonts.BODY_LARGE)
+        title_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        title_button_layout.addWidget(title_label)
+        title_button_layout.addStretch()
 
-        # 右侧按钮容器
-        button_container = ctk.CTkFrame(title_button_frame, fg_color="transparent")
-        button_container.pack(side="right")
+        # 刷新按钮
+        self.components["refresh_history_btn"] = QPushButton("🔄 刷新")
+        self.components["refresh_history_btn"].setFont(ThemeFonts.BODY_MEDIUM)
+        self.components["refresh_history_btn"].setFixedSize(100, 36)
+        self.components["refresh_history_btn"].setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.components["refresh_history_btn"].setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.colors.SECONDARY};
+                color: {self.colors.TEXT_LIGHT};
+                border: none;
+                border-radius: 18px;
+            }}
+            QPushButton:hover {{
+                background-color: {self.colors.SECONDARY_HOVER};
+            }}
+        """)
+        title_button_layout.addWidget(self.components["refresh_history_btn"])
+        title_button_layout.addSpacing(10)
 
-        self.components["refresh_history_btn"] = ctk.CTkButton(
-            button_container,
-            text="🔄 刷新",
-            font=("Microsoft YaHei", 14),
-            width=100,
-            height=36,
-            corner_radius=18,
-            fg_color=ThemeColors.SECONDARY,
-            hover_color=ThemeColors.SECONDARY_HOVER,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.components["refresh_history_btn"].pack(side="left", padx=(0, 10))
+        # 清空按钮
+        self.components["clear_history_btn"] = QPushButton("🗑️ 清空")
+        self.components["clear_history_btn"].setFont(ThemeFonts.BODY_MEDIUM)
+        self.components["clear_history_btn"].setFixedSize(100, 36)
+        self.components["clear_history_btn"].setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.components["clear_history_btn"].setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.colors.DANGER};
+                color: {self.colors.TEXT_LIGHT};
+                border: none;
+                border-radius: 18px;
+            }}
+            QPushButton:hover {{
+                background-color: {self.colors.DANGER_HOVER};
+            }}
+        """)
+        title_button_layout.addWidget(self.components["clear_history_btn"])
 
-        self.components["clear_history_btn"] = ctk.CTkButton(
-            button_container,
-            text="🗑️ 清空",
-            font=("Microsoft YaHei", 14),
-            width=100,
-            height=36,
-            corner_radius=18,
-            fg_color=ThemeColors.DANGER,
-            hover_color=ThemeColors.DANGER_HOVER,
-            text_color=ThemeColors.TEXT_LIGHT
-        )
-        self.components["clear_history_btn"].pack(side="left")
+        history_layout.addWidget(title_button_frame)
+        history_layout.addSpacing(15)
 
-        # 创建历史记录文本框
-        self.components["history_text"] = ctk.CTkTextbox(
-            history_frame,
-            font=("Consolas", 13),
-            activate_scrollbars=True,
-            fg_color=ThemeColors.BG_CARD_ALT,
-            text_color=ThemeColors.TEXT_PRIMARY,
-            border_color=ThemeColors.BORDER_LIGHT,
-            border_width=1,
-            corner_radius=12
-        )
-        self.components["history_text"].pack(fill="both", expand=True, padx=15, pady=(0, 20))
-        self.components["history_text"].configure(state="disabled")
+        # 历史记录文本框
+        self.components["history_text"] = QTextEdit()
+        self.components["history_text"].setFont(ThemeFonts.CODE_MEDIUM)
+        self.components["history_text"].setReadOnly(True)
+        self.components["history_text"].setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {self.colors.BG_CARD_ALT};
+                color: {self.colors.TEXT_PRIMARY};
+                border: 1px solid {self.colors.BORDER_LIGHT};
+                border-radius: {ThemeCorner.MD}px;
+                padding: 8px;
+            }}
+        """)
+        history_layout.addWidget(self.components["history_text"], 1)
+
+        page_layout.addWidget(history_frame, 1)
+
+    def _create_card(self, corner_radius=ThemeCorner.MD):
+        """创建卡片样式的Frame"""
+        card = QFrame()
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self.colors.BG_CARD};
+                border: 1px solid {self.colors.BORDER_LIGHT};
+                border-radius: {corner_radius}px;
+            }}
+        """)
+        return card

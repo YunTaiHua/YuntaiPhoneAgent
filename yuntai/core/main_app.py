@@ -1,21 +1,19 @@
 """
-MainApp - 主应用程序模块
+MainApp - 主应用程序模块 (PyQt6 重构版)
 协调所有组件，管理程序生命周期
 """
 
 
 import os
 import sys
-import tkinter as tk
-import customtkinter as ctk
 import threading
 import time
 import atexit
 import logging
 from typing import Optional, TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from customtkinter import CTk
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import QTimer, Qt
 
 logger = logging.getLogger(__name__)
 
@@ -38,50 +36,53 @@ class MainApp:
         # 打印配置摘要
         print_config_summary()
 
-        # 创建主窗口
-        self.root = ctk.CTk()
+        # 创建 QApplication 实例
+        self.app = QApplication.instance()
+        if not self.app:
+            self.app = QApplication(sys.argv)
+        
+        # 设置应用程序属性
+        self.app.setApplicationName("Phone Agent")
+        self.app.setApplicationVersion("1.3.2")
 
         # 使用统一配置的路径
         self.project_root = PROJECT_ROOT
         self.scrcpy_path = SCRCPY_PATH
 
         # 初始化控制器
-        self.controller = GUIController(self.root, self.project_root, self.scrcpy_path)
+        self.controller = GUIController(self.project_root, self.scrcpy_path)
 
         # 注册退出清理函数
         atexit.register(self.cleanup)
 
-        # 设置窗口关闭事件
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        # 显示主窗口
+        self.controller.view.show()
 
         # 默认显示控制台
         self.controller.show_dashboard()
 
         # 延迟检查初始连接
-        self.root.after(500, self.check_initial_connection)
+        QTimer.singleShot(500, self.check_initial_connection)
 
 
     def check_initial_connection(self) -> None:
         """检查初始连接"""
         self.controller.check_initial_connection()
 
-    def run(self) -> None:
+    def run(self) -> int:
         """运行应用程序"""
         try:
-            self.root.mainloop()
+            return self.app.exec()
         except Exception as e:
             logger.error(f"GUI运行错误: {e}")
             import traceback
             traceback.print_exc()
+            return 1
 
     def cleanup(self) -> None:
         """清理资源"""
         logger.info("正在清理应用程序资源...")
 
         # 清理控制器资源
-        self.controller.cleanup_on_exit()
-
-    def on_closing(self) -> None:
-        """窗口关闭事件"""
-        self.cleanup()
-        self.root.quit()
+        if hasattr(self.controller, 'cleanup_on_exit'):
+            self.controller.cleanup_on_exit()

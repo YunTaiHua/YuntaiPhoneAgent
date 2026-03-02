@@ -1,6 +1,6 @@
 """
 
-Phone Agent  - 智能版 v1.3.1 -第1552次迭代
+Phone Agent  - 智能版 v1.3.1 -第1552次迭代 (PyQt6 重构版)
 
 1.0版本的更新日志：
 1.0.0  （2025.12.14）官方main版本，必须在文件夹的终端打开
@@ -37,11 +37,11 @@ Phone Agent  - 智能版 v1.3.1 -第1552次迭代
 1.2版本的更新日志：
 1.2.0  （2026.01.08）1.yuntai.rely_manger.py 更新了更好的消息提取方法
 --------------------2.添加了详细注释，缓解了线程竞争的冲突，修复了AttributeError为NullWriter类添加了_process_tts_block方法
---------------------3.如果存在扫描产生的USB连接调试造成scrcpy连接混乱，在cmd中使用“adb disconnect adb-AADM023705011567-kUOrAE._adb-tls-connect._tcp”
+--------------------3.如果存在扫描产生的USB连接调试造成scrcpy连接混乱，在cmd中使用"adb disconnect adb-AADM023705011567-kUOrAE._adb-tls-connect._tcp"
 1.2.1  （2026.01.09）模块化重构，将TTS、GUI组件、业务逻辑拆分为独立模块,文件保存在yun文件夹中不影响其他文件正常调用 yuntai 包,并升级了复杂操作和基础操作，使其也能实现TTS播报
 1.2.2  （2026.01.15）引入glm-4.6v-flash实现多模态分析，glm-4.6v-flash替代原来所有的glm-4，现在AI Agent可以分析文本，视频，图片，文件，同时解决3.0.0中出现的adb连接混乱的问题
 1.2.3  （2026.01.17）1.引入cogview-3-flash和cogvideox-flash作为双AI辅助系统，在动态功能菜单栏内集成文生图，文生视频，图生视频，首尾帧生视频的功能
---------------------2.修复“清空输出”按钮无响应的bug，合并版本号优化版本日志，目前版本为1.2.3（即原来的3.3.9）
+--------------------2.修复"清空输出"按钮无响应的bug，合并版本号优化版本日志，目前版本为1.2.3（即原来的3.3.9）
 --------------------3.图像生成、视频生成、TTS合成、执行命令四个按钮绑定"回车"按键
 --------------------4.AI系统（总结）：双AI协作系统 ———— glm-4.6v-flash（原glm-4）、autoglm-phone | 双AI辅助系统 ———— cogview-3-flash、cogvideox-flash
 1.2.4  （2026.01.19）1.使用FFmpeg和whisper为系统添加接收音频的功能
@@ -75,21 +75,35 @@ Phone Agent  - 智能版 v1.3.1 -第1552次迭代
 --------------------7.优化输出捕获和换行逻辑
 1.3.1  （2026.02.23）1.使用 langgraph 为持续回复创建节点流
 --------------------2.删除冗余代码
+1.3.2  （2026.03.01）1.使用 PyQt6 重写 GUI，替换 tkinter/customtkinter
+--------------------2.创建统一的 styles.py 样式文件
+--------------------3.保持所有样式、功能、布局完全不变
 
 """
 
 # ========================================
 # 【1. 全局依赖导入区】
 # ========================================
-import tkinter as tk
-import customtkinter as ctk
-import threading
 import sys
 import os
 import atexit
 import warnings
 import logging
 from typing import NoReturn
+
+# 关键修复：在导入PyQt6之前先导入onnxruntime，避免DLL初始化失败
+# 这是由于PyQt6和onnxruntime的动态链接库加载顺序问题
+try:
+    import onnxruntime
+    print("✅ onnxruntime 预加载成功")
+except ImportError:
+    print("⚠️ onnxruntime 未安装，TTS功能将不可用")
+except Exception as e:
+    print(f"⚠️ onnxruntime 预加载失败: {e}")
+
+# PyQt6 导入
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import Qt
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -122,10 +136,7 @@ def main():
 
         # 创建并运行应用
         app = MainApp()
-        app.run()
-
-        # 恢复原始工作目录
-        os.chdir(original_cwd)
+        sys.exit(app.run())
 
     except Exception as e:
         logger.error(f"应用启动失败: {e}")

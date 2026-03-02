@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 # ---------------- Version ----------------
 # 应用版本号，统一放在配置中，方便统一更新
-APP_VERSION = "1.3.1"
+APP_VERSION = "1.3.2"
 
 # 加载环境变量
 load_dotenv()
@@ -150,48 +150,7 @@ TTS_ENABLE_PARALLEL = True    # 启用并行合成
 
 # ==================== GUI 主题配置 ====================
 # 图形用户界面主题颜色配置
-
-class ThemeColors:
-    """
-    GUI 主题颜色类
-    定义了整个应用程序的颜色方案
-    """
-    # 主色调 - 用于主要按钮和强调元素
-    PRIMARY = "#4361ee"
-
-    # 次要色调 - 用于辅助元素
-    SECONDARY = "#7209b7"
-
-    # 强调色 - 用于突出显示
-    ACCENT = "#f72585"
-
-    # 成功状态色 - 用于成功提示
-    SUCCESS = "#4cc9f0"
-
-    # 警告状态色 - 用于警告提示
-    WARNING = "#f8961e"
-
-    # 危险状态色 - 用于错误提示
-    DANGER = "#e63946"
-
-    # 深色背景 - 主背景色
-    BG_DARK = "#121212"
-
-    # 卡片背景 - 组件背景色
-    BG_CARD = "#1e1e1e"
-
-    # 悬停背景 - 鼠标悬停时的背景色
-    BG_HOVER = "#2d2d2d"
-
-    # 主要文本色 - 普通文本
-    TEXT_PRIMARY = "#ffffff"
-
-    # 次要文本色 - 辅助文本
-    TEXT_SECONDARY = "#b0b0b0"
-
-    # 禁用文本色 - 不可用状态文本
-    TEXT_DISABLED = "#666666"
-
+# ThemeColors 将在文件末尾延迟导入，避免循环依赖
 
 # ==================== 快捷键配置 ====================
 # 快捷键映射配置，用于快速启动应用
@@ -296,3 +255,25 @@ if __name__ == "__main__":
     check_required_env_vars()
     validate_config()
     print_config_summary()
+
+
+# ==================== 延迟导入 ====================
+# 在文件末尾导入 ThemeColors，避免循环依赖
+# 这些导入在模块加载完成后执行，不会造成循环导入问题
+
+def _get_theme_colors():
+    """延迟获取 ThemeColors 类"""
+    from yuntai.gui.styles import ThemeColors as _ThemeColors
+    return _ThemeColors
+
+# 创建一个代理类，在访问时才真正导入
+class _ThemeColorsProxy:
+    """ThemeColors 的代理类，实现延迟导入"""
+    _real_class = None
+    
+    def __getattr__(self, name):
+        if self._real_class is None:
+            self._real_class = _get_theme_colors()
+        return getattr(self._real_class, name)
+
+ThemeColors = _ThemeColorsProxy()

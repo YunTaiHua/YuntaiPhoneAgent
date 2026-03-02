@@ -1,7 +1,17 @@
+"""
+  SystemHandler - 系统管理处理器 (PyQt6 重构版)
+  负责处理历史记录、系统设置和文件管理功能
+"""
+
 import os
 import threading
-import customtkinter as ctk
-from tkinter import messagebox
+
+from PyQt6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
+    QTextEdit, QFrame, QMessageBox
+)
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
+from PyQt6.QtGui import QFont
 
 from yuntai.core.config import (
     CONVERSATION_HISTORY_FILE, RECORD_LOGS_DIR,
@@ -10,16 +20,131 @@ from yuntai.core.config import (
     DEVICE_TYPE_HARMONY
 )
 from yuntai.gui.gui_view import GUIView
-from yuntai.core.config import ThemeColors
-import tkinter as tk
+from yuntai.gui.styles import (
+    ThemeColors, ThemeFonts,
+    DialogStyle, get_dialog_stylesheet, get_dialog_button_stylesheet,
+    get_dialog_card_stylesheet, get_dialog_textedit_stylesheet,
+    show_confirm_dialog
+)
 
 
-class SystemHandler:
+class SystemCheckDialog(QDialog):
+    """系统检查对话框 - 带信号支持"""
+    
+    # 定义信号
+    append_text_signal = pyqtSignal(str)
+    set_status_signal = pyqtSignal(str)
+    set_status_color_signal = pyqtSignal(str)
+    
+    def __init__(self, parent, is_harmony, task_manager):
+        super().__init__(parent)
+        self.is_harmony = is_harmony
+        self.task_manager = task_manager
+        self.tool_result = False
+        self.api_result = False
+        
+        # 获取当前主题颜色
+        self.colors = parent.colors if hasattr(parent, 'colors') else ThemeColors
+        
+        self.setWindowTitle("🔍 系统检查")
+        self.setFixedSize(DialogStyle.DIALOG_WIDTH_LARGE, DialogStyle.DIALOG_HEIGHT_MEDIUM)
+        self.setModal(True)
+        self.setStyleSheet(get_dialog_stylesheet(self.colors))
+        
+        self._setup_ui()
+        self._connect_signals()
+        
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(
+            DialogStyle.DIALOG_MARGIN, 
+            DialogStyle.DIALOG_MARGIN, 
+            DialogStyle.DIALOG_MARGIN, 
+            DialogStyle.DIALOG_MARGIN
+        )
+        layout.setSpacing(DialogStyle.DIALOG_SPACING)
+
+        # 标题区域
+        title_label = QLabel("🔍 系统检查")
+        title_label.setFont(ThemeFonts.TITLE)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        layout.addWidget(title_label)
+
+        device_type_name = "HarmonyOS (HDC)" if self.is_harmony else "Android (ADB)"
+        subtitle_label = QLabel(f"正在检查 {device_type_name} 系统配置...")
+        subtitle_label.setFont(ThemeFonts.BODY_MEDIUM)
+        subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        subtitle_label.setStyleSheet(f"color: {self.colors.TEXT_SECONDARY}; background: transparent; border: none;")
+        layout.addWidget(subtitle_label)
+
+        # 结果文本框
+        result_frame = QFrame()
+        result_frame.setStyleSheet(get_dialog_card_stylesheet(self.colors))
+        result_layout = QVBoxLayout(result_frame)
+        result_layout.setContentsMargins(15, 15, 15, 15)
+
+        self.result_text = QTextEdit()
+        self.result_text.setFont(ThemeFonts.CODE_SMALL)
+        self.result_text.setReadOnly(True)
+        self.result_text.setStyleSheet(get_dialog_textedit_stylesheet(self.colors))
+        self.result_text.setText("正在准备系统检查，请稍候...\n")
+        result_layout.addWidget(self.result_text)
+
+        layout.addWidget(result_frame, 1)
+
+        # 状态标签
+        self.status_label = QLabel("准备开始检查...")
+        self.status_label.setFont(ThemeFonts.BODY_MEDIUM)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
+        layout.addWidget(self.status_label)
+        
+    def _connect_signals(self):
+        self.append_text_signal.connect(self._on_append_text)
+        self.set_status_signal.connect(self._on_set_status)
+        self.set_status_color_signal.connect(self._on_set_status_color)
+        
+    def _on_append_text(self, text):
+        """追加文本到结果区域"""
+        self.result_text.append(text)
+        cursor = self.result_text.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        self.result_text.setTextCursor(cursor)
+        
+    def _on_set_status(self, text):
+        """设置状态标签文本"""
+        self.status_label.setText(text)
+        
+    def _on_set_status_color(self, color):
+        """设置状态标签颜色"""
+        self.status_label.setStyleSheet(f"color: {color}; background: transparent; border: none;")
+        
+    def append_text(self, text):
+        """线程安全的追加文本"""
+        self.append_text_signal.emit(text)
+        
+    def set_status(self, text):
+        """线程安全的设置状态"""
+        self.set_status_signal.emit(text)
+        
+    def set_status_color(self, color):
+        """线程安全的设置状态颜色"""
+        self.set_status_color_signal.emit(color)
+        
+    def scroll_to_bottom(self):
+        """滚动到底部"""
+        cursor = self.result_text.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        self.result_text.setTextCursor(cursor)
+
+
+class SystemHandler(QObject):
     """系统管理处理器 (历史/设置/文件)"""
 
     def __init__(self, controller):
+        super().__init__()
         self.controller = controller
-        self.root = controller.root
         self.view = controller.view
         self.task_manager = controller.task_manager
 
@@ -33,11 +158,19 @@ class SystemHandler:
         """绑定历史页面事件"""
         refresh_btn = self.view.get_component("refresh_history_btn")
         if refresh_btn:
-            refresh_btn.configure(command=self.load_history_data)
+            try:
+                refresh_btn.clicked.disconnect()
+            except:
+                pass
+            refresh_btn.clicked.connect(self.load_history_data)
 
         clear_btn = self.view.get_component("clear_history_btn")
         if clear_btn:
-            clear_btn.configure(command=self.clear_history_data)
+            try:
+                clear_btn.clicked.disconnect()
+            except:
+                pass
+            clear_btn.clicked.connect(self.clear_history_data)
 
     def show_settings_panel(self):
         """显示系统设置页面"""
@@ -46,7 +179,6 @@ class SystemHandler:
 
     def _bind_settings_events(self):
         """绑定设置页面事件"""
-        # 映射设置按钮到不同的Handler方法或主Controller方法
         settings_btns = [
             (self.view.get_component("settings_btn_0"), self.controller.connection_handler.show_panel),
             (self.view.get_component("settings_btn_1"), self.check_system_gui),
@@ -56,7 +188,11 @@ class SystemHandler:
 
         for btn, command in settings_btns:
             if btn:
-                btn.configure(command=command)
+                try:
+                    btn.clicked.disconnect()
+                except:
+                    pass
+                btn.clicked.connect(command)
 
     def load_history_data(self):
         """加载历史数据"""
@@ -68,7 +204,6 @@ class SystemHandler:
 
             text_content = ""
 
-            # 聊天会话
             sessions = history.get("sessions", [])
             if sessions:
                 text_content += "📱 聊天会话:\n" + "=" * 50 + "\n\n"
@@ -79,227 +214,206 @@ class SystemHandler:
                         text_content += f"回复: {session.get('reply_generated')}\n"
                     text_content += "-" * 30 + "\n\n"
 
-            # 自由聊天
             free_chats = history.get("free_chats", [])
             if free_chats:
-                text_content += "\n💬 自由聊天:\n" + "=" * 50 + "\n\n"
+                text_content += "💬 自由聊天:\n" + "=" * 50 + "\n\n"
                 for chat in free_chats[-20:]:
                     text_content += f"时间: {chat.get('timestamp', '未知')}\n"
-                    text_content += f"用户: {chat.get('user_input', '')}\n"
-                    text_content += f"回复: {chat.get('assistant_reply', '')}\n"
+                    text_content += f"用户: {chat.get('user_input', '未知')[:50]}...\n"
+                    text_content += f"AI: {chat.get('assistant_reply', '未知')[:50]}...\n"
                     text_content += "-" * 30 + "\n\n"
 
-            if not text_content:
-                text_content = "暂无历史记录"
-
-            # 更新历史文本框
             history_text = self.view.get_component("history_text")
             if history_text:
-                history_text.configure(state="normal")
-                history_text.delete("1.0", tk.END)
-                history_text.insert("1.0", text_content)
-                history_text.configure(state="disabled")
-
-            self.controller.show_toast("历史记录已刷新", "success")
+                history_text.setText(text_content)
 
         except Exception as e:
-            self.controller.show_toast(f"加载历史失败: {str(e)}", "error")
+            print(f"❌ 加载历史数据失败: {e}")
+            import traceback
+            traceback.print_exc()
 
     def clear_history_data(self):
         """清空历史数据"""
-        if messagebox.askyesno("确认", "确定要清空所有历史记录吗？此操作不可恢复！"):
-            try:
-                success = self.task_manager.file_manager.safe_write_json_file(
-                    CONVERSATION_HISTORY_FILE,
-                    {"sessions": [], "free_chats": []}
-                )
-                if success:
-                    self.load_history_data()
-                    self.controller.show_toast("历史记录已清空", "success")
-                else:
-                    self.controller.show_toast("清空历史失败", "error")
-            except Exception as e:
-                self.controller.show_toast(f"清空历史失败: {str(e)}", "error")
+        result = show_confirm_dialog(
+            self.view,
+            "确认清空",
+            "确定要清空所有历史记录吗？此操作不可恢复！",
+            "确认清空",
+            "取消",
+            "danger"
+        )
+
+        if not result:
+            return
+
+        try:
+            self.task_manager.file_manager.safe_write_json_file(
+                CONVERSATION_HISTORY_FILE,
+                {"sessions": [], "free_chats": []}
+            )
+            self.load_history_data()
+            self.controller.show_toast("历史记录已清空", "success")
+        except Exception as e:
+            self.controller.show_toast(f"清空历史记录失败: {str(e)}", "error")
 
     def check_system_gui(self):
         """可视化系统检查"""
-        from yuntai.core.config import ZHIPU_API_BASE_URL, ZHIPU_MODEL, ZHIPU_API_KEY
-
-        device_type_var = self.view.get_component("device_type_var")
+        device_type_menu = self.view.get_component("device_type_menu")
         is_harmony = False
-        if device_type_var and device_type_var.get() and "HarmonyOS" in device_type_var.get():
+        if device_type_menu and "HarmonyOS" in device_type_menu.currentText():
             is_harmony = True
 
-        check_window = ctk.CTkToplevel(self.root)
-        check_window.title("🔍 系统检查")
-        check_window.geometry("600x400")
-        check_window.resizable(False, False)
-        check_window.transient(self.root)
-        check_window.grab_set()
-
-        title_frame = ctk.CTkFrame(check_window, fg_color="transparent")
-        title_frame.pack(fill="x", padx=20, pady=20)
-
-        ctk.CTkLabel(
-            title_frame,
-            text="🔍 系统检查",
-            font=("Microsoft YaHei", 20, "bold")
-        ).pack(anchor="w")
-
-        device_type_name = "HarmonyOS (HDC)" if is_harmony else "Android (ADB)"
-        ctk.CTkLabel(
-            title_frame,
-            text=f"正在检查 {device_type_name} 系统配置...",
-            font=("Microsoft YaHei", 12),
-            text_color=ThemeColors.TEXT_SECONDARY
-        ).pack(anchor="w", pady=(5, 0))
-
-        result_frame = ctk.CTkFrame(check_window, corner_radius=10)
-        result_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
-
-        result_text = ctk.CTkTextbox(
-            result_frame,
-            font=("Consolas", 12),
-            activate_scrollbars=True
-        )
-        result_text.pack(fill="both", expand=True, padx=10, pady=10)
-
-        status_label = ctk.CTkLabel(
-            check_window,
-            text="准备开始检查...",
-            font=("Microsoft YaHei", 11)
-        )
-        status_label.pack(side="left", padx=20, pady=(0, 10))
-
+        dialog = SystemCheckDialog(self.view, is_harmony, self.task_manager)
+        
         def check_thread():
             try:
                 tool_name = "HDC" if is_harmony else "ADB"
-                check_window.after(0, lambda: status_label.configure(text=f"检查{tool_name}环境..."))
+                dialog.set_status(f"检查{tool_name}环境...")
 
+                # 检查工具环境
+                try:
+                    if is_harmony:
+                        tool_result = self.task_manager.utils.check_hdc()
+                    else:
+                        tool_result = self.task_manager.utils.check_system_requirements()
+                except Exception as tool_error:
+                    tool_result = False
+                    
+                dialog.tool_result = tool_result
+
+                # 更新工具检查结果
+                dialog.append_text("=" * 60)
+                dialog.append_text(f"📱 {tool_name} 环境检查")
+                dialog.append_text("=" * 60)
+                
                 if is_harmony:
-                    tool_result = self.task_manager.utils.check_hdc()
-
-                    result_text.insert("end", "=" * 60 + "\n")
-                    result_text.insert("end", "📱 HDC 环境检查\n")
-                    result_text.insert("end", "=" * 60 + "\n")
                     if tool_result:
-                        result_text.insert("end", "✅ HDC检查通过\n")
-                        result_text.insert("end", "  HDC工具已安装\n")
-                        result_text.insert("end", "  HarmonyOS设备连接功能正常\n\n")
+                        dialog.append_text("✅ HDC检查通过")
+                        dialog.append_text("  HDC工具已安装")
+                        dialog.append_text("  HarmonyOS设备连接功能正常")
                     else:
-                        result_text.insert("end", "❌ HDC检查失败\n")
-                        result_text.insert("end", "  HDC工具未安装或不在PATH中\n")
-                        result_text.insert("end", "\n💡 解决方案:\n")
-                        result_text.insert("end", "  1. 下载HarmonyOS SDK\n")
-                        result_text.insert("end", "  2. 从SDK目录找到hdc工具\n")
-                        result_text.insert("end", "  3. 将hdc添加到系统PATH环境变量\n\n")
+                        dialog.append_text("❌ HDC检查失败")
+                        dialog.append_text("  HDC工具未安装或不在PATH中")
+                        dialog.append_text("")
+                        dialog.append_text("💡 解决方案:")
+                        dialog.append_text("  1. 下载HarmonyOS SDK")
+                        dialog.append_text("  2. 从SDK目录找到hdc工具")
+                        dialog.append_text("  3. 将hdc添加到系统PATH环境变量")
                 else:
-                    tool_result = self.task_manager.utils.check_system_requirements()
-
-                    result_text.insert("end", "=" * 60 + "\n")
-                    result_text.insert("end", "📱 ADB 环境检查\n")
-                    result_text.insert("end", "=" * 60 + "\n")
                     if tool_result:
-                        result_text.insert("end", "✅ ADB检查通过\n")
-                        result_text.insert("end", "  ADB工具已安装\n")
-                        result_text.insert("end", "  Android设备连接功能正常\n\n")
+                        dialog.append_text("✅ ADB检查通过")
+                        dialog.append_text("  ADB工具已安装")
+                        dialog.append_text("  Android设备连接功能正常")
                     else:
-                        result_text.insert("end", "❌ ADB检查失败\n")
-                        result_text.insert("end", "  请确保已安装ADB并添加到系统PATH\n\n")
+                        dialog.append_text("❌ ADB检查失败")
+                        dialog.append_text("  请确保已安装ADB并添加到系统PATH")
+                dialog.append_text("")
 
-                check_window.after(0, lambda: status_label.configure(text="检查模型API..."))
+                dialog.set_status("检查模型API...")
 
-                api_result = self.task_manager.utils.check_model_api(
-                    ZHIPU_API_BASE_URL,
-                    ZHIPU_MODEL,
-                    ZHIPU_API_KEY
-                )
+                # 检查模型API
+                try:
+                    api_result = self.task_manager.utils.check_model_api(
+                        ZHIPU_API_BASE_URL,
+                        ZHIPU_MODEL,
+                        ZHIPU_API_KEY
+                    )
+                except Exception as api_error:
+                    print(f"❌ API检查出错: {api_error}")
+                    api_result = False
+                    
+                dialog.api_result = api_result
 
-                result_text.insert("end", "=" * 60 + "\n")
-                result_text.insert("end", "🤖 模型API检查\n")
-                result_text.insert("end", "=" * 60 + "\n")
+                dialog.append_text("=" * 60)
+                dialog.append_text("🤖 模型API检查")
+                dialog.append_text("=" * 60)
                 if api_result:
-                    result_text.insert("end", "✅ 模型API检查通过\n")
-                    result_text.insert("end", f"  模型: {ZHIPU_MODEL}\n")
-                    result_text.insert("end", f"  密钥: {ZHIPU_API_KEY[:10]}...\n\n")
+                    dialog.append_text("✅ 模型API检查通过")
+                    dialog.append_text(f"  模型: {ZHIPU_MODEL}")
+                    dialog.append_text(f"  密钥: {ZHIPU_API_KEY[:10]}...")
                 else:
-                    result_text.insert("end", "❌ 模型API检查失败\n")
-                    result_text.insert("end", "  请检查API密钥或网络连接\n\n")
+                    dialog.append_text("❌ 模型API检查失败")
+                    dialog.append_text("  请检查API密钥或网络连接")
+                dialog.append_text("")
 
-                check_window.after(0, lambda: status_label.configure(text="检查TTS功能..."))
+                dialog.set_status("检查TTS功能...")
 
-                result_text.insert("end", "=" * 60 + "\n")
-                result_text.insert("end", "🎤 TTS功能检查\n")
-                result_text.insert("end", "=" * 60 + "\n")
+                # 检查TTS
+                dialog.append_text("=" * 60)
+                dialog.append_text("🎤 TTS功能检查")
+                dialog.append_text("=" * 60)
 
                 if self.task_manager.tts_manager.tts_available:
-                    result_text.insert("end", "✅ TTS模块可用\n")
+                    dialog.append_text("✅ TTS模块可用")
 
                     gpt_count = len(self.task_manager.tts_manager.tts_files_database["gpt"])
                     sovits_count = len(self.task_manager.tts_manager.tts_files_database["sovits"])
                     audio_count = len(self.task_manager.tts_manager.tts_files_database["audio"])
                     text_count = len(self.task_manager.tts_manager.tts_files_database["text"])
 
-                    result_text.insert("end", f"  GPT模型: {gpt_count} 个\n")
-                    result_text.insert("end", f"  SoVITS模型: {sovits_count} 个\n")
-                    result_text.insert("end", f"  参考音频: {audio_count} 个\n")
-                    result_text.insert("end", f"  参考文本: {text_count} 个\n")
+                    dialog.append_text(f"  GPT模型: {gpt_count} 个")
+                    dialog.append_text(f"  SoVITS模型: {sovits_count} 个")
+                    dialog.append_text(f"  参考音频: {audio_count} 个")
+                    dialog.append_text(f"  参考文本: {text_count} 个")
 
                     if gpt_count > 0 and sovits_count > 0 and audio_count > 0 and text_count > 0:
-                        result_text.insert("end", "  ✅ TTS资源完整\n")
+                        dialog.append_text("  ✅ TTS资源完整")
                     else:
-                        result_text.insert("end", "  ⚠️  TTS资源不完整\n")
+                        dialog.append_text("  ⚠️  TTS资源不完整")
                 else:
-                    result_text.insert("end", "❌ TTS模块不可用\n")
-                    result_text.insert("end", "  请安装GPT-SoVITS并配置环境\n")
+                    dialog.append_text("❌ TTS模块不可用")
+                    dialog.append_text("  请安装GPT-SoVITS并配置环境")
 
-                result_text.insert("end", "\n")
+                dialog.append_text("")
 
-                check_window.after(0, lambda: status_label.configure(text="检查设备连接..."))
+                dialog.set_status("检查设备连接...")
 
-                result_text.insert("end", "=" * 60 + "\n")
-                result_text.insert("end", "📱 设备连接检查\n")
-                result_text.insert("end", "=" * 60 + "\n")
+                # 检查设备连接
+                dialog.append_text("=" * 60)
+                dialog.append_text("📱 设备连接检查")
+                dialog.append_text("=" * 60)
 
                 if self.task_manager.is_connected:
-                    result_text.insert("end", f"✅ 设备已连接: {self.task_manager.device_id}\n")
+                    dialog.append_text(f"✅ 设备已连接: {self.task_manager.device_id}")
                     conn_type = self.task_manager.config.get('connection_type', '未知')
-                    result_text.insert("end", f"  连接类型: {conn_type}\n")
+                    dialog.append_text(f"  连接类型: {conn_type}")
                 else:
-                    result_text.insert("end", "⚠️  设备未连接\n")
-                    result_text.insert("end", "  请前往设备管理页面连接设备\n")
+                    dialog.append_text("⚠️  设备未连接")
+                    dialog.append_text("  请前往设备管理页面连接设备")
 
-                result_text.insert("end", "\n" + "=" * 60 + "\n")
-                result_text.insert("end", "📋 检查结论\n")
-                result_text.insert("end", "=" * 60 + "\n")
+                dialog.append_text("")
+                dialog.append_text("=" * 60)
+                dialog.append_text("📋 检查结论")
+                dialog.append_text("=" * 60)
 
+                # 结论
                 if tool_result and api_result:
-                    result_text.insert("end", "🎉 系统检查通过，核心组件正常\n")
-                    check_window.after(0, lambda: status_label.configure(
-                        text="检查完成，核心组件正常",
-                        text_color=ThemeColors.SUCCESS
-                    ))
+                    dialog.append_text("🎉 系统检查通过，核心组件正常")
+                    dialog.set_status("检查完成，核心组件正常")
+                    dialog.set_status_color(ThemeColors.SUCCESS)
                 else:
-                    result_text.insert("end", "⚠️  系统检查发现一些问题\n")
-                    check_window.after(0, lambda: status_label.configure(
-                        text="检查完成，发现一些问题",
-                        text_color=ThemeColors.WARNING
-                    ))
-
-                result_text.see("1.0")
+                    dialog.append_text("⚠️  系统检查发现一些问题")
+                    dialog.set_status("检查完成，发现一些问题")
+                    dialog.set_status_color(ThemeColors.WARNING)
 
             except Exception as e:
-                result_text.insert("end", f"\n❌ 检查过程中发生错误: {str(e)}\n")
-                check_window.after(0, lambda: status_label.configure(
-                    text=f"检查出错: {str(e)[:30]}...",
-                    text_color=ThemeColors.DANGER
-                ))
+                import traceback
+                traceback.print_exc()
+                dialog.append_text(f"\n❌ 检查过程中发生错误: {str(e)}\n")
+                dialog.set_status(f"检查出错: {str(e)[:30]}...")
+                dialog.set_status_color(ThemeColors.DANGER)
 
-        threading.Thread(target=check_thread, daemon=True).start()
+        # 延迟启动线程，确保对话框已显示
+        QTimer.singleShot(100, lambda: threading.Thread(target=check_thread, daemon=True).start())
+
+        dialog.exec()
 
     def show_file_management(self):
         """显示文件管理"""
         try:
+            # 获取当前主题颜色
+            colors = self.view.colors if hasattr(self.view, 'colors') else ThemeColors
+            
             info_text = f"""文件管理:
 
 历史记录文件: {CONVERSATION_HISTORY_FILE}
@@ -317,7 +431,54 @@ TTS相关目录:
 • 历史记录文件: {'存在' if os.path.exists(CONVERSATION_HISTORY_FILE) else '不存在'}
 • 日志目录: {'存在' if os.path.exists(RECORD_LOGS_DIR) else '不存在'}
 • 永久记忆文件: {'存在' if os.path.exists(FOREVER_MEMORY_FILE) else '不存在'}
-• 连接配置文件: {'存在' if os.path.exists(CONNECTION_CONFIG_FILE) else '不存在'}"""
-            messagebox.showinfo("文件管理", info_text)
+• 连接配置文件: {'存在' if os.path.exists(CONNECTION_CONFIG_FILE) else '不存在'}
+"""
+
+            dialog = QDialog(self.view)
+            dialog.setWindowTitle("📁 文件管理")
+            dialog.setFixedSize(DialogStyle.DIALOG_WIDTH_LARGE, DialogStyle.DIALOG_HEIGHT_MEDIUM)
+            dialog.setModal(True)
+            dialog.setStyleSheet(get_dialog_stylesheet(colors))
+
+            layout = QVBoxLayout(dialog)
+            layout.setContentsMargins(
+                DialogStyle.DIALOG_MARGIN, 
+                DialogStyle.DIALOG_MARGIN, 
+                DialogStyle.DIALOG_MARGIN, 
+                DialogStyle.DIALOG_MARGIN
+            )
+            layout.setSpacing(DialogStyle.DIALOG_SPACING)
+
+            title_label = QLabel("📁 文件管理")
+            title_label.setFont(ThemeFonts.TITLE)
+            title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            title_label.setStyleSheet(f"color: {colors.TEXT_PRIMARY}; background: transparent; border: none;")
+            layout.addWidget(title_label)
+
+            # 文件信息文本框
+            info_frame = QFrame()
+            info_frame.setStyleSheet(get_dialog_card_stylesheet(colors))
+            info_layout = QVBoxLayout(info_frame)
+            info_layout.setContentsMargins(15, 15, 15, 15)
+
+            text_edit = QTextEdit()
+            text_edit.setFont(ThemeFonts.CODE_SMALL)
+            text_edit.setReadOnly(True)
+            text_edit.setStyleSheet(get_dialog_textedit_stylesheet(colors))
+            text_edit.setText(info_text)
+            info_layout.addWidget(text_edit)
+
+            layout.addWidget(info_frame, 1)
+
+            close_btn = QPushButton("关闭")
+            close_btn.setFont(ThemeFonts.BODY_MEDIUM)
+            close_btn.setFixedHeight(DialogStyle.BUTTON_HEIGHT)
+            close_btn.setFixedWidth(DialogStyle.BUTTON_WIDTH)
+            close_btn.setStyleSheet(get_dialog_button_stylesheet("secondary", colors))
+            close_btn.clicked.connect(dialog.accept)
+            layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+
+            dialog.exec()
+
         except Exception as e:
-            messagebox.showerror("错误", f"获取文件信息失败: {str(e)}")
+            self.controller.show_toast(f"显示文件管理失败: {str(e)}", "error")
