@@ -1,15 +1,15 @@
-Phone Agent Pro - Intelligent Multi-Modal Control Agent
+# YuntaiPhoneAgent
 
-Version: 1.3.1
+Version: 1.3.2
 
 **[中文版本](README.md)**
 
-## Phone Agent Pro v1.3.1 Code Analysis
+## YuntaiPhoneAgent v1.3.2 Code Analysis
 
 ### 📊 Project Overview
 
-**Project Name**: Phone Agent Pro  
-**Version**: v1.3.1 (1552nd iteration)
+**Project Name**: YuntaiPhoneAgent 
+**Version**: v1.3.2
 
 ### 🏗️ Architecture Design
 
@@ -54,7 +54,8 @@ YuntaiPhoneAgent/
 │   │   ├── __init__.py
 │   │   ├── gui_controller.py  # GUI Controller
 │   │   ├── gui_view.py        # GUI View
-│   │   └── output_capture.py  # Output Capture
+│   │   ├── output_capture.py  # Output Capture
+│   │   └── styles.py          # Styles
 │   ├── handlers/              # GUI Event Handlers
 │   │   ├── __init__.py
 │   │   ├── connection_handler.py
@@ -172,12 +173,14 @@ YuntaiPhoneAgent/
 
 | Component | Technology |
 |------|------|
-| GUI | tkinter + customtkinter |
+| GUI | PyQt6 |
 | AI Models | Zhipu AI GLM-4.6v-flash, autoglm-phone, cogview-3-flash, cogvideox-flash |
 | Workflow | LangGraph + LangChain |
 | TTS | GPT-SoVITS |
-| Phone Control | ADB + scrcpy |
+| Phone Control | ADB (Android) / HDC (HarmonyOS) + scrcpy |
 | SDK | zhipuai, openai |
+| Audio Processing | Whisper, PyAudio, soundfile |
+| Image Processing | Pillow, torch |
 
 ### ⚙️ Key Configuration
 

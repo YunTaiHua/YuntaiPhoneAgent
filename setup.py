@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Setup script for Phone Agent."""
+"""Setup script for YuntaiPhoneAgent."""
 
 from setuptools import find_packages, setup
 
@@ -7,17 +7,15 @@ with open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="phone-agent",
-    version="0.1.0",
-    author="Zhipu AI",
-    author_email="",
-    description="AI-powered phone automation framework",
+    name="YuntaiPhoneAgent",
+    version="1.3.2",
+    description="AI-powered intelligent phone automation framework with multi-platform support",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/phone-agent",
+    url="https://github.com/YunTaiHua/YuntaiPhoneAgent",
     packages=find_packages(),
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
@@ -30,20 +28,40 @@ setup(
     ],
     python_requires=">=3.10",
     install_requires=[
-        "Pillow>=12.0.0",
+        "PyQt6>=6.9.1",
+        "Pillow>=10.0.0",
         "openai>=2.9.0",
+        "zhipuai>=2.0.0",
+        "python-dotenv>=1.0.0",
+        "pydantic>=2.0.0",
+        "langchain>=0.3.0",
+        "langchain-core>=0.3.0",
+        "langchain-openai>=0.3.0",
+        "langgraph>=0.2.0",
+        "PyAudio>=0.2.14",
+        "soundfile>=0.12.0",
+        "pyperclip>=1.8.0",
     ],
     extras_require={
         "dev": [
             "pytest>=7.0.0",
+            "pytest-cov>=4.0.0",
+            "pytest-asyncio>=0.21.0",
             "black>=23.0.0",
             "mypy>=1.0.0",
             "ruff>=0.1.0",
         ],
+        "torch": [
+            "torch>=2.0.0",
+        ],
+        "multimodal": [
+            "markitdown[all]>=0.1.4",
+        ],
     },
     entry_points={
         "console_scripts": [
-            "phone-agent=main:main",
+            "yuntai-agent=main:main",
         ],
     },
+    keywords="ai agent phone automation android ios harmonyos langchain langgraph",
 )
