@@ -29,24 +29,29 @@ from yuntai.core.config import ThemeColors
 
 class TTSHandler(QObject):
     """TTS语音合成处理器"""
-    
+
     # 定义信号用于跨线程UI更新
     update_audio_list_signal = pyqtSignal(list)  # files list
     add_log_signal = pyqtSignal(str)  # log message
+    # 新增信号用于替代QTimer.singleShot
+    retry_bind_events_signal = pyqtSignal(int)  # attempt count
+    update_audio_list_delayed_signal = pyqtSignal()  # 延迟更新音频列表
 
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
         self.view = controller.view
         self.task_manager = controller.task_manager
-        
+
         # 标记事件是否已绑定
         self._events_bound = False
         self._events_bound_success = False
-        
+
         # 连接信号
         self.update_audio_list_signal.connect(self._on_update_audio_list)
         self.add_log_signal.connect(self._on_add_log)
+        self.retry_bind_events_signal.connect(self._on_retry_bind_events)
+        self.update_audio_list_delayed_signal.connect(self._on_update_audio_list_delayed)
 
     def _on_update_audio_list(self, files):
         """在主线程中更新音频列表"""
@@ -86,31 +91,51 @@ class TTSHandler(QObject):
         # 确保 tts_manager 被设置到 page_builder
         if hasattr(self.view, 'page_builder'):
             self.view.page_builder.tts_manager = self.task_manager.tts_manager
-        
+
         # 先显示页面（这会触发页面创建）
         self.view.show_page(2)
-        
+
         # 绑定事件（只绑定一次，但只有在成功时才标记为已绑定）
         if not self._events_bound:
-            # 等待组件创建，最多尝试10次
-            for i in range(10):
-                if self.view.components.get('tts_audio_listbox') is not None:
-                    self._bind_events()
-                    # 检查绑定是否成功
-                    if self._events_bound_success:
-                        self._events_bound = True
-                    break
-                time.sleep(0.05)
-        
-        # 更新音频列表
+            # 使用信号槽等待组件创建，避免阻塞主线程
+            self._try_bind_events(0)
+
+        # 更新音频列表（延迟执行，确保组件已创建）
+        # 使用QTimer.singleShot延迟发射信号，确保组件已创建
+        QTimer.singleShot(50, self.update_audio_list_delayed_signal.emit)
+    
+    def _try_bind_events(self, attempt: int, max_attempts: int = 10):
+        """尝试绑定事件，使用信号槽非阻塞等待组件创建"""
+        if attempt >= max_attempts:
+            return
+
+        if self.view.components.get('tts_audio_listbox') is not None:
+            self._bind_events()
+            # 检查绑定是否成功
+            if self._events_bound_success:
+                self._events_bound = True
+        else:
+            # 组件尚未创建，通过信号延迟重试
+            QTimer.singleShot(50, lambda: self.retry_bind_events_signal.emit(attempt + 1))
+
+    def _on_retry_bind_events(self, attempt: int):
+        """信号槽：重试绑定事件"""
+        self._try_bind_events(attempt)
+
+    def _try_update_audio_list(self):
+        """尝试更新音频列表"""
         if self.view.components.get('tts_audio_listbox') is not None:
             self.tts_update_synthesized_list()
+
+    def _on_update_audio_list_delayed(self):
+        """信号槽：延迟更新音频列表"""
+        self._try_update_audio_list()
 
     def _bind_events(self):
         """绑定TTS页面事件"""
         # 选择模型按钮
         select_gpt_btn = self.view.get_component("tts_select_gpt_btn")
-        if select_gpt_btn:
+        if select_gpt_btn is not None:
             try:
                 select_gpt_btn.clicked.disconnect()
             except:
@@ -118,7 +143,7 @@ class TTSHandler(QObject):
             select_gpt_btn.clicked.connect(self.tts_select_gpt_model)
 
         select_sovits_btn = self.view.get_component("tts_select_sovits_btn")
-        if select_sovits_btn:
+        if select_sovits_btn is not None:
             try:
                 select_sovits_btn.clicked.disconnect()
             except:
@@ -126,7 +151,7 @@ class TTSHandler(QObject):
             select_sovits_btn.clicked.connect(self.tts_select_sovits_model)
 
         select_audio_btn = self.view.get_component("tts_select_audio_btn")
-        if select_audio_btn:
+        if select_audio_btn is not None:
             try:
                 select_audio_btn.clicked.disconnect()
             except:
@@ -134,7 +159,7 @@ class TTSHandler(QObject):
             select_audio_btn.clicked.connect(self.tts_select_ref_audio)
 
         select_text_btn = self.view.get_component("tts_select_text_btn")
-        if select_text_btn:
+        if select_text_btn is not None:
             try:
                 select_text_btn.clicked.disconnect()
             except:
@@ -143,7 +168,7 @@ class TTSHandler(QObject):
 
         # 功能按钮
         synth_btn = self.view.get_component("tts_synth_btn")
-        if synth_btn:
+        if synth_btn is not None:
             try:
                 synth_btn.clicked.disconnect()
             except:
@@ -151,7 +176,7 @@ class TTSHandler(QObject):
             synth_btn.clicked.connect(self.tts_start_synthesis)
 
         load_btn = self.view.get_component("tts_load_btn")
-        if load_btn:
+        if load_btn is not None:
             try:
                 load_btn.clicked.disconnect()
             except:
@@ -159,7 +184,7 @@ class TTSHandler(QObject):
             load_btn.clicked.connect(self.tts_load_selected_models)
 
         stop_btn = self.view.get_component("tts_stop_btn")
-        if stop_btn:
+        if stop_btn is not None:
             try:
                 stop_btn.clicked.disconnect()
             except:
@@ -168,27 +193,24 @@ class TTSHandler(QObject):
 
         # TTS合成文本框快捷键
         tts_text_input = self.view.get_component("tts_text_input")
-        if tts_text_input:
+        if tts_text_input is not None:
             # Enter 键合成
             enter_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Return), tts_text_input)
             enter_shortcut.activated.connect(self.tts_start_synthesis)
 
         # 音频列表双击事件
         audio_listbox = self.view.components.get('tts_audio_listbox')
-        if audio_listbox:
+        # 注意：PyQt6对象不能直接用if判断，必须显式检查is not None
+        if audio_listbox is not None:
             try:
                 audio_listbox.itemDoubleClicked.disconnect()
             except:
                 pass
             audio_listbox.itemDoubleClicked.connect(self.tts_on_audio_double_click)
-            # 标记绑定成功
-            self._events_bound_success = True
-        else:
-            self._events_bound_success = False
 
         # 音频列表按钮
         play_btn = self.view.get_component("tts_play_btn")
-        if play_btn:
+        if play_btn is not None:
             try:
                 play_btn.clicked.disconnect()
             except:
@@ -196,7 +218,7 @@ class TTSHandler(QObject):
             play_btn.clicked.connect(self.tts_play_selected_audio)
 
         refresh_btn = self.view.get_component("tts_refresh_btn")
-        if refresh_btn:
+        if refresh_btn is not None:
             try:
                 refresh_btn.clicked.disconnect()
             except:
@@ -204,12 +226,19 @@ class TTSHandler(QObject):
             refresh_btn.clicked.connect(self.tts_update_synthesized_list)
 
         delete_btn = self.view.get_component("tts_delete_btn")
-        if delete_btn:
+        if delete_btn is not None:
             try:
                 delete_btn.clicked.disconnect()
             except:
                 pass
             delete_btn.clicked.connect(self.tts_delete_audio_files)
+
+        # 检查所有关键组件是否都已绑定成功
+        # 只有当audio_listbox存在且双击事件绑定成功时，才标记为成功
+        if audio_listbox is not None:
+            self._events_bound_success = True
+        else:
+            self._events_bound_success = False
 
     def tts_add_log(self, msg):
         """添加TTS操作日志 - 线程安全"""

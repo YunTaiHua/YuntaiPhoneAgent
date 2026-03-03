@@ -50,6 +50,13 @@ class GUIController(QObject):
     _hide_enter_button_signal = pyqtSignal()
     _show_tts_loading_signal = pyqtSignal(str)
     _update_tts_indicator_signal = pyqtSignal(bool)
+    # 新增信号用于替代QTimer.singleShot
+    _enable_execute_button_signal = pyqtSignal()
+    _disable_execute_button_signal = pyqtSignal()
+    _enable_terminate_button_signal = pyqtSignal()
+    _disable_terminate_button_signal = pyqtSignal()
+    _reset_button_states_signal = pyqtSignal()
+    _clear_attached_files_signal = pyqtSignal()
 
     def __init__(self, project_root, scrcpy_path):
         super().__init__()
@@ -71,6 +78,13 @@ class GUIController(QObject):
         self._hide_enter_button_signal.connect(self.view.hide_enter_button)
         self._show_tts_loading_signal.connect(self.view.show_tts_loading)
         self._update_tts_indicator_signal.connect(self.update_tts_indicator)
+        # 连接新增信号
+        self._enable_execute_button_signal.connect(self._do_enable_execute_button)
+        self._disable_execute_button_signal.connect(self._do_disable_execute_button)
+        self._enable_terminate_button_signal.connect(self._do_enable_terminate_button)
+        self._disable_terminate_button_signal.connect(self._do_disable_terminate_button)
+        self._reset_button_states_signal.connect(self._do_reset_button_states)
+        self._clear_attached_files_signal.connect(self._do_clear_attached_files)
 
         # 初始化任务管理器（保留用于连接管理和TTS）
         self.task_manager = TaskManager(project_root, self.scrcpy_path)
@@ -410,18 +424,13 @@ class GUIController(QObject):
                 self._append_output(f"❌ 错误：{str(e)}\n")
                 traceback.print_exc()
             finally:
-                def safe_clear():
-                    try:
-                        self.clear_attached_files()
-                    except Exception as e:
-                        print(f"❌ 清理文件失败: {e}")
-
-                QTimer.singleShot(100, safe_clear)
+                # 使用信号槽清理附件文件
+                QTimer.singleShot(100, self._clear_attached_files_signal.emit)
 
                 if not self.is_continuous_mode:
                     self.message_queue.put(("success", "命令执行完成"))
-                    QTimer.singleShot(0, self._enable_execute_button)
-                    QTimer.singleShot(0, self._disable_terminate_button)
+                    self._enable_execute_button_signal.emit()
+                    self._disable_terminate_button_signal.emit()
                     self.is_executing = False
 
         thread = threading.Thread(target=run_command)
@@ -576,29 +585,60 @@ class GUIController(QObject):
 
     def _disable_execute_button(self):
         """禁用执行按钮"""
-        execute_btn = self.view.get_component("execute_button")
-        if execute_btn:
-            QTimer.singleShot(0, lambda: execute_btn.setEnabled(False))
+        self._disable_execute_button_signal.emit()
         self._show_enter_button_signal.emit()
 
     def _enable_execute_button(self):
         """启用执行按钮"""
-        execute_btn = self.view.get_component("execute_button")
-        if execute_btn:
-            QTimer.singleShot(0, lambda: execute_btn.setEnabled(True))
+        self._enable_execute_button_signal.emit()
         self._hide_enter_button_signal.emit()
 
     def _disable_terminate_button(self):
         """禁用终止按钮"""
-        terminate_btn = self.view.get_component("terminate_button")
-        if terminate_btn:
-            QTimer.singleShot(0, lambda: terminate_btn.setEnabled(False))
+        self._disable_terminate_button_signal.emit()
 
     def _enable_terminate_button(self):
         """启用终止按钮"""
+        self._enable_terminate_button_signal.emit()
+
+    # ============ 信号槽实现方法 ============
+
+    def _do_enable_execute_button(self):
+        """信号槽：启用执行按钮"""
+        execute_btn = self.view.get_component("execute_button")
+        if execute_btn:
+            execute_btn.setEnabled(True)
+
+    def _do_disable_execute_button(self):
+        """信号槽：禁用执行按钮"""
+        execute_btn = self.view.get_component("execute_button")
+        if execute_btn:
+            execute_btn.setEnabled(False)
+
+    def _do_enable_terminate_button(self):
+        """信号槽：启用终止按钮"""
         terminate_btn = self.view.get_component("terminate_button")
         if terminate_btn:
-            QTimer.singleShot(0, lambda: terminate_btn.setEnabled(True))
+            terminate_btn.setEnabled(True)
+
+    def _do_disable_terminate_button(self):
+        """信号槽：禁用终止按钮"""
+        terminate_btn = self.view.get_component("terminate_button")
+        if terminate_btn:
+            terminate_btn.setEnabled(False)
+
+    def _do_reset_button_states(self):
+        """信号槽：重置按钮状态"""
+        self._enable_execute_button_signal.emit()
+        self._disable_terminate_button_signal.emit()
+        self.is_executing = False
+
+    def _do_clear_attached_files(self):
+        """信号槽：清理附件文件"""
+        try:
+            self.clear_attached_files()
+        except Exception as e:
+            print(f"❌ 清理文件失败: {e}")
 
     # ============ 消息处理 ============
 
@@ -746,7 +786,8 @@ class GUIController(QObject):
                 self.is_continuous_mode = False
                 self.terminate_flag.clear()
                 self._current_reply_chain = None
-                QTimer.singleShot(0, self._reset_button_states)
+                # 使用信号槽重置按钮状态
+                self._reset_button_states_signal.emit()
 
         thread = threading.Thread(target=continuous_reply_loop)
         thread.daemon = True

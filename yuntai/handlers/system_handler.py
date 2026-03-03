@@ -142,11 +142,17 @@ class SystemCheckDialog(QDialog):
 class SystemHandler(QObject):
     """系统管理处理器 (历史/设置/文件)"""
 
+    # 定义信号用于替代QTimer.singleShot
+    start_check_thread_signal = pyqtSignal()
+
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
         self.view = controller.view
         self.task_manager = controller.task_manager
+
+        # 连接信号
+        self.start_check_thread_signal.connect(self._on_start_check_thread)
 
     def show_history_panel(self):
         """显示历史记录页面"""
@@ -219,8 +225,8 @@ class SystemHandler(QObject):
                 text_content += "💬 自由聊天:\n" + "=" * 50 + "\n\n"
                 for chat in free_chats[-20:]:
                     text_content += f"时间: {chat.get('timestamp', '未知')}\n"
-                    text_content += f"用户: {chat.get('user_input', '未知')[:50]}...\n"
-                    text_content += f"AI: {chat.get('assistant_reply', '未知')[:50]}...\n"
+                    text_content += f"用户: {chat.get('user_input', '未知')}\n"
+                    text_content += f"AI: {chat.get('assistant_reply', '未知')}\n"
                     text_content += "-" * 30 + "\n\n"
 
             history_text = self.view.get_component("history_text")
@@ -264,7 +270,7 @@ class SystemHandler(QObject):
             is_harmony = True
 
         dialog = SystemCheckDialog(self.view, is_harmony, self.task_manager)
-        
+
         def check_thread():
             try:
                 tool_name = "HDC" if is_harmony else "ADB"
@@ -278,14 +284,14 @@ class SystemHandler(QObject):
                         tool_result = self.task_manager.utils.check_system_requirements()
                 except Exception as tool_error:
                     tool_result = False
-                    
+
                 dialog.tool_result = tool_result
 
                 # 更新工具检查结果
                 dialog.append_text("=" * 60)
                 dialog.append_text(f"📱 {tool_name} 环境检查")
                 dialog.append_text("=" * 60)
-                
+
                 if is_harmony:
                     if tool_result:
                         dialog.append_text("✅ HDC检查通过")
@@ -321,7 +327,7 @@ class SystemHandler(QObject):
                 except Exception as api_error:
                     print(f"❌ API检查出错: {api_error}")
                     api_result = False
-                    
+
                 dialog.api_result = api_result
 
                 dialog.append_text("=" * 60)
@@ -403,10 +409,20 @@ class SystemHandler(QObject):
                 dialog.set_status(f"检查出错: {str(e)[:30]}...")
                 dialog.set_status_color(ThemeColors.DANGER)
 
+        # 保存check_thread引用以便信号槽使用
+        self._current_check_thread = check_thread
+        self._current_check_dialog = dialog
+
         # 延迟启动线程，确保对话框已显示
-        QTimer.singleShot(100, lambda: threading.Thread(target=check_thread, daemon=True).start())
+        # 使用信号槽替代QTimer.singleShot
+        QTimer.singleShot(100, self.start_check_thread_signal.emit)
 
         dialog.exec()
+
+    def _on_start_check_thread(self):
+        """信号槽：启动检查线程"""
+        if hasattr(self, '_current_check_thread') and self._current_check_thread:
+            threading.Thread(target=self._current_check_thread, daemon=True).start()
 
     def show_file_management(self):
         """显示文件管理"""
