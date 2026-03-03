@@ -27,18 +27,18 @@ class TestThemeColors:
     def test_primary_color(self, mock_env_vars):
         """测试主色调"""
         from yuntai.core.config import ThemeColors
-        assert ThemeColors.PRIMARY == "#4361ee"
+        assert ThemeColors.PRIMARY == "#5B8DEE"
     
     def test_secondary_color(self, mock_env_vars):
         """测试次要色调"""
         from yuntai.core.config import ThemeColors
-        assert ThemeColors.SECONDARY == "#7209b7"
+        assert ThemeColors.SECONDARY == "#A78BFA"
     
     def test_all_colors_are_hex(self, mock_env_vars):
         """测试所有颜色都是有效的十六进制格式"""
         from yuntai.core.config import ThemeColors
         color_attrs = ['PRIMARY', 'SECONDARY', 'ACCENT', 'SUCCESS', 
-                       'WARNING', 'DANGER', 'BG_DARK', 'BG_CARD', 
+                       'WARNING', 'DANGER', 'BG_MAIN', 'BG_CARD', 
                        'BG_HOVER', 'TEXT_PRIMARY', 'TEXT_SECONDARY', 'TEXT_DISABLED']
         for attr in color_attrs:
             color = getattr(ThemeColors, attr)
