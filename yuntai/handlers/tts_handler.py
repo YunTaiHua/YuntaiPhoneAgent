@@ -90,17 +90,17 @@ class TTSHandler(QObject):
         # 先显示页面（这会触发页面创建）
         self.view.show_page(2)
         
-        # 等待一小段时间确保页面创建完成
-        import time
-        time.sleep(0.1)
-        
         # 绑定事件（只绑定一次，但只有在成功时才标记为已绑定）
         if not self._events_bound:
-            if self.view.components.get('tts_audio_listbox') is not None:
-                self._bind_events()
-                # 检查绑定是否成功
-                if self._events_bound_success:
-                    self._events_bound = True
+            # 等待组件创建，最多尝试10次
+            for i in range(10):
+                if self.view.components.get('tts_audio_listbox') is not None:
+                    self._bind_events()
+                    # 检查绑定是否成功
+                    if self._events_bound_success:
+                        self._events_bound = True
+                    break
+                time.sleep(0.05)
         
         # 更新音频列表
         if self.view.components.get('tts_audio_listbox') is not None:

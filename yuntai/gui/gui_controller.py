@@ -757,9 +757,40 @@ class GUIController(QObject):
 
     def toggle_theme(self):
         """切换主题"""
+        # 重置TTS事件绑定标志，以便重新创建页面后能重新绑定事件
+        self.tts_handler._events_bound = False
+        self.tts_handler._events_bound_success = False
+        
+        # 保存当前页面索引
+        current_page = self.view.current_page_index
+        
         self.view.toggle_theme()
         theme_name = "深色主题" if self.view.is_dark_theme else "浅色主题"
         self.show_toast(f"已切换到{theme_name}", "info")
+        
+        # 重新绑定当前页面的事件
+        self._rebind_current_page_events(current_page)
+    
+    def _rebind_current_page_events(self, page_index: int):
+        """重新绑定当前页面的事件"""
+        if page_index == 0:
+            # 控制中心页面
+            self._bind_dashboard_events()
+        elif page_index == 1:
+            # 设备管理页面
+            self.connection_handler._bind_events()
+        elif page_index == 2:
+            # TTS语音页面 - 重新绑定事件
+            self.tts_handler._bind_events()
+        elif page_index == 3:
+            # 历史记录页面
+            self.system_handler._bind_history_events()
+        elif page_index == 4:
+            # 动态功能页面
+            self.dynamic_handler._bind_events()
+        elif page_index == 5:
+            # 系统设置页面
+            self.system_handler._bind_settings_events()
 
     # ============ 初始连接检查 ============
 
