@@ -25,6 +25,10 @@ class ThemeColors:
     DANGER = "#EF4444"           # 危险 - 标准红
     DANGER_HOVER = "#DC2626"      # 危险悬停
 
+    # 状态指示色 - 浅蓝色系（用于导航栏状态和toast）
+    STATUS_ACTIVE = "#64D2FF"     # 激活状态 - 清新透亮的天蓝色
+    STATUS_INACTIVE = "#9CA3AF"   # 未激活状态 - 灰色
+
     # 背景色 - 更纯净的米白色系
     BG_MAIN = "#FDFCFA"          # 主背景 - 暖白
     BG_NAV = "#FFFFFF"           # 导航栏背景 - 纯白
@@ -69,6 +73,10 @@ class DarkThemeColors:
     WARNING_HOVER = "#D97706"
     DANGER = "#EF4444"
     DANGER_HOVER = "#DC2626"
+
+    # 状态指示色 - 浅蓝色系（用于导航栏状态和toast）
+    STATUS_ACTIVE = "#64D2FF"     # 激活状态 - 清新透亮的天蓝色
+    STATUS_INACTIVE = "#6B7280"   # 未激活状态 - 灰色
 
     # 背景色
     BG_MAIN = "#1A1A2E"

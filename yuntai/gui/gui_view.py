@@ -49,6 +49,9 @@ class GUIView(QMainWindow):
         # 应用主题
         self._apply_theme()
         
+        # 先创建遮罩层，确保在主窗口显示前就准备好
+        self._create_tts_loading_overlay()
+        
         # 创建界面
         self._setup_main_layout()
         
@@ -173,18 +176,18 @@ class GUIView(QMainWindow):
                 indicator = self.components["connection_indicator"]
                 current_text = indicator.text()
                 if "未连接" in current_text:
-                    indicator.setStyleSheet(f"color: {colors.DANGER}; background: transparent;")
+                    indicator.setStyleSheet(f"color: {colors.STATUS_INACTIVE}; background: transparent;")
                 else:
-                    indicator.setStyleSheet(f"color: {colors.SUCCESS}; background: transparent;")
+                    indicator.setStyleSheet(f"color: {colors.STATUS_ACTIVE}; background: transparent;")
             
             # 更新TTS状态指示器
             if "tts_indicator" in self.components:
                 tts_ind = self.components["tts_indicator"]
                 current_text = tts_ind.text()
                 if "关闭" in current_text:
-                    tts_ind.setStyleSheet(f"color: {colors.WARNING}; background: transparent;")
+                    tts_ind.setStyleSheet(f"color: {colors.STATUS_INACTIVE}; background: transparent;")
                 else:
-                    tts_ind.setStyleSheet(f"color: {colors.SUCCESS}; background: transparent;")
+                    tts_ind.setStyleSheet(f"color: {colors.STATUS_ACTIVE}; background: transparent;")
             
             # 更新主题切换按钮
             if "theme_toggle_button" in self.components:
@@ -329,9 +332,6 @@ class GUIView(QMainWindow):
         self._create_status_bar()
         main_layout.addWidget(self.status_bar)
         
-        # 创建TTS加载遮罩层
-        self._create_tts_loading_overlay()
-        
     def _create_navigation_frame(self):
         """创建左侧导航栏 - 现代化米白色风格"""
         self.nav_frame = QFrame()
@@ -434,7 +434,7 @@ class GUIView(QMainWindow):
         
         self.components["connection_indicator"] = QLabel("● 未连接")
         self.components["connection_indicator"].setFont(ThemeFonts.BODY_XSMALL)
-        self.components["connection_indicator"].setStyleSheet(f"color: {self.colors.DANGER}; background: transparent;")
+        self.components["connection_indicator"].setStyleSheet(f"color: {self.colors.STATUS_INACTIVE}; background: transparent;")
         status_layout.addWidget(self.components["connection_indicator"])
         status_layout.addStretch()
         
@@ -449,7 +449,7 @@ class GUIView(QMainWindow):
         
         self.components["tts_indicator"] = QLabel("● TTS: 关闭")
         self.components["tts_indicator"].setFont(ThemeFonts.BODY_XSMALL)
-        self.components["tts_indicator"].setStyleSheet(f"color: {self.colors.WARNING}; background: transparent;")
+        self.components["tts_indicator"].setStyleSheet(f"color: {self.colors.STATUS_INACTIVE}; background: transparent;")
         tts_layout.addWidget(self.components["tts_indicator"])
         tts_layout.addStretch()
         
@@ -606,11 +606,19 @@ class GUIView(QMainWindow):
             self.tts_loading_overlay.setGeometry(0, 0, self.width(), self.height())
             self.tts_loading_overlay.raise_()
             self.tts_loading_overlay.show()
+            # 禁止窗口最大化
+            self.setWindowState(self.windowState() & ~Qt.WindowState.WindowMaximized)
+            # 保存当前窗口状态并禁止最大化按钮
+            self._saved_maximizable = self.maximumSize().isNull() or self.maximumSize() == QSize(16777215, 16777215)
+            self.setFixedSize(self.size())
             
     def hide_tts_loading(self):
         """隐藏TTS加载遮罩"""
         if hasattr(self, 'tts_loading_overlay'):
             self.tts_loading_overlay.hide()
+            # 恢复窗口大小调整功能
+            self.setMinimumSize(1200, 700)
+            self.setMaximumSize(QSize(16777215, 16777215))  # 恢复默认最大尺寸
     
     def show_enter_button(self):
         """显示模拟回车按钮"""

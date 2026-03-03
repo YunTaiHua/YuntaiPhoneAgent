@@ -658,16 +658,22 @@ class GUIController(QObject):
         if status_label:
             status_label.setText(message)
 
-        # 根据消息类型设置颜色
+        # 根据消息类型设置颜色 - 使用主题适配的浅蓝色
         colors = {
             "info": ThemeColors.TEXT_SECONDARY,
-            "success": ThemeColors.SUCCESS,
+            "success": ThemeColors.STATUS_ACTIVE,  # 使用浅蓝色替代绿色
             "warning": ThemeColors.WARNING,
             "error": ThemeColors.DANGER
         }
         color = colors.get(msg_type, ThemeColors.TEXT_SECONDARY)
         if status_label:
-            status_label.setStyleSheet(f"color: {color}; background: transparent;")
+            # 优化toast样式：添加左侧指示条效果
+            status_label.setStyleSheet(f"""
+                color: {color};
+                background: transparent;
+                padding: 4px 8px;
+                border-left: 3px solid {color};
+            """)
 
     # ============ 设备类型回调 ============
 
@@ -870,10 +876,10 @@ class GUIController(QObject):
         if tts_indicator:
             if enabled:
                 tts_indicator.setText("● TTS: 开")
-                tts_indicator.setStyleSheet(f"color: {ThemeColors.SUCCESS}; background: transparent; border: none;")
+                tts_indicator.setStyleSheet(f"color: {ThemeColors.STATUS_ACTIVE}; background: transparent; border: none;")
             else:
                 tts_indicator.setText("● TTS: 关")
-                tts_indicator.setStyleSheet(f"color: {ThemeColors.WARNING}; background: transparent; border: none;")
+                tts_indicator.setStyleSheet(f"color: {ThemeColors.STATUS_INACTIVE}; background: transparent; border: none;")
 
     # ============ 辅助方法 ============
     

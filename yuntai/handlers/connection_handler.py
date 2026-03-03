@@ -434,13 +434,13 @@ class ConnectionHandler(QObject):
         if connected:
             if connection_indicator:
                 connection_indicator.setText("● 已连接")
-                connection_indicator.setStyleSheet(f"color: {ThemeColors.SUCCESS};")
+                connection_indicator.setStyleSheet(f"color: {ThemeColors.STATUS_ACTIVE}; background: transparent;")
             if status_label:
                 status_label.setText("设备已连接")
         else:
             if connection_indicator:
                 connection_indicator.setText("● 未连接")
-                connection_indicator.setStyleSheet(f"color: {ThemeColors.DANGER};")
+                connection_indicator.setStyleSheet(f"color: {ThemeColors.STATUS_INACTIVE}; background: transparent;")
             if status_label:
                 status_label.setText("设备未连接")
 
@@ -449,10 +449,10 @@ class ConnectionHandler(QObject):
         if conn_status_label:
             if connected:
                 conn_status_label.setText("● 已连接")
-                conn_status_label.setStyleSheet(f"color: {ThemeColors.SUCCESS}; font-size: 24px; font-weight: bold;")
+                conn_status_label.setStyleSheet(f"color: {ThemeColors.STATUS_ACTIVE}; font-size: 24px; font-weight: bold; background: transparent;")
             else:
                 conn_status_label.setText("● 未连接")
-                conn_status_label.setStyleSheet(f"color: {ThemeColors.DANGER}; font-size: 24px; font-weight: bold;")
+                conn_status_label.setStyleSheet(f"color: {ThemeColors.STATUS_INACTIVE}; font-size: 24px; font-weight: bold; background: transparent;")
 
         # 清空第二行
         conn_info_label = self.view.get_component("connection_info_label")
