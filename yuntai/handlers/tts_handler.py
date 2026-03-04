@@ -366,7 +366,6 @@ class TTSHandler(QObject):
 
     def tts_on_audio_double_click(self, item):
         """双击播放音频"""
-        self.tts_add_log(f"🎵 双击播放: {item.text()}")
         
         # 直接使用双击的item，而不是依赖选中状态
         tts_audio_listbox = self.view.components.get('tts_audio_listbox')

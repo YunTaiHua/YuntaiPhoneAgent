@@ -429,20 +429,15 @@ class ConnectionHandler(QObject):
     def _do_update_connection_status(self, connected):
         """在GUI线程中更新连接状态"""
         connection_indicator = self.view.get_component("connection_indicator")
-        status_label = self.view.get_component("status_label")
 
         if connected:
             if connection_indicator:
                 connection_indicator.setText("● 已连接")
                 connection_indicator.setStyleSheet(f"color: {ThemeColors.STATUS_ACTIVE}; background: transparent;")
-            if status_label:
-                status_label.setText("设备已连接")
         else:
             if connection_indicator:
                 connection_indicator.setText("● 未连接")
                 connection_indicator.setStyleSheet(f"color: {ThemeColors.STATUS_INACTIVE}; background: transparent;")
-            if status_label:
-                status_label.setText("设备未连接")
 
         # 更新连接页面状态
         conn_status_label = self.view.get_component("connection_status_label")

@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QLabel, QPushButton, QFrame, QStackedWidget, QFileDialog,
     QScrollArea, QSizePolicy, QApplication, QMessageBox
 )
-from PyQt6.QtCore import Qt, QSize, pyqtSignal
+from PyQt6.QtCore import Qt, QSize, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve, QPoint
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QCursor
 
 # 从 yuntai.config 导入配置
@@ -21,6 +21,174 @@ from yuntai.gui.styles import (
     ThemeSpacing, ThemeHeight, get_main_stylesheet, 
     get_overlay_stylesheet, apply_light_theme, apply_dark_theme
 )
+
+
+class ToastWidget(QFrame):
+    """Toast提示组件 - 底部居中弹出的圆角矩形卡片"""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.is_dark_theme = False
+        self._setup_ui()
+        self._setup_animation()
+        
+        # 自动隐藏定时器
+        self.hide_timer = QTimer(self)
+        self.hide_timer.setSingleShot(True)
+        self.hide_timer.timeout.connect(self._start_hide_animation)
+        
+        # 当前消息队列
+        self._pending_messages = []
+        self._is_showing = False
+        
+    def _setup_ui(self):
+        """设置UI"""
+        self.setObjectName("toastWidget")
+        self.setFixedHeight(48)
+        self.setMinimumWidth(200)
+        self.setMaximumWidth(500)
+        
+        # 布局
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(20, 10, 20, 10)
+        
+        # 消息标签
+        self.message_label = QLabel()
+        self.message_label.setFont(ThemeFonts.BODY_SMALL)
+        self.message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.message_label)
+        
+        # 初始隐藏
+        self.hide()
+        
+    def _setup_animation(self):
+        """设置动画"""
+        # 显示动画
+        self.show_animation = QPropertyAnimation(self, b"pos")
+        self.show_animation.setDuration(200)
+        self.show_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        
+        # 隐藏动画
+        self.hide_animation = QPropertyAnimation(self, b"pos")
+        self.hide_animation.setDuration(200)
+        self.hide_animation.setEasingCurve(QEasingCurve.Type.InCubic)
+        self.hide_animation.finished.connect(self._on_hide_finished)
+        
+    def _update_style(self, msg_type: str = "info"):
+        """更新样式"""
+        colors = DarkThemeColors if self.is_dark_theme else ThemeColors
+        
+        # 根据消息类型设置颜色
+        type_colors = {
+            "info": colors.TEXT_SECONDARY,
+            "success": colors.STATUS_ACTIVE,
+            "warning": colors.WARNING,
+            "error": colors.DANGER
+        }
+        text_color = type_colors.get(msg_type, colors.TEXT_SECONDARY)
+        
+        # 根据主题设置不同的背景色，增加与背景的区分度
+        if self.is_dark_theme:
+            # 深色主题：使用更深的卡片背景
+            bg_color = "#2D3748"  # 比BG_CARD更深
+            border_color = "#4B5563"  # 更明显的边框
+        else:
+            # 浅色主题：使用稍深的背景色
+            bg_color = "#F8F7F5"  # 比BG_MAIN稍深
+            border_color = "#D0CDC7"  # 更明显的边框
+        
+        # 设置样式 - 添加阴影效果
+        self.setStyleSheet(f"""
+            QFrame#toastWidget {{
+                background-color: {bg_color};
+                border: 1px solid {border_color};
+                border-radius: 12px;
+            }}
+        """)
+        self.message_label.setStyleSheet(f"color: {text_color}; background: transparent;")
+        
+    def show_toast(self, message: str, msg_type: str = "info", duration: int = 2000):
+        """显示Toast消息"""
+        # 如果正在显示，立即隐藏并显示新消息
+        if self._is_showing:
+            self.hide_timer.stop()
+            self._force_hide_and_show_new(message, msg_type, duration)
+            return
+            
+        self._show_message(message, msg_type, duration)
+        
+    def _force_hide_and_show_new(self, message: str, msg_type: str, duration: int):
+        """强制隐藏当前toast并显示新消息"""
+        # 立即隐藏
+        self.hide()
+        self._is_showing = False
+        
+        # 显示新消息
+        self._show_message(message, msg_type, duration)
+        
+    def _show_message(self, message: str, msg_type: str, duration: int):
+        """显示消息"""
+        self._is_showing = True
+        
+        # 更新内容和样式
+        self.message_label.setText(message)
+        self._update_style(msg_type)
+        
+        # 调整大小
+        self.adjustSize()
+        
+        # 计算位置（底部居中）
+        parent = self.parent()
+        if parent:
+            parent_rect = parent.rect()
+            toast_width = self.width()
+            toast_height = self.height()
+            
+            # 底部居中，留出底部边距
+            margin_bottom = 80
+            x = (parent_rect.width() - toast_width) // 2
+            y = parent_rect.height() - toast_height - margin_bottom
+            
+            # 起始位置（从底部下方开始）
+            start_y = parent_rect.height() + 10
+            end_y = y
+            
+            # 设置位置
+            self.move(x, start_y)
+            self.show()
+            
+            # 启动显示动画
+            self.show_animation.setStartValue(QPoint(x, start_y))
+            self.show_animation.setEndValue(QPoint(x, end_y))
+            self.show_animation.start()
+            
+        # 设置自动隐藏定时器
+        self.hide_timer.start(duration)
+        
+    def _start_hide_animation(self):
+        """开始隐藏动画"""
+        parent = self.parent()
+        if parent:
+            parent_rect = parent.rect()
+            toast_width = self.width()
+            toast_height = self.height()
+            
+            x = (parent_rect.width() - toast_width) // 2
+            start_y = self.y()
+            end_y = parent_rect.height() + 10
+            
+            self.hide_animation.setStartValue(QPoint(x, start_y))
+            self.hide_animation.setEndValue(QPoint(x, end_y))
+            self.hide_animation.start()
+            
+    def _on_hide_finished(self):
+        """隐藏动画完成"""
+        self.hide()
+        self._is_showing = False
+        
+    def update_theme(self, is_dark_theme: bool):
+        """更新主题"""
+        self.is_dark_theme = is_dark_theme
 
 
 class GUIView(QMainWindow):
@@ -54,6 +222,9 @@ class GUIView(QMainWindow):
         
         # 创建界面
         self._setup_main_layout()
+        
+        # 创建Toast组件（在主布局之后创建，确保能正确显示）
+        self._create_toast_widget()
         
         # 创建页面构建器（延迟导入避免循环依赖）
         from yuntai.views.pages import PageBuilder
@@ -98,7 +269,7 @@ class GUIView(QMainWindow):
         # 清空组件字典中的页面相关组件（保留导航栏等全局组件）
         keys_to_keep = [
             "nav_frame", "nav_buttons", "content_card", "page_stack",
-            "status_bar", "status_label", "tts_indicator", "theme_toggle_button",
+            "status_bar", "tts_indicator", "theme_toggle_button",
             "tts_loading_overlay", "tts_loading_label"
         ]
         keys_to_remove = [k for k in list(self.components.keys()) if k not in keys_to_keep]
@@ -107,6 +278,10 @@ class GUIView(QMainWindow):
         
         # 应用新主题
         self._apply_theme()
+        
+        # 更新Toast主题
+        if hasattr(self, 'toast_widget'):
+            self.toast_widget.update_theme(self.is_dark_theme)
         
         # 更新全局组件样式
         self._update_global_components_style()
@@ -235,10 +410,6 @@ class GUIView(QMainWindow):
                     border-top: 1px solid {colors.BORDER_LIGHT};
                 }}
             """)
-            
-            # 更新状态栏标签
-            if "status_label" in self.components:
-                self.components["status_label"].setStyleSheet(f"color: {colors.TEXT_SECONDARY}; background: transparent;")
         
         # 5. 更新遮罩层样式
         if hasattr(self, 'tts_loading_overlay') and self.tts_loading_overlay:
@@ -541,13 +712,12 @@ class GUIView(QMainWindow):
         
         status_layout = QHBoxLayout(self.status_bar)
         status_layout.setContentsMargins(20, 0, 20, 0)
-        
-        # 系统状态
-        self.components["status_label"] = QLabel("系统已就绪")
-        self.components["status_label"].setFont(ThemeFonts.BODY_TINY)
-        self.components["status_label"].setStyleSheet(f"color: {self.colors.TEXT_SECONDARY}; background: transparent;")
-        status_layout.addWidget(self.components["status_label"])
         status_layout.addStretch()
+        
+    def _create_toast_widget(self):
+        """创建Toast提示组件"""
+        self.toast_widget = ToastWidget(self)
+        self.toast_widget.update_theme(self.is_dark_theme)
         
     def _create_tts_loading_overlay(self):
         """创建TTS加载遮罩层"""

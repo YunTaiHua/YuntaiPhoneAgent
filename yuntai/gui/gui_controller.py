@@ -652,28 +652,9 @@ class GUIController(QObject):
             pass
 
     def show_toast(self, message: str, msg_type: str = "info"):
-        """显示提示消息"""
-        # 更新状态栏
-        status_label = self.view.get_component("status_label")
-        if status_label:
-            status_label.setText(message)
-
-        # 根据消息类型设置颜色 - 使用主题适配的浅蓝色
-        colors = {
-            "info": ThemeColors.TEXT_SECONDARY,
-            "success": ThemeColors.STATUS_ACTIVE,  # 使用浅蓝色替代绿色
-            "warning": ThemeColors.WARNING,
-            "error": ThemeColors.DANGER
-        }
-        color = colors.get(msg_type, ThemeColors.TEXT_SECONDARY)
-        if status_label:
-            # 优化toast样式：添加左侧指示条效果
-            status_label.setStyleSheet(f"""
-                color: {color};
-                background: transparent;
-                padding: 4px 8px;
-                border-left: 3px solid {color};
-            """)
+        """显示提示消息 - 使用新的Toast组件"""
+        if hasattr(self.view, 'toast_widget'):
+            self.view.toast_widget.show_toast(message, msg_type, duration=2000)
 
     # ============ 设备类型回调 ============
 
