@@ -386,7 +386,7 @@ class GUIController(QObject):
                     task_result = self.judgement_agent.judge(command)
                     task_type = task_result.task_type
                     if task_type != "free_chat":
-                        self._append_output(f"❌ 设备未连接，请先连接设备")
+                        print(f"❌ 设备未连接，请先连接设备")
                         return
 
                 result = None
@@ -403,7 +403,7 @@ class GUIController(QObject):
                         if len(parts) == 2:
                             target_app, target_object = parts
                             if not self.task_manager.is_connected:
-                                self._append_output(f"❌ 设备未连接，无法启动持续回复")
+                                print(f"❌ 设备未连接，无法启动持续回复")
                                 return
                             self.start_continuous_reply_thread(
                                 self.task_manager.task_args, target_app, target_object, self.task_manager.device_id
@@ -414,14 +414,14 @@ class GUIController(QObject):
                         result = f"❌ 解析持续回复参数失败: {str(e)}"
 
                 if result:
-                    self._append_output(f"🎉 结果：{result}\n")
+                    print(f"🎉 结果：{result}")
 
                 if "持续回复模式" in str(result) or "continuous_reply" in str(result).lower():
                     print(f"🔄 检测到持续回复模式，保持按钮状态")
                     return
 
             except Exception as e:
-                self._append_output(f"❌ 错误：{str(e)}\n")
+                print(f"❌ 错误：{str(e)}")
                 traceback.print_exc()
             finally:
                 # 使用信号槽清理附件文件
@@ -548,9 +548,9 @@ class GUIController(QObject):
         self._disable_terminate_button()
 
         if self.is_continuous_mode:
-            self._append_output(f"\n🛑 正在终止持续回复模式...")
+            print(f"\n🛑 正在终止持续回复模式...")
         else:
-            self._append_output(f"\n🛑 正在终止当前任务...")
+            print(f"\n🛑 正在终止当前任务...")
         self.show_toast("已发送终止信号", "warning")
 
     def simulate_enter(self):
@@ -562,15 +562,7 @@ class GUIController(QObject):
         except Exception as e:
             print(f"⚠️  发送确认信号失败: {e}")
 
-        output_text = self.view.get_component("output_text")
-        if output_text:
-            try:
-                output_text.setReadOnly(False)
-                output_text.insertPlainText("[用户已确认]")
-                output_text.ensureCursorVisible()
-                output_text.setReadOnly(True)
-            except Exception:
-                pass
+        print("[用户已确认]")
 
     def clear_output(self):
         """清空输出区域"""
@@ -743,7 +735,7 @@ class GUIController(QObject):
         self.terminate_flag.clear()
         self._disable_execute_button()
         self._enable_terminate_button()
-        self._append_output(f"🔄 启动持续回复模式: {target_app} -> {target_object}\n")
+        print(f"🔄 启动持续回复模式: {target_app} -> {target_object}")
 
         def continuous_reply_loop():
             try:
@@ -761,14 +753,11 @@ class GUIController(QObject):
                 
                 if success:
                     print(f"✅ {result}")
-                    self._append_output(f"✅ {result}\n")
                 else:
                     print(f"⏹️  {result}")
-                    self._append_output(f"⏹️  {result}\n")
                     
             except Exception as e:
-                print(f"❌ 持续回复错误：{str(e)}\n")
-                self._append_output(f"❌ 持续回复错误: {str(e)}\n")
+                print(f"❌ 持续回复错误：{str(e)}")
             finally:
                 self.is_continuous_mode = False
                 self.terminate_flag.clear()

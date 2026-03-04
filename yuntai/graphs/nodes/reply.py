@@ -41,17 +41,23 @@ def generate_reply(state: ReplyState) -> dict:
     
     try:
         client = get_zhipu_client()
-        response = client.chat.completions.create(
+        stream = client.chat.completions.create(
             model=ZHIPU_CHAT_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
+            stream=True,
             max_tokens=500
         )
         
-        reply = response.choices[0].message.content.strip()
+        reply = ""
+        for chunk in stream:
+            if chunk.choices and len(chunk.choices) > 0:
+                if chunk.choices[0].delta.content is not None:
+                    reply += chunk.choices[0].delta.content
+        reply = reply.strip()
         
         if "。" in reply:
             reply = reply.split("。")[0] + "。"

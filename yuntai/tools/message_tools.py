@@ -49,18 +49,24 @@ def parse_messages(record: str, zhipu_client: ZhipuAI) -> List[Dict[str, str]]:
 """
     
     try:
-        response = zhipu_client.chat.completions.create(
+        stream = zhipu_client.chat.completions.create(
             model=ZHIPU_CHAT_MODEL,
             messages=[
                 {"role": "system", "content": "你必须只输出符合要求的JSON，不要加任何额外文字！"},
                 {"role": "user", "content": prompt_text}
             ],
             temperature=0.0,
+            stream=True,
             max_tokens=2000,
             response_format={"type": "json_object"}
         )
         
-        resp_content = response.choices[0].message.content.strip()
+        resp_content = ""
+        for chunk in stream:
+            if chunk.choices and len(chunk.choices) > 0:
+                if chunk.choices[0].delta.content is not None:
+                    resp_content += chunk.choices[0].delta.content
+        resp_content = resp_content.strip()
         if resp_content.startswith("```"):
             resp_content = resp_content.replace("```json", "").replace("```", "").strip()
         
@@ -264,17 +270,23 @@ def generate_reply(
 请生成回复："""
     
     try:
-        response = zhipu_client.chat.completions.create(
+        stream = zhipu_client.chat.completions.create(
             model=ZHIPU_CHAT_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt or default_system},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
+            stream=True,
             max_tokens=500
         )
         
-        reply = response.choices[0].message.content.strip()
+        reply = ""
+        for chunk in stream:
+            if chunk.choices and len(chunk.choices) > 0:
+                if chunk.choices[0].delta.content is not None:
+                    reply += chunk.choices[0].delta.content
+        reply = reply.strip()
         
         if "。" in reply:
             reply = reply.split("。")[0] + "。"

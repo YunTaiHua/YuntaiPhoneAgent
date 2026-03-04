@@ -388,19 +388,27 @@ class MultimodalProcessor:
             #print(f"🔄 发送请求到ZHIPU_MULTIMODAL_MODEL...")
 
             try:
-                # 使用zhipuai库的正确调用方式
-                response = self.client.chat.completions.create(
+                # 使用zhipuai库的正确调用方式（流式输出）
+                stream = self.client.chat.completions.create(
                     model=self.model,
                     messages=messages,
                     temperature=temperature,
+                    stream=True,
                     max_tokens=max_tokens,
                     thinking={
                         "type": "disabled"  # 根据需要启用或禁用
                     }
                 )
 
-                # 解析响应
-                response_text = response.choices[0].message.content
+                # 解析流式响应
+                response_text = ""
+                for chunk in stream:
+                    if chunk.choices and len(chunk.choices) > 0:
+                        if chunk.choices[0].delta.content is not None:
+                            content = chunk.choices[0].delta.content
+                            response_text += content
+                            print(content, end="", flush=True)
+                print()  # 换行
                 #print(f"\n✅ 收到响应，长度: {len(response_text)} 字符")
 
                 # 如果有音频处理结果，清理临时文件
@@ -484,16 +492,23 @@ class MultimodalProcessor:
         try:
             print("🔄 测试API连接...")
 
-            # 简单的文本测试
-            response = self.client.chat.completions.create(
+            # 简单的文本测试（流式输出）
+            stream = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "user", "content": [{"type": "text", "text": "你好"}]}
                 ],
+                stream=True,
                 max_tokens=10
             )
 
-            if response.choices[0].message.content:
+            response_text = ""
+            for chunk in stream:
+                if chunk.choices and len(chunk.choices) > 0:
+                    if chunk.choices[0].delta.content is not None:
+                        response_text += chunk.choices[0].delta.content
+
+            if response_text:
                 print("✅ API连接正常")
                 return True
             else:
