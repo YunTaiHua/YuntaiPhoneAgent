@@ -67,7 +67,12 @@ YuntaiPhoneAgent/
 │   │   ├── tts_audio.py
 │   │   ├── tts_database.py
 │   │   ├── tts_engine.py
-│   │   └── tts_text.py
+│   │   ├── tts_text.py
+│   │   └── gpt_sovits_custom/ # 自定义GPT-SoVITS模块
+│   │       ├── __init__.py
+│   │       ├── inference_webui.py
+│   │       ├── t2s_model.py
+│   │       └── t2s_lightning_module.py
 │   ├── views/                 # GUI视图组件
 │   │   ├── __init__.py
 │   │   ├── connection.py
@@ -151,11 +156,16 @@ YuntaiPhoneAgent/
 - 相似度比对：避免重复回复
 - 循环检测：每轮检查新消息，最多30轮，可配置递归限制
 
-#### 4. TTS语音合成 (task_manager.py)
+#### 4. TTS语音合成 (managers/)
 - 集成 GPT-SoVITS 模型
 - 支持分段合成（最大500字符/段）
 - 并行合成提升效率
 - 需要参考音频目录
+- **自定义模块优化**：
+  - 移除所有冗余print输出
+  - 移除tqdm进度条
+  - 使用环境变量配置路径
+  - 降级机制确保稳定性
 
 #### 5. 多模态处理
 - GLM-4.6v-flash：文本、视频、图片、文件分析
@@ -214,6 +224,7 @@ GLM-4.6v-flash (任务分类)
 3. **模块化重构**：TTS、GUI、业务逻辑分离
 4. **配置验证机制**：启动时自动检查路径有效性
 5. **持久化记忆**：forever.txt手动维护，conversation_history.json自动记录
+6. **TTS输出优化**：自定义GPT-SoVITS模块，移除冗余输出，提升用户体验
 
 ### ⚠️ 配置要求
 
@@ -228,6 +239,7 @@ GLM-4.6v-flash (任务分类)
 - v1.1: 集成TTS、GUI、投屏
 - v1.2: 升级GLM-4.6v-flash多模态、引入双AI辅助系统
 - v1.3: 使用 LangGraph 重构持续回复流程，状态集中管理，节点化设计
+- v1.3.2: 优化TTS模块，自定义GPT-SoVITS实现静默输出，提升用户体验
 
  项目展现了AI Agent、多模态、自动化技术的深度整合，是一个功能完善的智能手机操作代理系统。
 

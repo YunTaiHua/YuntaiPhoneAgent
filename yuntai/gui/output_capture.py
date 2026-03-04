@@ -1,18 +1,17 @@
 """
-输出捕获模块 - v3 (PyQt6 重构版)
-- 终端：保持原始输出，不做任何过滤
-- GUI：过滤TTS冗余输出 + 格式化换行
+输出捕获模块 - v4 (简化版)
+- TTS冗余输出已在gpt_sovits_custom模块中被移除
+- 此模块仅负责将终端输出同步到GUI
+- 无需复杂的过滤逻辑
 """
 
 import sys
-import re
-from contextlib import contextmanager
-from PyQt6.QtCore import QObject, pyqtSignal, QMetaObject, Qt, Q_ARG
+from PyQt6.QtCore import QObject, pyqtSignal
 
 
 class SimpleOutputCapture(QObject):
-    """输出捕获类：终端保持原样，GUI过滤TTS冗余输出"""
-    
+    """简化的输出捕获类：仅同步终端输出到GUI"""
+
     # 定义信号用于线程安全的GUI更新
     text_updated = pyqtSignal(str)
 
@@ -21,8 +20,7 @@ class SimpleOutputCapture(QObject):
         self.text_widget = text_widget
         self.original_stdout = sys.stdout
         self.original_stderr = sys.stderr
-        self.in_tts_block = False
-        
+
         # 连接信号到槽函数
         self.text_updated.connect(self._safe_update_text)
 
@@ -35,16 +33,15 @@ class SimpleOutputCapture(QObject):
                 if not text:
                     return 0
 
+                # 输出到终端
                 if self.is_stdout:
                     self.capture.original_stdout.write(text)
                 else:
                     self.capture.original_stderr.write(text)
 
+                # 同步到GUI（保留所有文本，包括空行）
                 if self.capture.text_widget:
-                    gui_text = self.capture._filter_for_gui(text)
-                    if gui_text:
-                        # 使用信号发射文本，确保线程安全
-                        self.capture.text_updated.emit(gui_text)
+                    self.capture.text_updated.emit(text)
 
                 return len(text)
 
@@ -60,131 +57,11 @@ class SimpleOutputCapture(QObject):
         sys.stdout = self.custom_stdout
         sys.stderr = self.custom_stderr
 
-    def _filter_for_gui(self, text: str) -> str:
-        """过滤TTS冗余输出，仅用于GUI"""
-        if not text or not isinstance(text, str):
-            return ""
-
-        stripped = text.strip()
-
-        progress_patterns = [
-            r'^\s*\d+%\|',
-            r'\[\d+:\d+<\d+:\d+',
-            r'\d+\.?\d*it/s\]',
-        ]
-        for pattern in progress_patterns:
-            if re.search(pattern, stripped):
-                return ""
-
-        tts_markers = [
-            "实际输入的参考文本:",
-            "实际输入的目标文本:",
-            "实际输入的目标文本(切句后):",
-            "实际输入的目标文本(每句):",
-            "前端处理后的文本(每句):",
-            "Skip loading CUDA",
-            "更多东西被纳入可重塑的范畴",
-            "libpng warning:",
-        ]
-        for marker in tts_markers:
-            if marker in text:
-                self.in_tts_block = True
-                return ""
-
-        if self.in_tts_block:
-            tts_block_patterns = [
-                r"^\['[^\]]+'\]$",
-                r"^WARNING:",
-                r"^loading sovits",
-                r"^All keys matched",
-            ]
-            for pattern in tts_block_patterns:
-                if re.search(pattern, stripped):
-                    return ""
-
-            if re.match(r'^\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+', stripped):
-                self.in_tts_block = False
-                return ""
-
-            if stripped.endswith(']'):
-                self.in_tts_block = False
-                return ""
-
-            return ""
-
-        tts_init_messages = [
-            "✅ 音频播放器初始化成功",
-            "🔍 初始化TTS文件数据库...",
-            "📁 确保目录存在:",
-            "✅ 文件数据库初始化完成:",
-            "📦 预加载TTS模块...",
-            "📦 正在加载TTS模块...",
-            "✅ BERT模型路径已设置",
-            "✅ HuBERT模型路径已设置",
-            "📌 默认GPT模型:",
-            "📌 默认SoVITS模型:",
-            "✅ TTS模块加载成功",
-            "✅ TTS模块预加载成功",
-            "- GPT模型:",
-            "- SoVITS模型:",
-            "- 参考音频:",
-            "- 参考文本:",
-        ]
-        for msg in tts_init_messages:
-            if msg in text:
-                return ""
-
-        if stripped.startswith('[') and stripped.endswith(']'):
-            return ""
-
-        text = re.sub(r'\x1b\[[0-9;]*[mK]', '', text)
-
-        return text
-
-    @contextmanager
-    def suppress_tts_output(self):
-        """上下文管理器：复用主过滤逻辑"""
-        original_stdout = sys.stdout
-        original_stderr = sys.stderr
-
-        class SuppressStream:
-            def __init__(self, capture, is_stdout=True):
-                self.capture = capture
-                self.is_stdout = is_stdout
-
-            def write(self, text):
-                if not text:
-                    return 0
-
-                if self.is_stdout:
-                    self.capture.original_stdout.write(text)
-                else:
-                    self.capture.original_stderr.write(text)
-
-                if self.capture.text_widget:
-                    gui_text = self.capture._filter_for_gui(text)
-                    if gui_text:
-                        self.capture.text_updated.emit(gui_text)
-
-                return len(text)
-
-            def flush(self):
-                pass
-
-        sys.stdout = SuppressStream(self, is_stdout=True)
-        sys.stderr = SuppressStream(self, is_stdout=False)
-
-        try:
-            yield
-        finally:
-            sys.stdout = original_stdout
-            sys.stderr = original_stderr
-
     def _safe_update_text(self, text):
         """安全更新文本控件（通过信号槽机制确保线程安全）"""
         if not self.text_widget:
             return
-            
+
         try:
             # PyQt6 QTextEdit 操作
             self.text_widget.setReadOnly(False)

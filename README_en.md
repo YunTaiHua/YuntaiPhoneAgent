@@ -67,7 +67,12 @@ YuntaiPhoneAgent/
 │   │   ├── tts_audio.py
 │   │   ├── tts_database.py
 │   │   ├── tts_engine.py
-│   │   └── tts_text.py
+│   │   ├── tts_text.py
+│   │   └── gpt_sovits_custom/ # Custom GPT-SoVITS Module
+│   │       ├── __init__.py
+│   │       ├── inference_webui.py
+│   │       ├── t2s_model.py
+│   │       └── t2s_lightning_module.py
 │   ├── views/                 # GUI View Components
 │   │   ├── __init__.py
 │   │   ├── connection.py
@@ -151,11 +156,16 @@ YuntaiPhoneAgent/
 - Similarity comparison: avoid duplicate replies
 - Loop detection: check new messages each round, maximum 30 rounds, configurable recursion limit
 
-#### 4. TTS Voice Synthesis (task_manager.py)
+#### 4. TTS Voice Synthesis (managers/)
 - Integrate GPT-SoVITS model
 - Support segment synthesis (max 500 characters/segment)
 - Parallel synthesis for efficiency
 - Requires reference audio directory
+- **Custom Module Optimization**:
+  - Remove all redundant print outputs
+  - Remove tqdm progress bars
+  - Use environment variables for path configuration
+  - Fallback mechanism for stability
 
 #### 5. Multimodal Processing
 - GLM-4.6v-flash: text, video, image, file analysis
@@ -214,6 +224,7 @@ GLM-4.6v-flash (Task Classification)
 3. **Modular Refactoring**: TTS, GUI, business logic separation
 4. **Configuration Validation Mechanism**: automatically check path validity at startup
 5. **Persistent Memory**: forever.txt manual maintenance, conversation_history.json automatic recording
+6. **TTS Output Optimization**: Custom GPT-SoVITS module, remove redundant outputs, improve user experience
 
 ### ⚠️ Configuration Requirements
 
@@ -228,6 +239,7 @@ GLM-4.6v-flash (Task Classification)
 - v1.1: Integrate TTS, GUI, screen casting
 - v1.2: Upgrade GLM-4.6v-flash multimodal, introduce dual AI assist system
 - v1.3: Refactor continuous reply flow with LangGraph, centralized state management, node-based design
+- v1.3.2: Optimize TTS module, custom GPT-SoVITS for silent output, improve user experience
 
 This project demonstrates deep integration of AI Agent, multimodal, and automation technologies, making it a fully functional smartphone operation agent system.
 

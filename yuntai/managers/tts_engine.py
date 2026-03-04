@@ -112,16 +112,36 @@ class TTSEngine:
             # 导入TTS模块时重定向输出
             with contextlib.redirect_stdout(NullIO()), contextlib.redirect_stderr(NullIO()):
                 try:
-                    from tools.i18n.i18n import I18nAuto
-                    from GPT_SoVITS.inference_webui import change_gpt_weights, change_sovits_weights, \
-                        get_tts_wav as real_get_tts_wav
+                    # 尝试导入自定义版（移除print和进度条的版本）
+                    try:
+                        from yuntai.managers.gpt_sovits_custom import (
+                            get_tts_wav,
+                            change_gpt_weights,
+                            change_sovits_weights,
+                            I18nAuto
+                        )
 
-                    # 保存到模块字典
-                    self.tts_modules['I18nAuto'] = I18nAuto
-                    self.tts_modules['change_gpt_weights'] = change_gpt_weights
-                    self.tts_modules['change_sovits_weights'] = change_sovits_weights
-                    self.tts_modules['get_tts_wav'] = real_get_tts_wav
-                    self.tts_modules['i18n'] = I18nAuto()
+                        # 使用自定义版
+                        self.tts_modules['I18nAuto'] = I18nAuto
+                        self.tts_modules['change_gpt_weights'] = change_gpt_weights
+                        self.tts_modules['change_sovits_weights'] = change_sovits_weights
+                        self.tts_modules['get_tts_wav'] = get_tts_wav
+                        self.tts_modules['i18n'] = I18nAuto()
+                        print("✅ 使用自定义TTS模块（已移除冗余输出）")
+
+                    except Exception as e:
+                        # 降级方案：使用原始的 inference_webui
+                        print(f"⚠️  自定义TTS不可用，降级到原始版本: {e}")
+                        from tools.i18n.i18n import I18nAuto
+                        from GPT_SoVITS.inference_webui import change_gpt_weights, change_sovits_weights, \
+                            get_tts_wav as real_get_tts_wav
+
+                        # 保存到模块字典
+                        self.tts_modules['I18nAuto'] = I18nAuto
+                        self.tts_modules['change_gpt_weights'] = change_gpt_weights
+                        self.tts_modules['change_sovits_weights'] = change_sovits_weights
+                        self.tts_modules['get_tts_wav'] = real_get_tts_wav
+                        self.tts_modules['i18n'] = I18nAuto()
 
                 except ImportError as e:
                     print(f"❌ TTS模块导入失败: {e}")
