@@ -857,10 +857,21 @@ class GUIController(QObject):
         if tts_indicator:
             if enabled:
                 tts_indicator.setText("● TTS: 开")
-                tts_indicator.setStyleSheet(f"color: {ThemeColors.STATUS_ACTIVE}; background: transparent; border: none;")
+                tts_indicator.setStyleSheet(f"""
+                    color: {ThemeColors.STATUS_ACTIVE}; 
+                    background: transparent;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    font-weight: 500;
+                """)
             else:
                 tts_indicator.setText("● TTS: 关")
-                tts_indicator.setStyleSheet(f"color: {ThemeColors.STATUS_INACTIVE}; background: transparent; border: none;")
+                tts_indicator.setStyleSheet(f"""
+                    color: {ThemeColors.STATUS_INACTIVE}; 
+                    background: transparent;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                """)
 
     # ============ 辅助方法 ============
     

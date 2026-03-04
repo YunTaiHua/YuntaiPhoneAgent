@@ -433,11 +433,22 @@ class ConnectionHandler(QObject):
         if connected:
             if connection_indicator:
                 connection_indicator.setText("● 已连接")
-                connection_indicator.setStyleSheet(f"color: {ThemeColors.STATUS_ACTIVE}; background: transparent;")
+                connection_indicator.setStyleSheet(f"""
+                    color: {ThemeColors.STATUS_ACTIVE}; 
+                    background: transparent;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    font-weight: 500;
+                """)
         else:
             if connection_indicator:
                 connection_indicator.setText("● 未连接")
-                connection_indicator.setStyleSheet(f"color: {ThemeColors.STATUS_INACTIVE}; background: transparent;")
+                connection_indicator.setStyleSheet(f"""
+                    color: {ThemeColors.STATUS_INACTIVE}; 
+                    background: transparent;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                """)
 
         # 更新连接页面状态
         conn_status_label = self.view.get_component("connection_status_label")

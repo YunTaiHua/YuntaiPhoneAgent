@@ -130,6 +130,19 @@ class ThemeHeight:
     INPUT_MD = 42
 
 
+class ThemeShadow:
+    """阴影常量 - 用于卡片立体感"""
+    # 浅色主题阴影 (使用rgba格式，alpha值为0-255)
+    LIGHT_SM = (0, 1, 3, (0, 0, 0, 20))      # 小阴影 (0.08 * 255 ≈ 20)
+    LIGHT_MD = (0, 2, 8, (0, 0, 0, 26))      # 中等阴影 (0.10 * 255 ≈ 26)
+    LIGHT_LG = (0, 4, 12, (0, 0, 0, 31))     # 大阴影 (0.12 * 255 ≈ 31)
+    
+    # 深色主题阴影
+    DARK_SM = (0, 1, 3, (0, 0, 0, 64))       # (0.25 * 255 ≈ 64)
+    DARK_MD = (0, 2, 8, (0, 0, 0, 77))       # (0.30 * 255 ≈ 77)
+    DARK_LG = (0, 4, 12, (0, 0, 0, 89))      # (0.35 * 255 ≈ 89)
+
+
 class ThemeFonts:
     """字体常量"""
     # 主字体
@@ -351,10 +364,17 @@ def get_main_stylesheet(colors=ThemeColors):
         QPushButton#primaryButton {{
             background-color: {colors.PRIMARY};
             color: {colors.TEXT_LIGHT};
+            font-weight: 500;
         }}
         
         QPushButton#primaryButton:hover {{
             background-color: {colors.PRIMARY_HOVER};
+        }}
+        
+        QPushButton#primaryButton:pressed {{
+            background-color: {colors.PRIMARY_HOVER};
+            padding-top: 9px;
+            padding-bottom: 7px;
         }}
         
         QPushButton#primaryButton:disabled {{
@@ -365,46 +385,81 @@ def get_main_stylesheet(colors=ThemeColors):
         QPushButton#secondaryButton {{
             background-color: {colors.SECONDARY};
             color: {colors.TEXT_LIGHT};
+            font-weight: 500;
         }}
         
         QPushButton#secondaryButton:hover {{
             background-color: {colors.SECONDARY_HOVER};
         }}
         
+        QPushButton#secondaryButton:pressed {{
+            background-color: {colors.SECONDARY_HOVER};
+            padding-top: 9px;
+            padding-bottom: 7px;
+        }}
+        
         QPushButton#dangerButton {{
             background-color: {colors.DANGER};
             color: {colors.TEXT_LIGHT};
+            font-weight: 500;
         }}
         
         QPushButton#dangerButton:hover {{
             background-color: {colors.DANGER_HOVER};
         }}
         
+        QPushButton#dangerButton:pressed {{
+            background-color: {colors.DANGER_HOVER};
+            padding-top: 9px;
+            padding-bottom: 7px;
+        }}
+        
         QPushButton#successButton {{
             background-color: {colors.SUCCESS};
             color: {colors.TEXT_LIGHT};
+            font-weight: 500;
         }}
         
         QPushButton#successButton:hover {{
             background-color: {colors.SUCCESS_HOVER};
         }}
         
+        QPushButton#successButton:pressed {{
+            background-color: {colors.SUCCESS_HOVER};
+            padding-top: 9px;
+            padding-bottom: 7px;
+        }}
+        
         QPushButton#warningButton {{
             background-color: {colors.WARNING};
             color: {colors.TEXT_LIGHT};
+            font-weight: 500;
         }}
         
         QPushButton#warningButton:hover {{
             background-color: {colors.WARNING_HOVER};
         }}
         
+        QPushButton#warningButton:pressed {{
+            background-color: {colors.WARNING_HOVER};
+            padding-top: 9px;
+            padding-bottom: 7px;
+        }}
+        
         QPushButton#accentButton {{
             background-color: {colors.ACCENT};
             color: {colors.TEXT_LIGHT};
+            font-weight: 500;
         }}
         
         QPushButton#accentButton:hover {{
             background-color: {colors.ACCENT_HOVER};
+        }}
+        
+        QPushButton#accentButton:pressed {{
+            background-color: {colors.ACCENT_HOVER};
+            padding-top: 9px;
+            padding-bottom: 7px;
         }}
         
         QPushButton#navButton {{

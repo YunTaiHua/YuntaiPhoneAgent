@@ -7,10 +7,10 @@ import os
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QFrame, QStackedWidget, QFileDialog,
-    QScrollArea, QSizePolicy, QApplication, QMessageBox
+    QScrollArea, QSizePolicy, QApplication, QMessageBox, QGraphicsDropShadowEffect
 )
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve, QPoint
-from PyQt6.QtGui import QFont, QIcon, QPixmap, QCursor
+from PyQt6.QtGui import QFont, QIcon, QPixmap, QCursor, QColor
 
 # 从 yuntai.config 导入配置
 from yuntai.core.config import APP_VERSION
@@ -18,7 +18,7 @@ from yuntai.core.config import APP_VERSION
 # 从 yuntai.gui 导入样式
 from yuntai.gui.styles import (
     ThemeColors, DarkThemeColors, ThemeFonts, ThemeCorner,
-    ThemeSpacing, ThemeHeight, get_main_stylesheet, 
+    ThemeSpacing, ThemeHeight, ThemeShadow, get_main_stylesheet, 
     get_overlay_stylesheet, apply_light_theme, apply_dark_theme
 )
 
@@ -242,6 +242,38 @@ class GUIView(QMainWindow):
         
         # 应用样式表
         app.setStyleSheet(get_main_stylesheet(self.colors))
+    
+    def _apply_shadow(self, widget, shadow_type='md'):
+        """为控件应用阴影效果
+        
+        Args:
+            widget: 要应用阴影的控件
+            shadow_type: 阴影类型 ('sm', 'md', 'lg')
+        """
+        # 根据主题选择阴影配置
+        if self.is_dark_theme:
+            shadow_map = {
+                'sm': ThemeShadow.DARK_SM,
+                'md': ThemeShadow.DARK_MD,
+                'lg': ThemeShadow.DARK_LG
+            }
+        else:
+            shadow_map = {
+                'sm': ThemeShadow.LIGHT_SM,
+                'md': ThemeShadow.LIGHT_MD,
+                'lg': ThemeShadow.LIGHT_LG
+            }
+        
+        shadow_config = shadow_map.get(shadow_type, ThemeShadow.LIGHT_MD)
+        x_offset, y_offset, blur_radius, color_rgba = shadow_config
+        
+        # 创建阴影效果
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setOffset(x_offset, y_offset)
+        shadow.setBlurRadius(blur_radius)
+        shadow.setColor(QColor(*color_rgba))
+        
+        widget.setGraphicsEffect(shadow)
         
     def toggle_theme(self):
         """切换主题"""
@@ -326,6 +358,7 @@ class GUIView(QMainWindow):
                                 padding: 0 15px;
                                 border-radius: {ThemeCorner.MD}px;
                                 border: none;
+                                border-left: 3px solid {colors.PRIMARY};
                             }}
                             QPushButton#navButton:hover {{
                                 background-color: {colors.NAV_HIGHLIGHT_HOVER};
@@ -340,6 +373,7 @@ class GUIView(QMainWindow):
                                 padding: 0 15px;
                                 border-radius: {ThemeCorner.MD}px;
                                 border: none;
+                                border-left: 3px solid transparent;
                             }}
                             QPushButton#navButton:hover {{
                                 background-color: {colors.BG_HOVER};
@@ -351,18 +385,40 @@ class GUIView(QMainWindow):
                 indicator = self.components["connection_indicator"]
                 current_text = indicator.text()
                 if "未连接" in current_text:
-                    indicator.setStyleSheet(f"color: {colors.STATUS_INACTIVE}; background: transparent;")
+                    indicator.setStyleSheet(f"""
+                        color: {colors.STATUS_INACTIVE}; 
+                        background: transparent;
+                        padding: 4px 8px;
+                        border-radius: 4px;
+                    """)
                 else:
-                    indicator.setStyleSheet(f"color: {colors.STATUS_ACTIVE}; background: transparent;")
+                    indicator.setStyleSheet(f"""
+                        color: {colors.STATUS_ACTIVE}; 
+                        background: transparent;
+                        padding: 4px 8px;
+                        border-radius: 4px;
+                        font-weight: 500;
+                    """)
             
             # 更新TTS状态指示器
             if "tts_indicator" in self.components:
                 tts_ind = self.components["tts_indicator"]
                 current_text = tts_ind.text()
                 if "关闭" in current_text:
-                    tts_ind.setStyleSheet(f"color: {colors.STATUS_INACTIVE}; background: transparent;")
+                    tts_ind.setStyleSheet(f"""
+                        color: {colors.STATUS_INACTIVE}; 
+                        background: transparent;
+                        padding: 4px 8px;
+                        border-radius: 4px;
+                    """)
                 else:
-                    tts_ind.setStyleSheet(f"color: {colors.STATUS_ACTIVE}; background: transparent;")
+                    tts_ind.setStyleSheet(f"""
+                        color: {colors.STATUS_ACTIVE}; 
+                        background: transparent;
+                        padding: 4px 8px;
+                        border-radius: 4px;
+                        font-weight: 500;
+                    """)
             
             # 更新主题切换按钮
             if "theme_toggle_button" in self.components:
@@ -579,6 +635,7 @@ class GUIView(QMainWindow):
                     padding: 0 15px;
                     border-radius: {ThemeCorner.MD}px;
                     border: none;
+                    border-left: 3px solid transparent;
                 }}
                 QPushButton#navButton:hover {{
                     background-color: {self.colors.BG_HOVER};
@@ -605,7 +662,12 @@ class GUIView(QMainWindow):
         
         self.components["connection_indicator"] = QLabel("● 未连接")
         self.components["connection_indicator"].setFont(ThemeFonts.BODY_XSMALL)
-        self.components["connection_indicator"].setStyleSheet(f"color: {self.colors.STATUS_INACTIVE}; background: transparent;")
+        self.components["connection_indicator"].setStyleSheet(f"""
+            color: {self.colors.STATUS_INACTIVE}; 
+            background: transparent;
+            padding: 4px 8px;
+            border-radius: 4px;
+        """)
         status_layout.addWidget(self.components["connection_indicator"])
         status_layout.addStretch()
         
@@ -620,7 +682,12 @@ class GUIView(QMainWindow):
         
         self.components["tts_indicator"] = QLabel("● TTS: 关闭")
         self.components["tts_indicator"].setFont(ThemeFonts.BODY_XSMALL)
-        self.components["tts_indicator"].setStyleSheet(f"color: {self.colors.STATUS_INACTIVE}; background: transparent;")
+        self.components["tts_indicator"].setStyleSheet(f"""
+            color: {self.colors.STATUS_INACTIVE}; 
+            background: transparent;
+            padding: 4px 8px;
+            border-radius: 4px;
+        """)
         tts_layout.addWidget(self.components["tts_indicator"])
         tts_layout.addStretch()
         
@@ -946,7 +1013,7 @@ class GUIView(QMainWindow):
             elif ext == '.txt':
                 icon = "📄"
             else:
-                icon = "📎"
+                icon = "📌"
                 
             file_label = QLabel(f"{icon} {file_name}")
             file_label.setFont(ThemeFonts.BODY_XSMALL)
@@ -1021,6 +1088,7 @@ class GUIView(QMainWindow):
                             padding: 0 15px;
                             border-radius: {ThemeCorner.MD}px;
                             border: none;
+                            border-left: 3px solid {colors.PRIMARY};
                         }}
                         QPushButton#navButton:hover {{
                             background-color: {colors.NAV_HIGHLIGHT_HOVER};
@@ -1035,6 +1103,7 @@ class GUIView(QMainWindow):
                             padding: 0 15px;
                             border-radius: {ThemeCorner.MD}px;
                             border: none;
+                            border-left: 3px solid transparent;
                         }}
                         QPushButton#navButton:hover {{
                             background-color: {colors.BG_HOVER};

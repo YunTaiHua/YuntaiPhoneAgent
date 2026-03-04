@@ -73,6 +73,8 @@ class ConnectionBuilder:
                 border-radius: {ThemeCorner.LG}px;
             }}
         """)
+        # 应用阴影效果
+        self.view._apply_shadow(self.components["status_card"], 'md')
         status_layout = QVBoxLayout(self.components["status_card"])
         status_layout.setContentsMargins(30, 20, 30, 20)
         status_layout.setSpacing(6)
@@ -98,7 +100,7 @@ class ConnectionBuilder:
 
         page_layout.addStretch()
 
-    def _create_card(self, corner_radius=ThemeCorner.MD):
+    def _create_card(self, corner_radius=ThemeCorner.MD, shadow_type='md'):
         """创建卡片样式的Frame"""
         card = QFrame()
         card.setStyleSheet(f"""
@@ -108,6 +110,8 @@ class ConnectionBuilder:
                 border-radius: {corner_radius}px;
             }}
         """)
+        # 应用阴影效果
+        self.view._apply_shadow(card, shadow_type)
         return card
 
     def _create_connection_form(self, parent_layout):

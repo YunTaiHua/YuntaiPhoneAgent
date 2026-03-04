@@ -115,7 +115,7 @@ class DashboardBuilder:
 
         page_layout.addWidget(main_content, 1)
 
-    def _create_card(self, corner_radius=ThemeCorner.MD):
+    def _create_card(self, corner_radius=ThemeCorner.MD, shadow_type='md'):
         """创建卡片样式的Frame"""
         card = QFrame()
         card.setStyleSheet(f"""
@@ -125,6 +125,8 @@ class DashboardBuilder:
                 border-radius: {corner_radius}px;
             }}
         """)
+        # 应用阴影效果
+        self.view._apply_shadow(card, shadow_type)
         return card
 
     def _create_left_panel(self):
