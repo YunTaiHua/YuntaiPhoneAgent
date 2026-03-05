@@ -86,12 +86,6 @@ class ConnectionBuilder:
         self.components["connection_status_label"].setFixedHeight(40)
         status_layout.addWidget(self.components["connection_status_label"])
 
-        self.components["connection_info_label"] = QLabel("请配置下方连接参数")
-        self.components["connection_info_label"].setFont(ThemeFonts.BODY_SMALL)
-        self.components["connection_info_label"].setStyleSheet(f"color: {self.colors.TEXT_SECONDARY}; background: transparent; border: none;")
-        self.components["connection_info_label"].setAlignment(Qt.AlignmentFlag.AlignCenter)
-        status_layout.addWidget(self.components["connection_info_label"])
-
         page_layout.addWidget(self.components["status_card"])
         page_layout.addSpacing(16)
 

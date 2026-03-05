@@ -1,9 +1,10 @@
 """
-输出捕获模块 - v5 (高亮版)
+输出捕获模块 - v6 (主题自适应版)
 - TTS冗余输出已在gpt_sovits_custom模块中被移除
 - 此模块仅负责将终端输出同步到GUI
 - 无需复杂的过滤逻辑
-- 支持特定文本高亮显示（如"对话开始"）
+- 支持特定文本彩色字体显示（如"对话开始"）
+- 浅色主题使用紫色，深色主题使用金色
 """
 
 import sys
@@ -18,9 +19,14 @@ class SimpleOutputCapture(QObject):
     # 定义信号用于线程安全的GUI更新
     text_updated = pyqtSignal(str)
 
-    def __init__(self, text_widget=None):
+    # 主题颜色常量
+    LIGHT_THEME_COLOR = "#8B5CF6"  # 浅色主题：紫色
+    DARK_THEME_COLOR = "#FFD700"   # 深色主题：金色
+
+    def __init__(self, text_widget=None, is_dark_theme=False):
         super().__init__()
         self.text_widget = text_widget
+        self.is_dark_theme = is_dark_theme
         self.original_stdout = sys.stdout
         self.original_stderr = sys.stderr
 
@@ -84,14 +90,16 @@ class SimpleOutputCapture(QObject):
             pass
     
     def _insert_highlighted_text(self, text):
-        """插入高亮文本（对话开始标记）"""
+        """插入彩色字体文本（对话开始标记）- 根据主题选择颜色"""
         cursor = self.text_widget.textCursor()
         cursor.movePosition(cursor.MoveOperation.End)
-        
-        # 定义高亮格式
+
+        # 根据主题选择颜色
+        color = self.DARK_THEME_COLOR if self.is_dark_theme else self.LIGHT_THEME_COLOR
+
+        # 定义彩色字体格式
         highlight_format = QTextCharFormat()
-        highlight_format.setBackground(QColor("#FFD700"))  # 金黄色背景
-        highlight_format.setForeground(QColor("#000000"))  # 黑色文字
+        highlight_format.setForeground(QColor(color))
         highlight_format.setFontWeight(QFont.Weight.Bold)  # 粗体
         
         # 定义普通格式
@@ -117,6 +125,10 @@ class SimpleOutputCapture(QObject):
     def set_text_widget(self, text_widget):
         """设置文本控件"""
         self.text_widget = text_widget
+
+    def set_dark_theme(self, is_dark_theme: bool):
+        """设置主题状态"""
+        self.is_dark_theme = is_dark_theme
 
     def restore(self):
         """恢复原来的stdout和stderr"""

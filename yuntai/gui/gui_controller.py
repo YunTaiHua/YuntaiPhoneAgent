@@ -364,7 +364,7 @@ class GUIController(QObject):
         output_text = self.view.get_component("output_text")
         if output_text:
             if not self.output_capture:
-                self.output_capture = SimpleOutputCapture(output_text)
+                self.output_capture = SimpleOutputCapture(output_text, self.view.is_dark_theme)
             elif self.output_capture.text_widget != output_text:
                 self.output_capture.set_text_widget(output_text)
 
@@ -378,7 +378,7 @@ class GUIController(QObject):
                 print(f"\n{'═' * 9} [{timestamp} 对话开始] {'═' * 9}\n")
                 if has_attachments:
                     print(f"💭 多模态指令: {command if command else '[无文本]'}")
-                    print(f"📎 附件数量: {len(self.attached_files)} 个文件")
+                    print(f"📌 附件数量: {len(self.attached_files)} 个文件")
                 else:
                     print(f"💭 指令: {command}")
 
@@ -777,13 +777,17 @@ class GUIController(QObject):
         # 重置TTS事件绑定标志，以便重新创建页面后能重新绑定事件
         self.tts_handler._events_bound = False
         self.tts_handler._events_bound_success = False
-        
+
         # 保存当前页面索引
         current_page = self.view.current_page_index
-        
+
         self.view.toggle_theme()
         theme_name = "深色主题" if self.view.is_dark_theme else "浅色主题"
         self.show_toast(f"已切换到{theme_name}", "info")
+
+        # 更新输出捕获的主题状态
+        if self.output_capture:
+            self.output_capture.set_dark_theme(self.view.is_dark_theme)
         
         # 重新绑定当前页面的事件
         self._rebind_current_page_events(current_page)
