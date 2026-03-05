@@ -1,12 +1,15 @@
 """
-输出捕获模块 - v4 (简化版)
+输出捕获模块 - v5 (高亮版)
 - TTS冗余输出已在gpt_sovits_custom模块中被移除
 - 此模块仅负责将终端输出同步到GUI
 - 无需复杂的过滤逻辑
+- 支持特定文本高亮显示（如"对话开始"）
 """
 
 import sys
+import re
 from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtGui import QTextCharFormat, QColor, QFont
 
 
 class SimpleOutputCapture(QObject):
@@ -65,7 +68,13 @@ class SimpleOutputCapture(QObject):
         try:
             # PyQt6 QTextEdit 操作
             self.text_widget.setReadOnly(False)
-            self.text_widget.insertPlainText(text)
+            
+            # 检测是否包含"对话开始"标记，添加高亮
+            if "对话开始" in text:
+                self._insert_highlighted_text(text)
+            else:
+                self.text_widget.insertPlainText(text)
+            
             # 滚动到底部
             scrollbar = self.text_widget.verticalScrollBar()
             if scrollbar:
@@ -73,6 +82,37 @@ class SimpleOutputCapture(QObject):
             self.text_widget.setReadOnly(True)
         except Exception:
             pass
+    
+    def _insert_highlighted_text(self, text):
+        """插入高亮文本（对话开始标记）"""
+        cursor = self.text_widget.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        
+        # 定义高亮格式
+        highlight_format = QTextCharFormat()
+        highlight_format.setBackground(QColor("#FFD700"))  # 金黄色背景
+        highlight_format.setForeground(QColor("#000000"))  # 黑色文字
+        highlight_format.setFontWeight(QFont.Weight.Bold)  # 粗体
+        
+        # 定义普通格式
+        normal_format = QTextCharFormat()
+        
+        # 匹配模式：═════════ [2026-03-05 09:03:19 对话开始] ═════════
+        pattern = r'(═+\s*\[.*?对话开始.*?\]\s*═+)'
+        
+        last_end = 0
+        for match in re.finditer(pattern, text):
+            # 插入匹配前的普通文本
+            if match.start() > last_end:
+                cursor.insertText(text[last_end:match.start()], normal_format)
+            
+            # 插入高亮的匹配文本
+            cursor.insertText(match.group(1), highlight_format)
+            last_end = match.end()
+        
+        # 插入剩余的普通文本
+        if last_end < len(text):
+            cursor.insertText(text[last_end:], normal_format)
 
     def set_text_widget(self, text_widget):
         """设置文本控件"""
