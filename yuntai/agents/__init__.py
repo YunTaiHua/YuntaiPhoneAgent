@@ -1,11 +1,13 @@
 """
 Agent 模块
 """
+from .base_agent import BaseAgent
 from .judgement_agent import JudgementAgent
 from .chat_agent import ChatAgent
 from .phone_agent import PhoneAgent
 
 __all__ = [
+    "BaseAgent",
     "JudgementAgent",
     "ChatAgent",
     "PhoneAgent",

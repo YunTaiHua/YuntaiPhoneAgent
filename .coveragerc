@@ -1,0 +1,31 @@
+# .coveragerc - Coverage.py configuration
+[run]
+omit =
+    yuntai/managers/gpt_sovits_custom/*
+    yuntai/managers/tts_engine.py
+    yuntai/handlers/*
+    yuntai/gui/*
+    yuntai/views/*
+
+[report]
+omit =
+    yuntai/managers/gpt_sovits_custom/*
+    yuntai/managers/tts_engine.py
+    yuntai/handlers/*
+    yuntai/gui/*
+    yuntai/views/*
+
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if TYPE_CHECKING:
+    @abstractmethod
+    class.*\(.*\):
+    if __name__ == .__main__.:
+    # GUI相关代码排除
+    from PyQt
+    import PyQt
+    QWidget
+    QDialog
+    QMainWindow

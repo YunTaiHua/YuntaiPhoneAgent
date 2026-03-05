@@ -305,3 +305,78 @@ class TestCleanupRecordFiles:
             remaining = os.listdir(record_dir)
             assert len(remaining) == 1
             assert 'other.txt' in remaining
+
+
+class TestFileManagerAdditional:
+    """测试FileManager额外功能"""
+
+    def test_save_conversation_history_unknown_type(self, temp_history_file, mock_env_vars):
+        """测试保存未知类型的对话"""
+        with patch('yuntai.services.file_manager.CONVERSATION_HISTORY_FILE', temp_history_file):
+            from yuntai.services.file_manager import FileManager
+            
+            fm = FileManager()
+            session_data = {
+                'type': 'unknown_type',
+                'timestamp': '2026-01-15 10:00:00',
+            }
+            fm.save_conversation_history(session_data)
+            
+            # 不应该抛出异常
+
+    def test_get_recent_conversation_history_no_match(self, temp_history_file, mock_env_vars):
+        """测试获取不匹配的对话历史"""
+        with patch('yuntai.services.file_manager.CONVERSATION_HISTORY_FILE', temp_history_file):
+            from yuntai.services.file_manager import FileManager
+            
+            fm = FileManager()
+            
+            # 保存一些数据
+            fm.save_conversation_history({
+                'type': 'chat_session',
+                'timestamp': '2026-01-15 10:00:00',
+                'target_app': '微信',
+                'target_object': '张三'
+            })
+            
+            # 查询不匹配的目标
+            result = fm.get_recent_conversation_history('QQ', '李四')
+            
+            assert result == []
+
+    def test_safe_write_json_file_error(self, mock_env_vars):
+        """测试写入JSON文件错误"""
+        from yuntai.services.file_manager import FileManager
+        
+        fm = FileManager()
+        
+        # 尝试写入无效路径
+        with patch('builtins.open', side_effect=PermissionError("permission denied")):
+            result = fm.safe_write_json_file('/invalid/path/file.json', {'test': 'data'})
+            
+            assert result is False
+
+    def test_read_forever_memory_error(self, mock_env_vars):
+        """测试读取永久记忆错误"""
+        from yuntai.services.file_manager import FileManager
+        
+        fm = FileManager()
+        
+        with patch('builtins.open', side_effect=Exception("read error")):
+            result = fm.read_forever_memory()
+            
+            assert result == ""
+
+    def test_cleanup_record_files_error(self, temp_dir, mock_env_vars):
+        """测试清理记录文件错误"""
+        record_dir = os.path.join(temp_dir, 'record_logs')
+        os.makedirs(record_dir)
+        
+        with patch('yuntai.services.file_manager.RECORD_LOGS_DIR', record_dir):
+            from yuntai.services.file_manager import FileManager
+            
+            fm = FileManager()
+            
+            # 不应该抛出异常
+            with patch('os.listdir', side_effect=Exception("list error")):
+                fm.cleanup_record_files()

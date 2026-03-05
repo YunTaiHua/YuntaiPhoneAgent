@@ -566,7 +566,7 @@ class MultimodalOther:
         }
 
 
-class ImagePreviewWindow(QDialog):
+class ImagePreviewWindow(QDialog):  # pragma: no cover
     """图像预览窗口（PyQt6版本）"""
 
     def __init__(self, parent, image_path: str, title: str = "图像预览"):
@@ -728,7 +728,7 @@ class ImagePreviewWindow(QDialog):
             QMessageBox.critical(self, "错误", f"无法打开文件夹: {str(e)}")
 
 
-class VideoPreviewWindow(QDialog):
+class VideoPreviewWindow(QDialog):  # pragma: no cover
     """视频预览窗口（PyQt6版本）"""
 
     def __init__(self, parent, video_path: str, cover_path: str = None,
