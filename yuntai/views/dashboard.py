@@ -7,7 +7,7 @@ import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QFrame, QTextEdit, QScrollArea,
-    QSizePolicy, QSpacerItem
+    QSizePolicy, QSpacerItem, QPlainTextEdit
 )
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QFont, QTextCursor, QCursor, QKeyEvent

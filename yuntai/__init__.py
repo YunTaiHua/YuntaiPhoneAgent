@@ -86,14 +86,14 @@ def __getattr__(name):
     elif name == 'MultimodalProcessor':
         from yuntai.processors.multimodal_processor import MultimodalProcessor
         return MultimodalProcessor
-    elif name == 'MultimodalOther':
-        from yuntai.processors.multimodal_other import MultimodalOther
-        return MultimodalOther
+    elif name == 'MediaGenerator':
+        from yuntai.processors.media_generator import MediaGenerator
+        return MediaGenerator
     elif name == 'ImagePreviewWindow':
-        from yuntai.processors.multimodal_other import ImagePreviewWindow
+        from yuntai.views.dynamic import ImagePreviewWindow
         return ImagePreviewWindow
     elif name == 'VideoPreviewWindow':
-        from yuntai.processors.multimodal_other import VideoPreviewWindow
+        from yuntai.views.dynamic import VideoPreviewWindow
         return VideoPreviewWindow
     elif name == 'AudioProcessor':
         from yuntai.processors.audio_processor import AudioProcessor
@@ -128,7 +128,7 @@ __all__ = [
 
     # 多模态处理器
     "MultimodalProcessor",
-    "MultimodalOther",
+    "MediaGenerator",
     "ImagePreviewWindow",
     "VideoPreviewWindow",
 

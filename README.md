@@ -44,7 +44,7 @@ YuntaiPhoneAgent/
 │   │   ├── __init__.py
 │   │   ├── audio_processor.py      # 音频处理(Whisper)
 │   │   ├── multimodal_processor.py # 多模态处理器
-│   │   └── multimodal_other.py     # 图像/视频生成
+│   │   └── media_generator.py      # 图像/视频生成
 │   ├── services/              # 服务层
 │   │   ├── __init__.py
 │   │   ├── connection_manager.py   # 连接管理

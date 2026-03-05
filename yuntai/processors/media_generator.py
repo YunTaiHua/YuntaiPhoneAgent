@@ -1,29 +1,17 @@
 """
-multimodal_other.py - 多模态其他功能模块
+media_generator.py - 媒体生成器模块
 集成ZHIPU_IMAGE_MODEL和ZHIPU_VIDEO_MODEL功能
 """
 
 import os
-import subprocess
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
 import json
 import time
-import threading
 from typing import Optional, List, Dict, Any
 from pathlib import Path
-import webbrowser
-from PIL import Image
-
-# PyQt6 导入
-from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
-    QFrame, QSizePolicy, QMessageBox, QApplication
-)
-from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QPixmap, QFont, QCursor
 
 # 从统一配置导入
 from yuntai.core.config import (
@@ -33,13 +21,6 @@ from yuntai.core.config import (
     ZHIPU_API_BASE_URL,
     ZHIPU_IMAGE_MODEL,
     ZHIPU_VIDEO_MODEL
-)
-
-# 从样式模块导入主题颜色
-from yuntai.gui.styles import (
-    ThemeColors, ThemeFonts, ThemeCorner,
-    DialogStyle, get_dialog_stylesheet, get_dialog_button_stylesheet,
-    get_dialog_card_stylesheet
 )
 
 logger = logging.getLogger(__name__)
@@ -55,12 +36,12 @@ CHECK_INTERVAL = 10
 DOWNLOAD_TIMEOUT = 30
 
 
-class MultimodalOther:
-    """多模态其他功能类：处理图像和视频生成"""
+class MediaGenerator:
+    """媒体生成器类：处理图像和视频生成"""
 
     def __init__(self, api_key: Optional[str] = None, project_root: Optional[str] = None):
         """
-        初始化多模态其他功能
+        初始化媒体生成器
 
         Args:
             api_key: 智谱AI API密钥（可选，从配置获取）
@@ -192,8 +173,6 @@ class MultimodalOther:
 
         except Exception as e:
             raise Exception(f"下载图像失败: {str(e)}")
-
-    # 更新 multimodal_other.py 中的 generate_video 方法
 
     def generate_video(self, prompt: str, image_urls: List[str] = None,
                        size: str = "1920x1080", fps: int = 30,
@@ -564,360 +543,3 @@ class MultimodalOther:
             "message": "视频生成超时",
             "task_id": task_id
         }
-
-
-class ImagePreviewWindow(QDialog):  # pragma: no cover
-    """图像预览窗口（PyQt6版本）"""
-
-    def __init__(self, parent, image_path: str, title: str = "图像预览"):
-        """
-        初始化图像预览窗口
-
-        Args:
-            parent: 父窗口
-            image_path: 图像路径
-            title: 窗口标题
-        """
-        super().__init__(parent)
-        self.image_path = image_path
-        
-        # 获取当前主题颜色
-        self.colors = parent.colors if hasattr(parent, 'colors') else ThemeColors
-        
-        self.setWindowTitle(title)
-        self.setFixedSize(800, 600)
-        self.setStyleSheet(get_dialog_stylesheet(self.colors))
-        
-        # 创建主布局
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(
-            DialogStyle.DIALOG_MARGIN, 
-            DialogStyle.DIALOG_MARGIN, 
-            DialogStyle.DIALOG_MARGIN, 
-            DialogStyle.DIALOG_MARGIN
-        )
-        main_layout.setSpacing(DialogStyle.DIALOG_SPACING)
-        
-        # 标题
-        title_label = QLabel(title)
-        title_label.setFont(ThemeFonts.TITLE)
-        title_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(title_label)
-        
-        # 图像显示区域
-        image_frame = QFrame()
-        image_frame.setStyleSheet(get_dialog_card_stylesheet(self.colors))
-        image_layout = QVBoxLayout(image_frame)
-        image_layout.setContentsMargins(15, 15, 15, 15)
-        
-        try:
-            # 使用PIL加载和显示图片
-            pil_image = Image.open(image_path)
-            
-            # 调整图片大小以适应窗口
-            max_width = 700
-            max_height = 400
-            pil_image.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
-            
-            # 转换为QPixmap
-            from PyQt6.QtGui import QImage
-            if pil_image.mode == "RGBA":
-                q_image = QImage(pil_image.tobytes(), pil_image.width, pil_image.height, 
-                               pil_image.width * 4, QImage.Format.Format_RGBA8888)
-            else:
-                q_image = QImage(pil_image.tobytes(), pil_image.width, pil_image.height,
-                               pil_image.width * 3, QImage.Format.Format_RGB888)
-            pixmap = QPixmap.fromImage(q_image)
-            
-            # 创建标签显示图片
-            image_label = QLabel()
-            image_label.setPixmap(pixmap)
-            image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            image_label.setStyleSheet("background: transparent;")
-            image_layout.addWidget(image_label, 1)
-            
-        except Exception as e:
-            error_label = QLabel(f"无法加载图像: {str(e)}\n文件路径: {image_path}")
-            error_label.setFont(ThemeFonts.BODY_MEDIUM)
-            error_label.setStyleSheet(f"color: {self.colors.DANGER}; background: transparent; border: none;")
-            error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            image_layout.addWidget(error_label, 1)
-        
-        main_layout.addWidget(image_frame, 1)
-        
-        # 信息区域
-        info_frame = QFrame()
-        info_frame.setStyleSheet(get_dialog_card_stylesheet(self.colors))
-        info_layout = QHBoxLayout(info_frame)
-        info_layout.setContentsMargins(15, 10, 15, 10)
-        
-        # 文件信息
-        file_name = os.path.basename(image_path)
-        file_size = os.path.getsize(image_path) / 1024  # KB
-        file_info = f"文件: {file_name} ({file_size:.1f} KB)"
-        info_label = QLabel(file_info)
-        info_label.setFont(ThemeFonts.BODY_XSMALL)
-        info_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
-        info_layout.addWidget(info_label)
-        info_layout.addStretch()
-        
-        main_layout.addWidget(info_frame)
-        
-        # 按钮区域
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(10)
-        
-        # 打开文件夹按钮
-        open_folder_btn = QPushButton("打开所在文件夹")
-        open_folder_btn.setFont(ThemeFonts.BODY_XSMALL)
-        open_folder_btn.setFixedHeight(DialogStyle.BUTTON_HEIGHT_SMALL)
-        open_folder_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        open_folder_btn.setStyleSheet(get_dialog_button_stylesheet("primary", self.colors))
-        open_folder_btn.clicked.connect(lambda: self.open_file_location(image_path))
-        button_layout.addWidget(open_folder_btn)
-        
-        # 查看原图按钮
-        view_original_btn = QPushButton("查看原图")
-        view_original_btn.setFont(ThemeFonts.BODY_XSMALL)
-        view_original_btn.setFixedHeight(DialogStyle.BUTTON_HEIGHT_SMALL)
-        view_original_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        view_original_btn.setStyleSheet(get_dialog_button_stylesheet("secondary", self.colors))
-        view_original_btn.clicked.connect(lambda: self.view_original_image(image_path))
-        button_layout.addWidget(view_original_btn)
-        
-        button_layout.addStretch()
-        
-        # 关闭按钮
-        close_btn = QPushButton("关闭")
-        close_btn.setFont(ThemeFonts.BODY_XSMALL)
-        close_btn.setFixedHeight(DialogStyle.BUTTON_HEIGHT_SMALL)
-        close_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        close_btn.setStyleSheet(get_dialog_button_stylesheet("cancel", self.colors))
-        close_btn.clicked.connect(self.close)
-        button_layout.addWidget(close_btn)
-        
-        main_layout.addLayout(button_layout)
-
-    def view_original_image(self, image_path: str):
-        """用默认程序打开原图"""
-        try:
-            import platform
-
-            if platform.system() == "Windows":
-                os.startfile(image_path)
-            elif platform.system() == "Darwin":  # macOS
-                subprocess.run(["open", image_path])
-            elif platform.system() == "Linux":
-                subprocess.run(["xdg-open", image_path])
-        except Exception as e:
-            QMessageBox.critical(self, "错误", f"无法打开图像: {str(e)}")
-
-    def open_file_location(self, file_path: str):
-        """打开文件所在文件夹"""
-        try:
-            import platform
-
-            if platform.system() == "Windows":
-                subprocess.run(f'explorer /select,"{file_path}"')
-            elif platform.system() == "Darwin":  # macOS
-                subprocess.run(["open", "-R", file_path])
-            elif platform.system() == "Linux":
-                subprocess.run(["xdg-open", os.path.dirname(file_path)])
-        except Exception as e:
-            QMessageBox.critical(self, "错误", f"无法打开文件夹: {str(e)}")
-
-
-class VideoPreviewWindow(QDialog):  # pragma: no cover
-    """视频预览窗口（PyQt6版本）"""
-
-    def __init__(self, parent, video_path: str, cover_path: str = None,
-                 title: str = "视频预览"):
-        """
-        初始化视频预览窗口
-
-        Args:
-            parent: 父窗口
-            video_path: 视频路径
-            cover_path: 封面路径（可选）
-            title: 窗口标题
-        """
-        super().__init__(parent)
-        self.video_path = video_path
-        self.cover_path = cover_path
-        
-        # 获取当前主题颜色
-        self.colors = parent.colors if hasattr(parent, 'colors') else ThemeColors
-        
-        self.setWindowTitle(title)
-        self.setFixedSize(900, 700)
-        self.setStyleSheet(get_dialog_stylesheet(self.colors))
-        
-        # 创建主布局
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(
-            DialogStyle.DIALOG_MARGIN, 
-            DialogStyle.DIALOG_MARGIN, 
-            DialogStyle.DIALOG_MARGIN, 
-            DialogStyle.DIALOG_MARGIN
-        )
-        main_layout.setSpacing(DialogStyle.DIALOG_SPACING)
-        
-        # 标题
-        title_label = QLabel(title)
-        title_label.setFont(ThemeFonts.TITLE)
-        title_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(title_label)
-        
-        # 视频/封面显示区域
-        media_frame = QFrame()
-        media_frame.setStyleSheet(get_dialog_card_stylesheet(self.colors))
-        media_layout = QVBoxLayout(media_frame)
-        media_layout.setContentsMargins(15, 15, 15, 15)
-        
-        # 尝试显示视频封面或占位符
-        try:
-            if cover_path and os.path.exists(cover_path):
-                try:
-                    # 使用PIL加载封面
-                    pil_image = Image.open(cover_path)
-                    
-                    # 调整大小
-                    max_width = 800
-                    max_height = 450
-                    pil_image.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
-                    
-                    # 转换为QPixmap
-                    from PyQt6.QtGui import QImage
-                    if pil_image.mode == "RGBA":
-                        q_image = QImage(pil_image.tobytes(), pil_image.width, pil_image.height,
-                                       pil_image.width * 4, QImage.Format.Format_RGBA8888)
-                    else:
-                        q_image = QImage(pil_image.tobytes(), pil_image.width, pil_image.height,
-                                       pil_image.width * 3, QImage.Format.Format_RGB888)
-                    pixmap = QPixmap.fromImage(q_image)
-                    
-                    # 创建标签显示封面
-                    cover_label = QLabel()
-                    cover_label.setPixmap(pixmap)
-                    cover_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                    cover_label.setStyleSheet("background: transparent;")
-                    media_layout.addWidget(cover_label, 1)
-                    
-                    # 添加播放按钮图标
-                    play_label = QLabel("▶")
-                    play_label.setFont(QFont("Arial", 48, QFont.Weight.Bold))
-                    play_label.setStyleSheet(f"color: white; background: transparent;")
-                    play_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                    media_layout.addWidget(play_label)
-                    
-                except Exception as img_error:
-                    # 如果封面加载失败，显示占位符
-                    print(f"封面加载失败: {img_error}")
-                    self._show_video_placeholder(media_layout, "🎬 视频封面")
-            else:
-                # 显示视频占位符
-                self._show_video_placeholder(media_layout, "🎬 视频预览")
-                
-        except Exception as e:
-            self._show_video_placeholder(media_layout, f"无法加载预览: {str(e)[:50]}")
-        
-        main_layout.addWidget(media_frame, 1)
-        
-        # 信息区域
-        info_frame = QFrame()
-        info_frame.setStyleSheet(get_dialog_card_stylesheet(self.colors))
-        info_layout = QHBoxLayout(info_frame)
-        info_layout.setContentsMargins(15, 10, 15, 10)
-        
-        # 文件信息
-        video_name = os.path.basename(video_path)
-        video_size = os.path.getsize(video_path) / (1024 * 1024)  # MB
-        
-        file_info = f"视频: {video_name} ({video_size:.1f} MB)"
-        if cover_path and os.path.exists(cover_path):
-            cover_size = os.path.getsize(cover_path) / 1024  # KB
-            file_info += f" | 封面: {os.path.basename(cover_path)} ({cover_size:.1f} KB)"
-        
-        info_label = QLabel(file_info)
-        info_label.setFont(ThemeFonts.BODY_XSMALL)
-        info_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
-        info_layout.addWidget(info_label)
-        info_layout.addStretch()
-        
-        main_layout.addWidget(info_frame)
-        
-        # 按钮区域
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(10)
-        
-        # 播放视频按钮
-        play_btn = QPushButton("播放视频")
-        play_btn.setFont(ThemeFonts.BODY_XSMALL)
-        play_btn.setFixedHeight(DialogStyle.BUTTON_HEIGHT_SMALL)
-        play_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        play_btn.setStyleSheet(get_dialog_button_stylesheet("primary", self.colors))
-        play_btn.clicked.connect(lambda: self.play_video(video_path))
-        button_layout.addWidget(play_btn)
-        
-        # 打开文件夹按钮
-        open_folder_btn = QPushButton("打开所在文件夹")
-        open_folder_btn.setFont(ThemeFonts.BODY_XSMALL)
-        open_folder_btn.setFixedHeight(DialogStyle.BUTTON_HEIGHT_SMALL)
-        open_folder_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        open_folder_btn.setStyleSheet(get_dialog_button_stylesheet("secondary", self.colors))
-        open_folder_btn.clicked.connect(lambda: self.open_file_location(video_path))
-        button_layout.addWidget(open_folder_btn)
-        
-        button_layout.addStretch()
-        
-        # 关闭按钮
-        close_btn = QPushButton("关闭")
-        close_btn.setFont(ThemeFonts.BODY_XSMALL)
-        close_btn.setFixedHeight(DialogStyle.BUTTON_HEIGHT_SMALL)
-        close_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        close_btn.setStyleSheet(get_dialog_button_stylesheet("cancel", self.colors))
-        close_btn.clicked.connect(self.close)
-        button_layout.addWidget(close_btn)
-        
-        main_layout.addLayout(button_layout)
-
-    def _show_video_placeholder(self, layout, text: str):
-        """显示视频占位符"""
-        placeholder = QLabel(text)
-        placeholder.setFont(ThemeFonts.TITLE_SMALL)
-        placeholder.setStyleSheet(f"color: {self.colors.TEXT_SECONDARY}; background: transparent; border: none;")
-        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(placeholder, 1)
-
-    def play_video(self, video_path: str):
-        """播放视频"""
-        try:
-            import platform
-
-            if platform.system() == "Windows":
-                os.startfile(video_path)
-            elif platform.system() == "Darwin":  # macOS
-                subprocess.run(["open", video_path])
-            elif platform.system() == "Linux":
-                subprocess.run(["xdg-open", video_path])
-            
-            # 视频播放成功后自动关闭预览窗口
-            self.close()
-        except Exception as e:
-            QMessageBox.critical(self, "错误", f"无法播放视频: {str(e)}")
-
-    def open_file_location(self, file_path: str):
-        """打开文件所在文件夹"""
-        try:
-            import platform
-
-            if platform.system() == "Windows":
-                subprocess.run(f'explorer /select,"{file_path}"')
-            elif platform.system() == "Darwin":  # macOS
-                subprocess.run(["open", "-R", file_path])
-            elif platform.system() == "Linux":
-                subprocess.run(["xdg-open", os.path.dirname(file_path)])
-        except Exception as e:
-            QMessageBox.critical(self, "错误", f"无法打开文件夹: {str(e)}")

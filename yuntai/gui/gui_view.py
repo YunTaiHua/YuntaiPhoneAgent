@@ -607,6 +607,13 @@ class GUIView(QMainWindow):
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_layout.addWidget(subtitle_label)
         
+        # 版本信息（移到智能移动助手下方并居中）
+        version_label = QLabel(f"Version {APP_VERSION}")
+        version_label.setFont(ThemeFonts.BODY_MINI)
+        version_label.setStyleSheet(f"color: {self.colors.TEXT_DISABLED}; background: transparent;")
+        version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_layout.addWidget(version_label)
+        
         nav_layout.addWidget(title_frame)
         nav_layout.addSpacing(20)
         
@@ -692,12 +699,6 @@ class GUIView(QMainWindow):
         tts_layout.addStretch()
         
         info_layout.addWidget(tts_frame)
-        
-        # 版本信息
-        version_label = QLabel(f"Version {APP_VERSION}")
-        version_label.setFont(ThemeFonts.BODY_MINI)
-        version_label.setStyleSheet(f"color: {self.colors.TEXT_DISABLED}; background: transparent;")
-        info_layout.addWidget(version_label)
         
         # 主题切换按钮
         self.components["theme_toggle_button"] = QPushButton("🌙")

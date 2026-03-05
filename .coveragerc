@@ -14,18 +14,3 @@ omit =
     yuntai/handlers/*
     yuntai/gui/*
     yuntai/views/*
-
-exclude_lines =
-    pragma: no cover
-    def __repr__
-    raise NotImplementedError
-    if TYPE_CHECKING:
-    @abstractmethod
-    class.*\(.*\):
-    if __name__ == .__main__.:
-    # GUI相关代码排除
-    from PyQt
-    import PyQt
-    QWidget
-    QDialog
-    QMainWindow

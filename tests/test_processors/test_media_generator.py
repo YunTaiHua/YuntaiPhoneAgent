@@ -1,5 +1,5 @@
 """
-测试 multimodal_other.py - 多模态其他功能
+测试 media_generator.py - 媒体生成器功能
 """
 import pytest
 import os
@@ -14,18 +14,18 @@ os.environ.setdefault('FFMPEG_PATH', '/fake/ffmpeg')
 os.environ.setdefault('FOREVER_MEMORY_FILE', '/fake/forever.txt')
 
 
-class TestMultimodalOtherInit:
-    """测试 MultimodalOther 初始化"""
+class TestMediaGeneratorInit:
+    """测试 MediaGenerator 初始化"""
 
     def test_init_with_defaults(self):
         """测试使用默认值初始化"""
-        with patch('yuntai.processors.multimodal_other.ZHIPU_API_KEY', 'test_key'), \
-             patch('yuntai.processors.multimodal_other.PROJECT_ROOT', '/fake/project'), \
-             patch('yuntai.processors.multimodal_other.TEMP_DIR', '/fake/temp'), \
+        with patch('yuntai.processors.media_generator.ZHIPU_API_KEY', 'test_key'), \
+             patch('yuntai.processors.media_generator.PROJECT_ROOT', '/fake/project'), \
+             patch('yuntai.processors.media_generator.TEMP_DIR', '/fake/temp'), \
              patch('os.makedirs'):
-            from yuntai.processors.multimodal_other import MultimodalOther
+            from yuntai.processors.media_generator import MediaGenerator
             
-            processor = MultimodalOther()
+            processor = MediaGenerator()
             
             assert processor.api_key == 'test_key'
             assert processor.project_root == '/fake/project'
@@ -33,9 +33,9 @@ class TestMultimodalOtherInit:
     def test_init_with_custom_values(self):
         """测试使用自定义值初始化"""
         with patch('os.makedirs'):
-            from yuntai.processors.multimodal_other import MultimodalOther
+            from yuntai.processors.media_generator import MediaGenerator
             
-            processor = MultimodalOther(api_key='custom_key', project_root='/custom/project')
+            processor = MediaGenerator(api_key='custom_key', project_root='/custom/project')
             
             assert processor.api_key == 'custom_key'
             assert processor.project_root == '/custom/project'
@@ -43,9 +43,9 @@ class TestMultimodalOtherInit:
     def test_image_sizes_defined(self):
         """测试图像尺寸定义"""
         with patch('os.makedirs'):
-            from yuntai.processors.multimodal_other import MultimodalOther
+            from yuntai.processors.media_generator import MediaGenerator
             
-            processor = MultimodalOther()
+            processor = MediaGenerator()
             
             assert len(processor.image_sizes) > 0
             assert "1280x1280" in processor.image_sizes
@@ -53,9 +53,9 @@ class TestMultimodalOtherInit:
     def test_video_sizes_defined(self):
         """测试视频尺寸定义"""
         with patch('os.makedirs'):
-            from yuntai.processors.multimodal_other import MultimodalOther
+            from yuntai.processors.media_generator import MediaGenerator
             
-            processor = MultimodalOther()
+            processor = MediaGenerator()
             
             assert len(processor.video_sizes) > 0
             assert "1920x1080" in processor.video_sizes
@@ -63,23 +63,23 @@ class TestMultimodalOtherInit:
     def test_video_fps_defined(self):
         """测试视频帧率定义"""
         with patch('os.makedirs'):
-            from yuntai.processors.multimodal_other import MultimodalOther
+            from yuntai.processors.media_generator import MediaGenerator
             
-            processor = MultimodalOther()
+            processor = MediaGenerator()
             
             assert 30 in processor.video_fps
             assert 60 in processor.video_fps
 
 
-class TestMultimodalOtherGenerateImage:
-    """测试 MultimodalOther 图像生成"""
+class TestMediaGeneratorGenerateImage:
+    """测试 MediaGenerator 图像生成"""
 
     @pytest.fixture
     def processor(self):
         """创建处理器fixture"""
         with patch('os.makedirs'):
-            from yuntai.processors.multimodal_other import MultimodalOther
-            return MultimodalOther(api_key='test_key')
+            from yuntai.processors.media_generator import MediaGenerator
+            return MediaGenerator(api_key='test_key')
 
     def test_generate_image_success(self, processor):
         """测试图像生成成功"""
@@ -140,15 +140,15 @@ class TestMultimodalOtherGenerateImage:
             assert call_args[1]['json']['quality'] == "hd"
 
 
-class TestMultimodalOtherDownloadImage:
-    """测试 MultimodalOther 图像下载"""
+class TestMediaGeneratorDownloadImage:
+    """测试 MediaGenerator 图像下载"""
 
     @pytest.fixture
     def processor(self, tmp_path):
         """创建处理器fixture"""
         with patch('os.makedirs'):
-            from yuntai.processors.multimodal_other import MultimodalOther
-            proc = MultimodalOther(api_key='test_key')
+            from yuntai.processors.media_generator import MediaGenerator
+            proc = MediaGenerator(api_key='test_key')
             proc.image_output_dir = str(tmp_path)
             return proc
 
@@ -191,15 +191,15 @@ class TestMultimodalOtherDownloadImage:
                 processor.download_image("http://example.com/image.png")
 
 
-class TestMultimodalOtherGenerateVideo:
-    """测试 MultimodalOther 视频生成"""
+class TestMediaGeneratorGenerateVideo:
+    """测试 MediaGenerator 视频生成"""
 
     @pytest.fixture
     def processor(self):
         """创建处理器fixture"""
         with patch('os.makedirs'):
-            from yuntai.processors.multimodal_other import MultimodalOther
-            return MultimodalOther(api_key='test_key')
+            from yuntai.processors.media_generator import MediaGenerator
+            return MediaGenerator(api_key='test_key')
 
     def test_generate_video_success(self, processor):
         """测试视频生成成功"""
@@ -352,15 +352,15 @@ class TestMultimodalOtherGenerateVideo:
             assert call_args[1]['json']['fps'] == 60
 
 
-class TestMultimodalOtherCheckVideoResult:
-    """测试 MultimodalOther 检查视频结果"""
+class TestMediaGeneratorCheckVideoResult:
+    """测试 MediaGenerator 检查视频结果"""
 
     @pytest.fixture
     def processor(self):
         """创建处理器fixture"""
         with patch('os.makedirs'):
-            from yuntai.processors.multimodal_other import MultimodalOther
-            return MultimodalOther(api_key='test_key')
+            from yuntai.processors.media_generator import MediaGenerator
+            return MediaGenerator(api_key='test_key')
 
     def test_check_video_result_success(self, processor):
         """测试检查视频结果 - 成功"""
@@ -458,15 +458,15 @@ class TestMultimodalOtherCheckVideoResult:
             assert result["success"] is False
 
 
-class TestMultimodalOtherDownloadVideo:
-    """测试 MultimodalOther 视频下载"""
+class TestMediaGeneratorDownloadVideo:
+    """测试 MediaGenerator 视频下载"""
 
     @pytest.fixture
     def processor(self, tmp_path):
         """创建处理器fixture"""
         with patch('os.makedirs'):
-            from yuntai.processors.multimodal_other import MultimodalOther
-            proc = MultimodalOther(api_key='test_key')
+            from yuntai.processors.media_generator import MediaGenerator
+            proc = MediaGenerator(api_key='test_key')
             proc.video_output_dir = str(tmp_path)
             return proc
 
@@ -542,15 +542,15 @@ class TestMultimodalOtherDownloadVideo:
             assert "custom_video" in result["video_path"]
 
 
-class TestMultimodalOtherWaitForVideo:
-    """测试 MultimodalOther 等待视频完成"""
+class TestMediaGeneratorWaitForVideo:
+    """测试 MediaGenerator 等待视频完成"""
 
     @pytest.fixture
     def processor(self):
         """创建处理器fixture"""
         with patch('os.makedirs'):
-            from yuntai.processors.multimodal_other import MultimodalOther
-            return MultimodalOther(api_key='test_key')
+            from yuntai.processors.media_generator import MediaGenerator
+            return MediaGenerator(api_key='test_key')
 
     def test_wait_for_video_completion_success(self, processor):
         """测试等待视频完成 - 成功"""
@@ -618,25 +618,25 @@ class TestMultimodalOtherWaitForVideo:
             assert "超时" in result["message"]
 
 
-class TestMultimodalOtherConstants:
-    """测试 MultimodalOther 常量"""
+class TestMediaGeneratorConstants:
+    """测试 MediaGenerator 常量"""
 
     def test_chunk_size(self):
         """测试块大小"""
-        from yuntai.processors.multimodal_other import CHUNK_SIZE
+        from yuntai.processors.media_generator import CHUNK_SIZE
         assert CHUNK_SIZE == 8192
 
     def test_timeout(self):
         """测试超时"""
-        from yuntai.processors.multimodal_other import TIMEOUT
+        from yuntai.processors.media_generator import TIMEOUT
         assert TIMEOUT == 30
 
     def test_max_image_count(self):
         """测试最大图像数量"""
-        from yuntai.processors.multimodal_other import MAX_IMAGE_COUNT
+        from yuntai.processors.media_generator import MAX_IMAGE_COUNT
         assert MAX_IMAGE_COUNT == 2
 
     def test_max_attempts(self):
         """测试最大尝试次数"""
-        from yuntai.processors.multimodal_other import MAX_ATTEMPTS
+        from yuntai.processors.media_generator import MAX_ATTEMPTS
         assert MAX_ATTEMPTS == 100

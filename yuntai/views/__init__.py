@@ -7,7 +7,7 @@ from .connection import ConnectionBuilder
 from .tts import TTSBuilder
 from .history import HistoryBuilder
 from .settings import SettingsBuilder
-from .dynamic import DynamicBuilder
+from .dynamic import DynamicBuilder, ImagePreviewWindow, VideoPreviewWindow
 
 __all__ = [
     'ThemeColors',
@@ -22,5 +22,7 @@ __all__ = [
     'TTSBuilder',
     'HistoryBuilder',
     'SettingsBuilder',
-    'DynamicBuilder'
+    'DynamicBuilder',
+    'ImagePreviewWindow',
+    'VideoPreviewWindow'
 ]

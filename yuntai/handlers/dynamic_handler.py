@@ -10,7 +10,8 @@ import traceback
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
 
-from yuntai.processors.multimodal_other import MultimodalOther
+from yuntai.processors.media_generator import MediaGenerator
+from yuntai.views.dynamic import ImagePreviewWindow
 from yuntai.core.config import ZHIPU_API_KEY, PROJECT_ROOT
 
 
@@ -75,7 +76,7 @@ class DynamicHandler(QObject):
 
                 try:
                     filename = f"cogview_{int(time.time())}"
-                    image_path = self.controller.multimodal_other.download_image(image_url, filename)
+                    image_path = self.controller.media_generator.download_image(image_url, filename)
 
                     self.image_log_signal.emit(f"✅ 图像生成成功！")
                     self.image_log_signal.emit(f"📁 保存路径: {image_path}")
@@ -166,8 +167,8 @@ class DynamicHandler(QObject):
             self.view.create_dynamic_page()
             self._bind_events()
 
-            if not hasattr(self.controller, 'multimodal_other'):
-                self.controller.multimodal_other = MultimodalOther(ZHIPU_API_KEY, PROJECT_ROOT)
+            if not hasattr(self.controller, 'media_generator'):
+                self.controller.media_generator = MediaGenerator(ZHIPU_API_KEY, PROJECT_ROOT)
 
         except Exception as e:
             print(f"❌ 加载动态功能页面失败: {e}")
@@ -251,10 +252,10 @@ class DynamicHandler(QObject):
 
             def generate_thread():
                 try:
-                    if not hasattr(self.controller, 'multimodal_other'):
-                        self.controller.multimodal_other = MultimodalOther(ZHIPU_API_KEY, PROJECT_ROOT)
+                    if not hasattr(self.controller, 'media_generator'):
+                        self.controller.media_generator = MediaGenerator(ZHIPU_API_KEY, PROJECT_ROOT)
 
-                    result = self.controller.multimodal_other.generate_image(prompt, size, quality)
+                    result = self.controller.media_generator.generate_image(prompt, size, quality)
                     result['size'] = size
                     result['quality'] = quality
                     self.image_update_signal.emit(result)
@@ -331,10 +332,10 @@ class DynamicHandler(QObject):
 
             def generate_thread():
                 try:
-                    if not hasattr(self.controller, 'multimodal_other'):
-                        self.controller.multimodal_other = MultimodalOther(ZHIPU_API_KEY, PROJECT_ROOT)
+                    if not hasattr(self.controller, 'media_generator'):
+                        self.controller.media_generator = MediaGenerator(ZHIPU_API_KEY, PROJECT_ROOT)
 
-                    result = self.controller.multimodal_other.generate_video(
+                    result = self.controller.media_generator.generate_video(
                         prompt, image_urls, size, fps, quality, with_audio
                     )
                     result['size'] = size
@@ -375,7 +376,7 @@ class DynamicHandler(QObject):
                         self.video_log_signal.emit(f"⚠️ 达到最大尝试次数，停止轮询")
                         self.video_log_signal.emit("-" * 50)
 
-                result = self.controller.multimodal_other.wait_for_video_completion(
+                result = self.controller.media_generator.wait_for_video_completion(
                     task_id,
                     image_count=image_count,
                     interval=10,
@@ -388,7 +389,7 @@ class DynamicHandler(QObject):
                     video_url = result.get("video_url")
 
                     filename = f"cogvideox_{int(time.time())}"
-                    download_result = self.controller.multimodal_other.download_video(video_url, cover_url, filename)
+                    download_result = self.controller.media_generator.download_video(video_url, cover_url, filename)
 
                     if download_result["success"]:
                         video_path = download_result["video_path"]
@@ -423,7 +424,6 @@ class DynamicHandler(QObject):
         """预览最新生成的图像"""
         try:
             if hasattr(self.controller, 'latest_image_path') and self.controller.latest_image_path:
-                from yuntai.processors.multimodal_other import ImagePreviewWindow
                 # 获取主窗口作为 parent
                 main_window = self.view if hasattr(self.view, 'window') else None
                 preview = ImagePreviewWindow(main_window, self.controller.latest_image_path)
