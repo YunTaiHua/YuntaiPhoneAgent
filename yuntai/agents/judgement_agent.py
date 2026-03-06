@@ -1,13 +1,15 @@
 """
 任务判断 Agent
 使用 ZHIPU_JUDGEMENT_MODEL 判断任务类型
+支持 LangChain Callbacks 记录执行过程
 """
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.callbacks import BaseCallbackHandler
 
 from yuntai.models import get_judgement_model
 from yuntai.prompts import (
@@ -18,6 +20,7 @@ from yuntai.prompts import (
     TASK_TYPE_CONTINUOUS_REPLY,
     TASK_TYPE_COMPLEX_OPERATION,
 )
+from yuntai.callbacks import get_callback_manager
 
 
 @dataclass
@@ -40,18 +43,26 @@ class TaskJudgementResult:
 
 
 class JudgementAgent:
-    """任务判断 Agent"""
+    """任务判断 Agent - 支持 Callbacks 记录执行过程"""
     
     def __init__(self, model: Optional[BaseChatModel] = None):
         self.model = model or get_judgement_model()
         self.system_prompt = TASK_JUDGEMENT_PROMPT
+        
+        # 回调管理器
+        self.callback_manager = get_callback_manager()
     
-    def judge(self, user_input: str) -> TaskJudgementResult:
+    def judge(
+        self, 
+        user_input: str,
+        callbacks: Optional[List[BaseCallbackHandler]] = None
+    ) -> TaskJudgementResult:
         """
-        判断任务类型
+        判断任务类型（支持 Callbacks）
         
         Args:
             user_input: 用户输入
+            callbacks: 自定义回调处理器列表
         
         Returns:
             TaskJudgementResult: 任务判断结果
@@ -71,7 +82,15 @@ class JudgementAgent:
         ]
         
         try:
-            response = self.model.invoke(messages)
+            # 准备回调处理器
+            all_callbacks = self._prepare_callbacks(callbacks)
+            
+            # 使用回调配置
+            config = {"callbacks": all_callbacks} if all_callbacks else {}
+            
+            # 调用模型
+            response = self.model.invoke(messages, config=config)
+            
             result_text = response.content.strip()
             
             json_start = result_text.find('{')
@@ -92,6 +111,31 @@ class JudgementAgent:
             print(f"任务判断失败: {e}")
         
         return self._fallback_judge(user_input)
+    
+    def _prepare_callbacks(
+        self, 
+        callbacks: Optional[List[BaseCallbackHandler]] = None
+    ) -> List[BaseCallbackHandler]:
+        """
+        准备回调处理器列表
+        
+        Args:
+            callbacks: 用户提供的回调列表
+        
+        Returns:
+            合并后的回调处理器列表
+        """
+        all_callbacks = []
+        
+        # 添加全局回调
+        global_callbacks = self.callback_manager.get_callbacks(include_global=True)
+        all_callbacks.extend(global_callbacks)
+        
+        # 添加用户提供的回调
+        if callbacks:
+            all_callbacks.extend(callbacks)
+        
+        return all_callbacks
     
     def _fallback_judge(self, user_input: str) -> TaskJudgementResult:
         """后备判断逻辑"""

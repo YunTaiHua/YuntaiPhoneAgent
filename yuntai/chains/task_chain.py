@@ -1,9 +1,12 @@
 """
 任务处理链
 整合判断 → 分发 → 执行流程
+支持 LangChain Callbacks 追踪链执行
 """
 import threading
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
+
+from langchain_core.callbacks import BaseCallbackHandler
 
 from yuntai.agents import JudgementAgent, ChatAgent, PhoneAgent
 from yuntai.chains.reply_chain import ReplyChain
@@ -15,10 +18,11 @@ from yuntai.prompts import (
     TASK_TYPE_COMPLEX_OPERATION,
 )
 from yuntai.core.config import SHORTCUTS
+from yuntai.callbacks import get_callback_manager
 
 
 class TaskChain:
-    """任务处理链"""
+    """任务处理链 - 支持 Callbacks 追踪"""
     
     def __init__(
         self,
@@ -29,6 +33,9 @@ class TaskChain:
         self.device_id = device_id
         self.file_manager = file_manager
         self.tts_manager = tts_manager
+        
+        # 回调管理器
+        self.callback_manager = get_callback_manager()
         
         self.judgement_agent = JudgementAgent()
         self.chat_agent = ChatAgent(file_manager=file_manager, tts_manager=tts_manager)
@@ -52,9 +59,13 @@ class TaskChain:
         self.tts_manager = tts_manager
         self.chat_agent.tts_manager = tts_manager
     
-    def process(self, user_input: str) -> Tuple[str, Dict[str, Any]]:
+    def process(
+        self, 
+        user_input: str,
+        callbacks: Optional[List[BaseCallbackHandler]] = None
+    ) -> Tuple[str, Dict[str, Any]]:
         """
-        处理用户输入
+        处理用户输入（支持 Callbacks）
         
         流程：
         1. JudgementAgent 判断任务类型
@@ -62,6 +73,7 @@ class TaskChain:
         
         Args:
             user_input: 用户输入
+            callbacks: 自定义回调处理器列表
         
         Returns:
             (处理结果, 任务信息)
@@ -69,19 +81,26 @@ class TaskChain:
         if not user_input or not user_input.strip():
             return "输入为空", {}
         
+        # 准备回调处理器
+        all_callbacks = self._prepare_callbacks(callbacks)
+        
         if len(user_input.strip()) == 1:
             letter = user_input.strip().lower()
             if letter in SHORTCUTS:
                 task = SHORTCUTS[letter]
                 return self._handle_basic_operation(task), {}
         
-        judgement_result = self.judgement_agent.judge(user_input)
+        # 使用回调进行任务判断
+        judgement_result = self.judgement_agent.judge(
+            user_input, 
+            callbacks=all_callbacks
+        )
         task_info = judgement_result.to_dict()
         
         print(f"📋 任务类型: {judgement_result.task_type}")
         
         if judgement_result.task_type == TASK_TYPE_FREE_CHAT:
-            result = self._handle_free_chat(user_input)
+            result = self._handle_free_chat(user_input, all_callbacks)
         
         elif judgement_result.task_type == TASK_TYPE_BASIC_OPERATION:
             result = self._handle_basic_operation(
@@ -94,7 +113,8 @@ class TaskChain:
             else:
                 result = self._handle_single_reply(
                     judgement_result.target_app,
-                    judgement_result.target_object
+                    judgement_result.target_object,
+                    all_callbacks
                 )
         
         elif judgement_result.task_type == TASK_TYPE_CONTINUOUS_REPLY:
@@ -110,13 +130,42 @@ class TaskChain:
             result = self._handle_complex_operation(user_input)
         
         else:
-            result = self._handle_free_chat(user_input)
+            result = self._handle_free_chat(user_input, all_callbacks)
         
         return result, task_info
     
-    def _handle_free_chat(self, user_input: str) -> str:
+    def _prepare_callbacks(
+        self, 
+        callbacks: Optional[List[BaseCallbackHandler]] = None
+    ) -> List[BaseCallbackHandler]:
+        """
+        准备回调处理器列表
+        
+        Args:
+            callbacks: 用户提供的回调列表
+        
+        Returns:
+            合并后的回调处理器列表
+        """
+        all_callbacks = []
+        
+        # 添加全局回调
+        global_callbacks = self.callback_manager.get_callbacks(include_global=True)
+        all_callbacks.extend(global_callbacks)
+        
+        # 添加用户提供的回调
+        if callbacks:
+            all_callbacks.extend(callbacks)
+        
+        return all_callbacks
+    
+    def _handle_free_chat(
+        self, 
+        user_input: str,
+        callbacks: Optional[List[BaseCallbackHandler]] = None
+    ) -> str:
         """处理自由聊天"""
-        return self.chat_agent.chat(user_input)
+        return self.chat_agent.chat(user_input, callbacks=callbacks)
     
     def _handle_basic_operation(self, task: str) -> str:
         """处理基础操作"""
@@ -130,9 +179,18 @@ class TaskChain:
         else:
             return f"❌ 操作失败: {result}"
     
-    def _handle_single_reply(self, app_name: str, chat_object: str) -> str:
+    def _handle_single_reply(
+        self, 
+        app_name: str, 
+        chat_object: str,
+        callbacks: Optional[List[BaseCallbackHandler]] = None
+    ) -> str:
         """处理单次回复"""
-        success, result = self.reply_chain.single_reply(app_name, chat_object)
+        success, result = self.reply_chain.single_reply(
+            app_name, 
+            chat_object,
+            callbacks=callbacks
+        )
         return result
     
     def _handle_continuous_reply(self, app_name: str, chat_object: str) -> str:

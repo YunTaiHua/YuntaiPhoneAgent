@@ -1,15 +1,15 @@
 # YuntaiPhoneAgent
 
-Version: 1.3.2
+Version: 1.3.3
 
 **[中文版本](README.md)**
 
-## YuntaiPhoneAgent v1.3.2 Code Analysis
+## YuntaiPhoneAgent v1.3.3 Code Analysis
 
 ### 📊 Project Overview
 
 **Project Name**: YuntaiPhoneAgent 
-**Version**: v1.3.2
+**Version**: v1.3.3
 
 ### 🏗️ Architecture Design
 
@@ -126,6 +126,12 @@ YuntaiPhoneAgent/
 │   ├── memory/                # Memory Module
 │   │   ├── __init__.py
 │   │   └── conversation_memory.py
+│   ├── callbacks/             # LangChain Callbacks Module
+│   │   ├── __init__.py
+│   │   ├── streaming_handler.py   # Streaming Output Handler
+│   │   ├── logging_handler.py     # Logging Handler
+│   │   ├── memory_handler.py      # Memory Management Handler
+│   │   └── callback_manager.py    # Callback Manager
 │   └── __init__.py
 ├── phone_agent/               # External PhoneAgent Module
 │   ├── agent.py
@@ -177,6 +183,25 @@ YuntaiPhoneAgent/
 - Implemented using scrcpy
 - Visualize operation process
 - Support USB/wireless connection
+
+#### 7. LangChain Callbacks System (callbacks/)
+- **Streaming Output Handler** (StreamingCallbackHandler)
+  - Real-time capture of LLM generated tokens
+  - Support typewriter effect output to GUI
+  - Qt signal mechanism for thread-safe updates
+- **Logging Handler** (LoggingCallbackHandler)
+  - Automatically record all LLM call details
+  - Daily log file rotation (`temp/log/langchain_callbacks_YYYY-MM-DD.log`)
+  - Record token usage, duration, error information
+  - Support performance monitoring (PerformanceCallbackHandler)
+- **Memory Management Handler** (MemoryCallbackHandler)
+  - Automatically save conversation history
+  - Support session-level and file-level memory management
+- **Callback Manager** (CallbackManager)
+  - Unified management of all callback handlers
+  - Support global and local callback registration
+  - Automatic deduplication to prevent duplicate calls
+  - Simplify callback configuration process
 
 ### 🔧 Tech Stack
 
@@ -239,7 +264,6 @@ GLM-4.6v-flash (Task Classification)
 - v1.1: Integrate TTS, GUI, screen casting
 - v1.2: Upgrade GLM-4.6v-flash multimodal, introduce dual AI assist system
 - v1.3: Refactor continuous reply flow with LangGraph, centralized state management, node-based design
-- v1.3.2: Optimize TTS module, custom GPT-SoVITS for silent output, improve user experience
 
 This project demonstrates deep integration of AI Agent, multimodal, and automation technologies, making it a fully functional smartphone operation agent system.
 

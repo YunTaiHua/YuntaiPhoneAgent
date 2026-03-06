@@ -1,17 +1,29 @@
 """
 生成回复节点
+支持 LangChain Callbacks 实现流式输出
 """
+from typing import Optional, List
+from langchain_core.callbacks import BaseCallbackHandler
+
 from yuntai.graphs.state import ReplyState
-from yuntai.models import get_zhipu_client
+from yuntai.models import get_zhipu_client, get_chat_model
 from yuntai.core.config import ZHIPU_CHAT_MODEL
+from yuntai.callbacks import get_callback_manager, StreamingCallbackHandler
 
 
-def generate_reply(state: ReplyState) -> dict:
+def generate_reply(
+    state: ReplyState,
+    callbacks: Optional[List[BaseCallbackHandler]] = None
+) -> dict:
     """
-    生成回复节点
+    生成回复节点（支持 Callbacks 流式输出）
     
     输入: latest_message, current_other_messages
     输出: generated_reply
+    
+    Args:
+        state: 回复状态
+        callbacks: 自定义回调处理器列表
     """
     latest_message = state["latest_message"]
     other_messages = state["current_other_messages"]
@@ -40,24 +52,25 @@ def generate_reply(state: ReplyState) -> dict:
 请生成回复："""
     
     try:
-        client = get_zhipu_client()
-        stream = client.chat.completions.create(
-            model=ZHIPU_CHAT_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            stream=True,
-            max_tokens=500
-        )
+        # 准备回调处理器
+        all_callbacks = _prepare_callbacks(callbacks)
         
-        reply = ""
-        for chunk in stream:
-            if chunk.choices and len(chunk.choices) > 0:
-                if chunk.choices[0].delta.content is not None:
-                    reply += chunk.choices[0].delta.content
-        reply = reply.strip()
+        # 使用 LangChain 模型（支持 callbacks）
+        model = get_chat_model()
+        
+        from langchain_core.messages import SystemMessage, HumanMessage
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=prompt)
+        ]
+        
+        # 使用回调配置
+        config = {"callbacks": all_callbacks} if all_callbacks else {}
+        
+        # 调用模型
+        response = model.invoke(messages, config=config)
+        
+        reply = response.content.strip()
         
         if "。" in reply:
             reply = reply.split("。")[0] + "。"
@@ -76,6 +89,32 @@ def generate_reply(state: ReplyState) -> dict:
     except Exception as e:
         print(f"❌ 生成回复失败: {e}")
         return {"generated_reply": ""}
+
+
+def _prepare_callbacks(
+    callbacks: Optional[List[BaseCallbackHandler]] = None
+) -> List[BaseCallbackHandler]:
+    """
+    准备回调处理器列表
+    
+    Args:
+        callbacks: 用户提供的回调列表
+    
+    Returns:
+        合并后的回调处理器列表
+    """
+    all_callbacks = []
+    
+    # 添加全局回调
+    callback_manager = get_callback_manager()
+    global_callbacks = callback_manager.get_callbacks(include_global=True)
+    all_callbacks.extend(global_callbacks)
+    
+    # 添加用户提供的回调
+    if callbacks:
+        all_callbacks.extend(callbacks)
+    
+    return all_callbacks
 
 
 def is_similar(msg1: str, msg2: str, threshold: float) -> bool:

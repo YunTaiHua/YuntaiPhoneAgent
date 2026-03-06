@@ -1,6 +1,7 @@
 """
 对话记忆管理模块
 使用 LangChain 记忆管理机制
+支持 LangChain Callbacks 自动记录对话历史
 """
 import json
 import os
@@ -8,12 +9,15 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langchain_core.callbacks import BaseCallbackHandler
 from langchain.memory import ConversationBufferMemory
 from langchain_community.chat_message_histories import FileChatMessageHistory
 
+from yuntai.callbacks import get_callback_manager
+
 
 class ConversationMemoryManager:
-    """对话记忆管理器"""
+    """对话记忆管理器 - 支持 Callbacks 自动记录"""
     
     def __init__(
         self,
@@ -25,6 +29,9 @@ class ConversationMemoryManager:
         self.forever_memory_file = forever_memory_file
         self.max_history_length = max_history_length
         
+        # 回调管理器
+        self.callback_manager = get_callback_manager()
+        
         self._memory: Optional[ConversationBufferMemory] = None
         self._forever_memory: str = ""
         
@@ -33,6 +40,9 @@ class ConversationMemoryManager:
         
         if forever_memory_file and os.path.exists(forever_memory_file):
             self._load_forever_memory()
+        
+        # 注册记忆回调处理器
+        self._setup_memory_callback()
     
     def _load_memory(self):
         """加载记忆"""
@@ -115,6 +125,31 @@ class ConversationMemoryManager:
                 
         except Exception as e:
             print(f"保存失败: {e}")
+    
+    def _setup_memory_callback(self):
+        """设置记忆回调处理器"""
+        from yuntai.callbacks import MemoryCallbackHandler
+        
+        # 创建记忆回调处理器
+        memory_handler = MemoryCallbackHandler(
+            memory_manager=self,
+            auto_save=True,
+            max_history=self.max_history_length
+        )
+        
+        # 注册为全局回调
+        self.callback_manager.register_handler(
+            name="conversation_memory",
+            handler=memory_handler,
+            is_global=True
+        )
+    
+    def get_callbacks(self) -> List[BaseCallbackHandler]:
+        """获取记忆相关的回调处理器"""
+        return self.callback_manager.get_callbacks(
+            include_global=True,
+            handler_names=["conversation_memory"]
+        )
 
 
 class FreeChatMemory:

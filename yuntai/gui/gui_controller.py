@@ -1,6 +1,7 @@
 """
 GUIController - 事件处理和业务逻辑模块 (PyQt6 重构版)
 负责处理用户操作，连接UI和后台任务，并协调各个Handler
+支持 LangChain Callbacks 实现流式输出
 """
 
 import sys
@@ -10,7 +11,7 @@ import queue
 import time
 import datetime
 import traceback
-from typing import Optional, Dict, Any, Callable
+from typing import Optional, Dict, Any, Callable, List
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal, QObject
@@ -39,9 +40,17 @@ from yuntai.gui.gui_view import GUIView
 from yuntai.gui.styles import ThemeColors
 from yuntai.gui.output_capture import SimpleOutputCapture
 
+# LangChain Callbacks
+from yuntai.callbacks import (
+    get_callback_manager,
+    QtStreamingCallbackHandler,
+    LoggingCallbackHandler,
+    PerformanceCallbackHandler
+)
+
 
 class GUIController(QObject):
-    """GUI控制器 - 处理所有用户事件和业务逻辑"""
+    """GUI控制器 - 处理所有用户事件和业务逻辑，支持流式输出"""
 
     # 定义信号用于线程安全的UI更新
     _output_signal = pyqtSignal(str)
@@ -57,6 +66,9 @@ class GUIController(QObject):
     _disable_terminate_button_signal = pyqtSignal()
     _reset_button_states_signal = pyqtSignal()
     _clear_attached_files_signal = pyqtSignal()
+    # 流式输出信号
+    _streaming_output_signal = pyqtSignal(str)
+    _streaming_complete_signal = pyqtSignal(str)
 
     def __init__(self, project_root, scrcpy_path):
         super().__init__()
@@ -85,9 +97,16 @@ class GUIController(QObject):
         self._disable_terminate_button_signal.connect(self._do_disable_terminate_button)
         self._reset_button_states_signal.connect(self._do_reset_button_states)
         self._clear_attached_files_signal.connect(self._do_clear_attached_files)
+        # 连接流式输出信号
+        self._streaming_output_signal.connect(self._do_append_output_from_signal)
+        self._streaming_complete_signal.connect(self._on_streaming_complete)
 
         # 初始化任务管理器（保留用于连接管理和TTS）
         self.task_manager = TaskManager(project_root, self.scrcpy_path)
+
+        # 初始化回调管理器
+        self.callback_manager = get_callback_manager()
+        self._setup_callbacks()
 
         # 初始化新的 TaskChain
         self.task_chain = TaskChain(
@@ -145,6 +164,57 @@ class GUIController(QObject):
 
         # 设置设备类型变化回调
         self._setup_device_type_callback()
+
+    def _setup_callbacks(self):
+        """设置 LangChain Callbacks"""
+        # 创建 Qt 流式输出处理器
+        self.streaming_handler = QtStreamingCallbackHandler(
+            append_signal=self._streaming_output_signal,
+            complete_signal=self._streaming_complete_signal,
+            enable_typewriter=True
+        )
+        
+        # 注册流式输出处理器
+        self.callback_manager.register_handler(
+            name="gui_streaming",
+            handler=self.streaming_handler,
+            is_global=True
+        )
+        
+        # 创建日志处理器（默认只写入文件，不输出到控制台）
+        self.logging_handler = LoggingCallbackHandler(
+            enable_console=False,  # 不输出到控制台
+            enable_detailed=True   # 记录详细信息到文件
+        )
+        
+        # 注册日志处理器
+        self.callback_manager.register_handler(
+            name="gui_logging",
+            handler=self.logging_handler,
+            is_global=True
+        )
+        
+        # 创建性能监控处理器
+        self.performance_handler = PerformanceCallbackHandler(
+            enable_console=False,
+            enable_detailed=False
+        )
+        
+        # 注册性能处理器
+        self.callback_manager.register_handler(
+            name="gui_performance",
+            handler=self.performance_handler,
+            is_global=True
+        )
+    
+    def _on_streaming_complete(self, response: str):
+        """流式输出完成回调"""
+        # 可以在这里添加完成后的处理逻辑
+        pass
+    
+    def get_callbacks(self) -> List:
+        """获取 GUI 控制器的回调处理器列表"""
+        return self.callback_manager.get_callbacks(include_global=True)
 
     def _bind_ui_events(self):
         """绑定所有UI事件（主要是导航和主控台）"""
@@ -486,7 +556,8 @@ class GUIController(QObject):
 
                     threading.Timer(0.5, speak_reply).start()
 
-                return response
+                # 返回空字符串，因为结果已经通过流式输出显示
+                return ""
             else:
                 error_msg = f"❌ 多模态分析失败: {response}"
                 print(error_msg)

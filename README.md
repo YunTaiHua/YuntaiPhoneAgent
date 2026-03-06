@@ -1,15 +1,15 @@
 # YuntaiPhoneAgent
 
-Version: 1.3.2
+Version: 1.3.3
 
 **[English Version](README_en.md)**
 
-## Phone Agent 智能版 v1.3.2 代码分析
+## Phone Agent 智能版 v1.3.3 代码分析
 
 ### 📊 项目概述
 
 **项目名称**: YuntaiPhoneAgent
-**版本**: v1.3.2
+**版本**: v1.3.3
 
 ### 🏗️ 架构设计
 
@@ -126,6 +126,12 @@ YuntaiPhoneAgent/
 │   ├── memory/                # 记忆模块
 │   │   ├── __init__.py
 │   │   └── conversation_memory.py
+│   ├── callbacks/             # LangChain Callbacks 模块
+│   │   ├── __init__.py
+│   │   ├── streaming_handler.py   # 流式输出处理器
+│   │   ├── logging_handler.py     # 日志记录处理器
+│   │   ├── memory_handler.py      # 记忆管理处理器
+│   │   └── callback_manager.py    # 回调管理器
 │   └── __init__.py
 ├── phone_agent/               # 外部PhoneAgent模块
 │   ├── agent.py
@@ -177,6 +183,25 @@ YuntaiPhoneAgent/
 - 使用 scrcpy 实现
 - 可视化操作过程
 - 支持USB/无线连接
+
+#### 7. LangChain Callbacks 系统 (callbacks/)
+- **流式输出处理器** (StreamingCallbackHandler)
+  - 实时捕获 LLM 生成的 token
+  - 支持打字机效果输出到 GUI
+  - Qt 信号机制实现线程安全更新
+- **日志记录处理器** (LoggingCallbackHandler)
+  - 自动记录所有 LLM 调用详情
+  - 按日期分割日志文件 (`temp/log/langchain_callbacks_YYYY-MM-DD.log`)
+  - 记录 Token 使用量、耗时、错误信息
+  - 支持性能监控 (PerformanceCallbackHandler)
+- **记忆管理处理器** (MemoryCallbackHandler)
+  - 自动保存对话历史
+  - 支持会话级和文件级记忆管理
+- **回调管理器** (CallbackManager)
+  - 统一管理所有回调处理器
+  - 支持全局和局部回调注册
+  - 自动去重防止重复调用
+  - 简化回调配置流程
 
 ### 🔧 技术栈
 
@@ -239,7 +264,6 @@ GLM-4.6v-flash (任务分类)
 - v1.1: 集成TTS、GUI、投屏
 - v1.2: 升级GLM-4.6v-flash多模态、引入双AI辅助系统
 - v1.3: 使用 LangGraph 重构持续回复流程，状态集中管理，节点化设计
-- v1.3.2: 优化TTS模块，自定义GPT-SoVITS实现静默输出，提升用户体验
 
  项目展现了AI Agent、多模态、自动化技术的深度整合，是一个功能完善的智能手机操作代理系统。
 

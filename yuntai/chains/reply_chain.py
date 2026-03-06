@@ -1,18 +1,22 @@
 """
 回复处理链
 使用 LangGraph 工作流处理回复
+支持 LangChain Callbacks 追踪链执行
 """
 import threading
 import datetime
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
+
+from langchain_core.callbacks import BaseCallbackHandler
 
 from yuntai.graphs import ReplyGraph
 from yuntai.tools.message_tools import parse_messages, generate_reply
 from yuntai.models import get_zhipu_client
+from yuntai.callbacks import get_callback_manager
 
 
 class ReplyChain:
-    """回复处理链 - 使用 LangGraph"""
+    """回复处理链 - 使用 LangGraph，支持 Callbacks"""
     
     def __init__(
         self,
@@ -23,6 +27,9 @@ class ReplyChain:
         self.device_id = device_id
         self.file_manager = file_manager
         self.tts_manager = tts_manager
+        
+        # 回调管理器
+        self.callback_manager = get_callback_manager()
         
         self._reply_graph: Optional[ReplyGraph] = None
         self._continuous_thread: Optional[threading.Thread] = None
@@ -41,9 +48,14 @@ class ReplyChain:
             )
         return self._reply_graph
     
-    def single_reply(self, app_name: str, chat_object: str) -> Tuple[bool, str]:
+    def single_reply(
+        self, 
+        app_name: str, 
+        chat_object: str,
+        callbacks: Optional[List[BaseCallbackHandler]] = None
+    ) -> Tuple[bool, str]:
         """
-        单次回复
+        单次回复（支持 Callbacks）
         
         流程：
         1. PhoneAgent 提取聊天记录
@@ -53,12 +65,16 @@ class ReplyChain:
         Args:
             app_name: APP 名称
             chat_object: 聊天对象
+            callbacks: 自定义回调处理器列表
         
         Returns:
             (是否成功, 结果消息)
         """
         print(f"🔄 启动单次回复流程")
         print(f"🎯 目标：{app_name} -> {chat_object}")
+        
+        # 准备回调处理器
+        all_callbacks = self._prepare_callbacks(callbacks)
         
         from yuntai.agents.phone_agent import PhoneAgent
         
@@ -187,3 +203,28 @@ class ReplyChain:
         if self._reply_graph:
             return self._reply_graph.is_running()
         return False
+    
+    def _prepare_callbacks(
+        self, 
+        callbacks: Optional[List[BaseCallbackHandler]] = None
+    ) -> List[BaseCallbackHandler]:
+        """
+        准备回调处理器列表
+        
+        Args:
+            callbacks: 用户提供的回调列表
+        
+        Returns:
+            合并后的回调处理器列表
+        """
+        all_callbacks = []
+        
+        # 添加全局回调
+        global_callbacks = self.callback_manager.get_callbacks(include_global=True)
+        all_callbacks.extend(global_callbacks)
+        
+        # 添加用户提供的回调
+        if callbacks:
+            all_callbacks.extend(callbacks)
+        
+        return all_callbacks
