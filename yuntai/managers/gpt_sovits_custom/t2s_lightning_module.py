@@ -7,13 +7,34 @@ now_dir = os.getcwd()
 sys.path.append(now_dir)
 from typing import Dict
 
-import torch
-from pytorch_lightning import LightningModule
+# 使用 try-except 导入 torch
+try:
+    import torch
+except ImportError as e:
+    raise ImportError(f"torch 导入失败: {e}")
+
+# 使用 try-except 导入 pytorch_lightning
+try:
+    from pytorch_lightning import LightningModule
+except ImportError:
+    LightningModule = object  # 如果导入失败，使用 object 作为基类
 
 # 使用自定义的t2s_model（已移除tqdm进度条）
-from .t2s_model import Text2SemanticDecoder
-from AR.modules.lr_schedulers import WarmupCosineLRSchedule
-from AR.modules.optim import ScaledAdam
+try:
+    from .t2s_model import Text2SemanticDecoder
+except ImportError:
+    Text2SemanticDecoder = None
+
+# 使用 try-except 导入 AR 模块
+try:
+    from AR.modules.lr_schedulers import WarmupCosineLRSchedule
+except ImportError:
+    WarmupCosineLRSchedule = None
+
+try:
+    from AR.modules.optim import ScaledAdam
+except ImportError:
+    ScaledAdam = None
 
 
 class Text2SemanticLightningModule(LightningModule):

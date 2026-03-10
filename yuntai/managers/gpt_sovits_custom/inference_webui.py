@@ -10,19 +10,24 @@ import os
 # 禁用tqdm进度条（必须在导入其他模块前设置）
 os.environ['TQDM_DISABLE'] = '1'
 
-import psutil
+# 使用 try-except 导入 psutil
+try:
+    import psutil
 
-def set_high_priority():
-    """把当前 Python 进程设为 HIGH_PRIORITY_CLASS"""
-    if os.name != "nt":
-        return # 仅 Windows 有效
-    p = psutil.Process(os.getpid())
-    try:
-        p.nice(psutil.HIGH_PRIORITY_CLASS)
-        # print("已将进程优先级设为 High")  # 已移除
-    except psutil.AccessDenied:
-        pass  # print("权限不足，无法修改优先级（请用管理员运行）")  # 已移除
-set_high_priority()
+    def set_high_priority():
+        """把当前 Python 进程设为 HIGH_PRIORITY_CLASS"""
+        if os.name != "nt":
+            return # 仅 Windows 有效
+        p = psutil.Process(os.getpid())
+        try:
+            p.nice(psutil.HIGH_PRIORITY_CLASS)
+            # print("已将进程优先级设为 High")  # 已移除
+        except psutil.AccessDenied:
+            pass  # print("权限不足，无法修改优先级（请用管理员运行）")  # 已移除
+    set_high_priority()
+except ImportError:
+    pass  # psutil 导入失败，跳过优先级设置
+
 import json
 import logging
 import os
@@ -31,9 +36,18 @@ import sys
 import traceback
 import warnings
 
-import torch
-import torchaudio
-from text.LangSegmenter import LangSegmenter
+# 使用 try-except 导入 torch 和 torchaudio
+try:
+    import torch
+    import torchaudio
+except ImportError as e:
+    raise ImportError(f"torch 或 torchaudio 导入失败: {e}")
+
+# 使用 try-except 导入 LangSegmenter
+try:
+    from text.LangSegmenter import LangSegmenter
+except ImportError:
+    LangSegmenter = None
 
 logging.getLogger("markdown_it").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
@@ -97,17 +111,43 @@ if "_CUDA_VISIBLE_DEVICES" in os.environ:
 is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
 # is_half=False
 punctuation = set(["!", "?", "…", ",", ".", "-", " "])
-import gradio as gr
-import librosa
+# 使用 try-except 导入 gradio, librosa, numpy
+try:
+    import gradio as gr
+except ImportError:
+    gr = None
+
+try:
+    import librosa
+except ImportError:
+    librosa = None
+
 import numpy as np
-from feature_extractor import cnhubert
-from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+# 使用 try-except 导入 feature_extractor
+try:
+    from feature_extractor import cnhubert
+except ImportError:
+    cnhubert = None
+
+# 使用 try-except 导入 transformers
+try:
+    from transformers import AutoModelForMaskedLM, AutoTokenizer
+except ImportError:
+    AutoModelForMaskedLM = None
+    AutoTokenizer = None
 
 cnhubert.cnhubert_base_path = cnhubert_base_path
 
 import random
 
-from GPT_SoVITS.module.models import Generator, SynthesizerTrn, SynthesizerTrnV3
+# 使用 try-except 导入 GPT_SoVITS 模块
+try:
+    from GPT_SoVITS.module.models import Generator, SynthesizerTrn, SynthesizerTrnV3
+except ImportError:
+    Generator = None
+    SynthesizerTrn = None
+    SynthesizerTrnV3 = None
 
 
 def set_seed(seed):
@@ -126,13 +166,42 @@ def set_seed(seed):
 from time import time as ttime
 
 # 使用自定义的t2s_lightning_module（已移除tqdm进度条）
-from .t2s_lightning_module import Text2SemanticLightningModule
-from peft import LoraConfig, get_peft_model
-from text import cleaned_text_to_sequence
-from text.cleaner import clean_text
+try:
+    from .t2s_lightning_module import Text2SemanticLightningModule
+except ImportError:
+    Text2SemanticLightningModule = None
 
-from tools.assets import css, js, top_html
-from tools.i18n.i18n import I18nAuto, scan_language_list
+# 使用 try-except 导入 peft
+try:
+    from peft import LoraConfig, get_peft_model
+except ImportError:
+    LoraConfig = None
+    get_peft_model = None
+
+# 使用 try-except 导入 text 模块
+try:
+    from text import cleaned_text_to_sequence
+except ImportError:
+    cleaned_text_to_sequence = None
+
+try:
+    from text.cleaner import clean_text
+except ImportError:
+    clean_text = None
+
+# 使用 try-except 导入 tools 模块
+try:
+    from tools.assets import css, js, top_html
+except ImportError:
+    css = None
+    js = None
+    top_html = None
+
+try:
+    from tools.i18n.i18n import I18nAuto, scan_language_list
+except ImportError:
+    I18nAuto = None
+    scan_language_list = None
 
 language = os.environ.get("language", "Auto")
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
@@ -229,7 +298,12 @@ else:
 
 ###todo:put them to process_ckpt and modify my_save func (save sovits weights), gpt save weights use my_save in process_ckpt
 # symbol_version-model_version-if_lora_v3
-from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
+# 使用 try-except 导入 process_ckpt
+try:
+    from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
+except ImportError:
+    get_sovits_version_from_path_fast = None
+    load_sovits_new = None
 
 v3v4set = {"v3", "v4"}
 
@@ -493,7 +567,11 @@ def init_hifigan():
         hifigan_model = hifigan_model.to(device)
 
 
-from sv import SV
+# 使用 try-except 导入 sv
+try:
+    from sv import SV
+except ImportError:
+    SV = None
 
 
 def init_sv_cn():
@@ -603,7 +681,11 @@ def get_first(text):
     return text
 
 
-from text import chinese
+# 使用 try-except 导入 text.chinese
+try:
+    from text import chinese
+except ImportError:
+    chinese = None
 
 
 def get_phones_and_bert(text, language, version, final=False):
@@ -675,7 +757,12 @@ def get_phones_and_bert(text, language, version, final=False):
     return phones, bert.to(dtype), norm_text
 
 
-from module.mel_processing import mel_spectrogram_torch, spectrogram_torch
+# 使用 try-except 导入 module.mel_processing
+try:
+    from module.mel_processing import mel_spectrogram_torch, spectrogram_torch
+except ImportError:
+    mel_spectrogram_torch = None
+    spectrogram_torch = None
 
 spec_min = -12
 spec_max = 2

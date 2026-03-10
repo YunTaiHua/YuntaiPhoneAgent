@@ -3,23 +3,53 @@
 import math
 from typing import List, Optional
 
-import torch
-from torch import nn
-from torch.nn import functional as F
-from torchmetrics.classification import MulticlassAccuracy
+# 使用 try-except 导入 torch
+try:
+    import torch
+    from torch import nn
+    from torch.nn import functional as F
+except ImportError as e:
+    raise ImportError(f"torch 导入失败: {e}")
+
+# 使用 try-except 导入 torchmetrics
+try:
+    from torchmetrics.classification import MulticlassAccuracy
+except ImportError:
+    MulticlassAccuracy = None
 # from tqdm import tqdm  # 已移除，不再显示进度条
 
-from AR.models.utils import (
-    dpo_loss,
-    get_batch_logps,
-    make_pad_mask,
-    make_pad_mask_left,
-    make_reject_y,
-    sample,
-    topk_sampling,
-)
-from AR.modules.embedding import SinePositionalEmbedding, TokenEmbedding
-from AR.modules.transformer import LayerNorm, TransformerEncoder, TransformerEncoderLayer
+# 使用 try-except 导入 AR 模块
+try:
+    from AR.models.utils import (
+        dpo_loss,
+        get_batch_logps,
+        make_pad_mask,
+        make_pad_mask_left,
+        make_reject_y,
+        sample,
+        topk_sampling,
+    )
+except ImportError:
+    dpo_loss = None
+    get_batch_logps = None
+    make_pad_mask = None
+    make_pad_mask_left = None
+    make_reject_y = None
+    sample = None
+    topk_sampling = None
+
+try:
+    from AR.modules.embedding import SinePositionalEmbedding, TokenEmbedding
+except ImportError:
+    SinePositionalEmbedding = None
+    TokenEmbedding = None
+
+try:
+    from AR.modules.transformer import LayerNorm, TransformerEncoder, TransformerEncoderLayer
+except ImportError:
+    LayerNorm = None
+    TransformerEncoder = None
+    TransformerEncoderLayer = None
 
 default_config = {
     "embedding_dim": 512,
