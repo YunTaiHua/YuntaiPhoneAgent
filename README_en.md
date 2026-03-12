@@ -1,15 +1,15 @@
 # YuntaiPhoneAgent
 
-Version: 1.3.3
+Version: 1.3.4
 
 **[中文版本](README.md)**
 
-## YuntaiPhoneAgent v1.3.3 Code Analysis
+## YuntaiPhoneAgent v1.3.4 Code Analysis
 
 ### 📊 Project Overview
 
 **Project Name**: YuntaiPhoneAgent 
-**Version**: v1.3.3
+**Version**: v1.3.4
 
 ### 🏗️ Architecture Design
 
