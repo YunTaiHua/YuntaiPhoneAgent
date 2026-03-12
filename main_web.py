@@ -109,9 +109,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 # 导入Web模块
-from web.routes import setup_routes
-from web.controller import WebController
-from web.ws_manager import ConnectionManager
+from web.core import setup_routes, WebController, ConnectionManager
 
 
 # ==================== 创建FastAPI应用 ====================
@@ -141,7 +139,7 @@ controller = WebController(ws_manager)
 setup_routes(app, controller, ws_manager)
 
 # 挂载静态文件 - 使用web模块所在目录
-from web.routes import WEB_DIR
+from web.core.routes import WEB_DIR
 static_dir = os.path.join(WEB_DIR, "static")
 os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")

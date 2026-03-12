@@ -8,7 +8,7 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 setup(
     name="YuntaiPhoneAgent",
-    version="1.3.2",
+    version="1.3.4",
     description="AI-powered intelligent phone automation framework with multi-platform support",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -37,10 +37,15 @@ setup(
         "langchain>=0.3.0",
         "langchain-core>=0.3.0",
         "langchain-openai>=0.3.0",
+        "langchain-community>=0.3.0",
         "langgraph>=0.2.0",
         "PyAudio>=0.2.14",
         "soundfile>=0.12.0",
         "pyperclip>=1.8.0",
+        "fastapi>=0.115.0",
+        "uvicorn[standard]>=0.30.0",
+        "websockets>=12.0",
+        "python-multipart>=0.0.9",
     ],
     extras_require={
         "dev": [
@@ -61,7 +66,8 @@ setup(
     entry_points={
         "console_scripts": [
             "yuntai-agent=main:main",
+            "yuntai-web=main_web:main",
         ],
     },
-    keywords="ai agent phone automation android ios harmonyos langchain langgraph",
+    keywords="ai agent phone automation android ios harmonyos langchain langgraph fastapi web",
 )

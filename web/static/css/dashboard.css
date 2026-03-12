@@ -1,0 +1,187 @@
+/* ==================== 控制中心页面 ==================== */
+.dashboard-content { display: flex; gap: 12px; flex: 1; min-height: 0; }
+.dashboard-left { flex: 3; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.dashboard-right { flex: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0; max-width: 300px; }
+
+.output-frame { flex: 1; display: flex; flex-direction: column; min-height: 200px; }
+.output-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.output-title { font-size: 16px; font-weight: bold; color: var(--text-primary); }
+
+.enter-btn {
+    padding: 8px 16px;
+    background-color: var(--primary);
+    color: var(--text-light);
+    border: none;
+    border-radius: 18px;
+    font-size: 12px;
+    cursor: pointer;
+    display: none;
+}
+.enter-btn:hover { background-color: var(--primary-hover); }
+.enter-btn.visible { display: block; }
+
+.output-text {
+    flex: 1;
+    background-color: var(--bg-card-alt);
+    border: 1px solid var(--border-light);
+    border-radius: var(--corner-md);
+    padding: 12px;
+    font-family: var(--font-family-code);
+    font-size: 13px;
+    color: var(--text-primary);
+    resize: none;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.input-frame { display: flex; flex-direction: column; gap: 10px; }
+.input-title { font-size: 16px; font-weight: bold; color: var(--text-primary); }
+
+.command-input {
+    min-height: 42px;
+    max-height: 175px;
+    background-color: var(--bg-card-alt);
+    border: 2px solid var(--border-light);
+    border-radius: var(--corner-md);
+    padding: 10px;
+    font-family: var(--font-family);
+    font-size: 13px;
+    color: var(--text-primary);
+    resize: none;
+    transition: border-color 0.2s ease;
+}
+.command-input:focus { outline: none; border-color: var(--border-focus); }
+
+.attached-files { display: none; flex-direction: column; gap: 4px; margin-top: 10px; }
+.attached-files.visible { display: flex; }
+
+.attached-file {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background-color: var(--bg-hover);
+    border-radius: var(--corner-sm);
+    font-size: 12px;
+}
+
+.file-remove-btn {
+    width: 20px; height: 20px;
+    border-radius: 10px;
+    border: none;
+    background-color: var(--danger);
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.file-remove-btn:hover { background-color: var(--danger-hover); }
+
+.button-row { display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap; }
+
+.btn {
+    padding: 0 15px;
+    height: 40px;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-family: var(--font-family);
+    cursor: pointer !important;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.btn:disabled { background-color: var(--bg-hover); color: var(--text-disabled); cursor: not-allowed; }
+.btn-primary { background-color: var(--primary); color: var(--text-light); }
+.btn-primary:hover:not(:disabled) { background-color: var(--primary-hover); }
+.btn-secondary { background-color: var(--secondary); color: var(--text-light); }
+.btn-secondary:hover:not(:disabled) { background-color: var(--secondary-hover); }
+.btn-danger { background-color: var(--danger); color: var(--text-light); }
+.btn-danger:hover:not(:disabled) { background-color: var(--danger-hover); }
+.btn-success { background-color: var(--success); color: var(--text-light); }
+.btn-success:hover:not(:disabled) { background-color: var(--success-hover); }
+.btn-warning { background-color: var(--warning); color: var(--text-light); }
+.btn-warning:hover:not(:disabled) { background-color: var(--warning-hover); }
+.btn-accent { background-color: var(--accent); color: var(--text-light); }
+.btn-accent:hover:not(:disabled) { background-color: var(--accent-hover); }
+.btn-sm { height: 36px; font-size: 12px; border-radius: 18px; }
+
+.shortcuts-card { flex-shrink: 0; }
+.shortcuts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+
+.shortcut-btn {
+    height: 45px;
+    background-color: var(--bg-hover);
+    border: none;
+    border-radius: var(--corner-md);
+    color: var(--text-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.shortcut-btn:hover { background-color: var(--primary); color: var(--text-light); }
+
+.file-card { flex: 1; display: flex; flex-direction: column; min-height: 150px; min-width: 0; }
+.file-list {
+    flex: 1;
+    background-color: var(--bg-card-alt);
+    border: 1px solid var(--border-light);
+    border-radius: var(--corner-md);
+    padding: 8px;
+    overflow: auto;
+    margin-bottom: 10px;
+    min-width: 0;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background-color: var(--bg-card);
+    border-radius: var(--corner-sm);
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.file-item:last-child { margin-bottom: 0; }
+
+.file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.file-delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 5px;
+    line-height: 1;
+}
+
+.file-delete-btn:hover { color: var(--danger); }
+
+.upload-btn {
+    width: 100%;
+    height: 40px;
+    background-color: var(--primary);
+    color: var(--text-light);
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.upload-btn:hover { background-color: var(--primary-hover); }

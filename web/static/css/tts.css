@@ -1,0 +1,78 @@
+/* ==================== TTS页面 ==================== */
+.tts-content { display: flex; gap: 12px; flex: 1; min-height: 0; }
+.tts-left { flex: 3; display: flex; flex-direction: column; gap: 15px; min-height: 0; }
+.tts-right { flex: 1; display: flex; flex-direction: column; gap: 15px; min-height: 0; overflow: hidden; }
+
+.tts-form { display: flex; flex-direction: column; gap: 12px; }
+.tts-form-row { display: flex; align-items: center; gap: 15px; }
+.tts-form-label { width: 120px; font-size: 14px; color: var(--text-primary); }
+.tts-form-value { flex: 1; font-size: 14px; color: var(--text-secondary); }
+
+.tts-select-btn {
+    width: 80px; height: 36px;
+    background-color: var(--secondary);
+    color: var(--text-light);
+    border: none;
+    border-radius: 18px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.tts-select-btn:hover { background-color: var(--secondary-hover); }
+
+.tts-synth-section { margin-top: 18px; }
+
+.tts-text-input {
+    width: 100%;
+    min-height: 80px;
+    background-color: var(--bg-card-alt);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--corner-md);
+    padding: 10px;
+    font-family: var(--font-family);
+    font-size: 13px;
+    color: var(--text-primary);
+    resize: none;
+    margin-top: 8px;
+}
+.tts-text-input:focus { outline: none; border-color: var(--border-focus); }
+
+.tts-log {
+    flex: 1;
+    min-height: 100px;
+    background-color: var(--bg-card-alt);
+    border: 1px solid var(--border-light);
+    border-radius: var(--corner-md);
+    padding: 10px;
+    font-family: var(--font-family-code);
+    font-size: 12px;
+    color: var(--text-primary);
+    overflow: auto;
+    white-space: pre-wrap;
+}
+
+.tts-audio-section { margin-top: 15px; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+.audio-list {
+    flex: 1;
+    min-height: 100px;
+    max-height: 200px;
+    background-color: var(--bg-card-alt);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--corner-md);
+    padding: 8px;
+    overflow-y: auto;
+}
+
+.audio-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+.audio-item:hover { background-color: var(--bg-hover); }
+.audio-item.selected { background-color: var(--primary); color: var(--text-light); }
+
+.audio-controls { display: flex; gap: 10px; margin-top: 10px; }

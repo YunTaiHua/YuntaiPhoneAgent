@@ -1,0 +1,88 @@
+/* ==================== CSS变量 - 主题颜色 ==================== */
+:root {
+    /* 浅色主题 - 米白色风格 */
+    --primary: #5B8DEE;
+    --primary-hover: #4A7BDD;
+    --secondary: #A78BFA;
+    --secondary-hover: #8B5CF6;
+    --accent: #F97316;
+    --accent-hover: #EA580C;
+
+    --success: #22C55E;
+    --success-hover: #16A34A;
+    --warning: #F59E0B;
+    --warning-hover: #D97706;
+    --danger: #EF4444;
+    --danger-hover: #DC2626;
+
+    --status-active: #64D2FF;
+    --status-inactive: #9CA3AF;
+
+    --bg-main: #FDFCFA;
+    --bg-nav: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-card-alt: #F8F7F5;
+    --bg-hover: #F0EFE9;
+    --bg-input: #FFFFFF;
+    --bg-scrollbar: #E0DDD8;
+
+    --border-light: #E5E3E0;
+    --border-medium: #D0CDC7;
+    --border-focus: #5B8DEE;
+
+    --text-primary: #2C3E50;
+    --text-secondary: #6B7280;
+    --text-disabled: #9CA3AF;
+    --text-light: #FFFFFF;
+
+    --nav-highlight-bg: #EFF3FF;
+    --nav-highlight-hover: #E0E7FF;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.10);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.12);
+
+    --corner-sm: 8px;
+    --corner-md: 12px;
+    --corner-lg: 16px;
+
+    --font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+    --font-family-code: 'Consolas', 'Monaco', monospace;
+}
+
+/* 深色主题 */
+[data-theme="dark"] {
+    --primary: #60A5FA;
+    --primary-hover: #3B82F6;
+    --secondary: #A78BFA;
+    --secondary-hover: #8B5CF6;
+    --accent: #FB923C;
+    --accent-hover: #F97316;
+
+    --status-active: #64D2FF;
+    --status-inactive: #6B7280;
+
+    --bg-main: #1A1A2E;
+    --bg-nav: #16213E;
+    --bg-card: #1F2937;
+    --bg-card-alt: #374151;
+    --bg-hover: #2D3748;
+    --bg-input: #1F2937;
+    --bg-scrollbar: #4B5563;
+
+    --border-light: #374151;
+    --border-medium: #4B5563;
+    --border-focus: #60A5FA;
+
+    --text-primary: #F3F4F6;
+    --text-secondary: #9CA3AF;
+    --text-disabled: #6B7280;
+    --text-light: #FFFFFF;
+
+    --nav-highlight-bg: #1E3A5F;
+    --nav-highlight-hover: #2D4A6F;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.30);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.35);
+}

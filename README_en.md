@@ -133,12 +133,49 @@ YuntaiPhoneAgent/
 │   │   ├── memory_handler.py      # Memory Management Handler
 │   │   └── callback_manager.py    # Callback Manager
 │   └── __init__.py
+├── web/                       # Web Module
+│   ├── __init__.py            # Module Init
+│   ├── index.html             # Main Page
+│   ├── core/                  # Core Module
+│   │   ├── __init__.py
+│   │   ├── controller.py      # Web Controller
+│   │   ├── routes.py          # Routes Definition
+│   │   ├── ws_manager.py      # WebSocket Manager
+│   │   ├── output_capture.py  # Output Capture
+│   │   └── handlers/          # Message Handlers
+│   │       ├── __init__.py
+│   │       ├── command_handler.py
+│   │       ├── device_handler.py
+│   │       ├── tts_handler.py
+│   │       ├── media_handler.py
+│   │       └── system_handler.py
+│   └── static/                # Static Resources
+│       ├── css/               # Style Modules
+│       │   ├── variables.css  # CSS Variables
+│       │   ├── base.css       # Global Styles
+│       │   ├── dashboard.css  # Dashboard
+│       │   ├── connection.css # Device Management
+│       │   ├── tts.css        # TTS Voice
+│       │   ├── history.css    # History
+│       │   ├── dynamic.css    # Dynamic Features
+│       │   ├── settings.css   # Settings Page
+│       │   └── components.css # Common Components
+│       └── js/                # JavaScript Modules
+│           ├── state.js       # State Management
+│           ├── utils.js       # Utility Functions
+│           ├── websocket.js   # WebSocket
+│           ├── pages.js       # Page Switching
+│           ├── renderers.js   # List Rendering
+│           ├── actions.js     # User Actions
+│           ├── popups.js      # Popup Functions
+│           └── events.js      # Event Binding
 ├── phone_agent/               # External PhoneAgent Module
 │   ├── agent.py
 │   └── model/
 │       └── client.py
 ├── forever.txt               # Permanent Memory File
-├── main.py                   # Main Entry
+├── main.py                   # GUI Main Entry
+├── main_web.py               # Web Main Entry
 ├── requirements.txt
 └── setup.py
 ```
@@ -255,8 +292,6 @@ GLM-4.6v-flash (Task Classification)
 
 1. GPT-SoVITS root directory needs manual creation of "参考音频" (Reference Audio) folder
 2. AI models need to deploy environment according to Zhipu official documentation
-3. transformers dependency conflicts can be ignored
-4. openai package version needs attention to compatibility
 
 ### 📈 Version Evolution Highlights
 
@@ -290,10 +325,17 @@ pip install -r requirements.txt
 
 ### Run Program
 
-#### Command Line
+#### GUI Mode
 ```bash
 # After configuring .env, run the main program directly
 python main.py 
+```
+
+#### Web Mode
+```bash
+# After configuring .env, run the Web service
+python main_web.py 
+# Visit http://localhost:8000
 ```
 
 ### Environment Variables

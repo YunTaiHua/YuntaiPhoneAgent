@@ -133,12 +133,49 @@ YuntaiPhoneAgent/
 │   │   ├── memory_handler.py      # 记忆管理处理器
 │   │   └── callback_manager.py    # 回调管理器
 │   └── __init__.py
+├── web/                       # Web模块
+│   ├── __init__.py            # 模块初始化
+│   ├── index.html             # 主页面
+│   ├── core/                  # 核心模块
+│   │   ├── __init__.py
+│   │   ├── controller.py      # Web控制器
+│   │   ├── routes.py          # 路由定义
+│   │   ├── ws_manager.py      # WebSocket管理器
+│   │   ├── output_capture.py  # 输出捕获
+│   │   └── handlers/          # 消息处理器
+│   │       ├── __init__.py
+│   │       ├── command_handler.py
+│   │       ├── device_handler.py
+│   │       ├── tts_handler.py
+│   │       ├── media_handler.py
+│   │       └── system_handler.py
+│   └── static/                # 静态资源
+│       ├── css/               # 样式模块
+│       │   ├── variables.css  # CSS变量
+│       │   ├── base.css       # 全局样式
+│       │   ├── dashboard.css  # 控制中心
+│       │   ├── connection.css # 设备管理
+│       │   ├── tts.css        # TTS语音
+│       │   ├── history.css    # 历史记录
+│       │   ├── dynamic.css    # 动态功能
+│       │   ├── settings.css   # 设置页面
+│       │   └── components.css # 通用组件
+│       └── js/                # JavaScript模块
+│           ├── state.js       # 状态管理
+│           ├── utils.js       # 工具函数
+│           ├── websocket.js   # WebSocket
+│           ├── pages.js       # 页面切换
+│           ├── renderers.js   # 列表渲染
+│           ├── actions.js     # 用户操作
+│           ├── popups.js      # 弹窗函数
+│           └── events.js      # 事件绑定
 ├── phone_agent/               # 外部PhoneAgent模块
 │   ├── agent.py
 │   └── model/
 │       └── client.py
 ├── forever.txt               # 永久记忆文件
-├── main.py                   # 主入口
+├── main.py                   # GUI主入口
+├── main_web.py               # Web主入口
 ├── requirements.txt
 └── setup.py
 ```
@@ -255,8 +292,6 @@ GLM-4.6v-flash (任务分类)
 
 1. GPT-SoVITS根目录需手动创建"参考音频"文件夹
 2. AI模型需按智谱官方文档部署环境
-3. transformers依赖冲突可忽略
-4. openai包版本需注意兼容性
 
 ### 📈 版本演进亮点
 
@@ -290,10 +325,17 @@ pip install -r requirements.txt
 
 ### 运行程序
 
-#### 命令行
+#### GUI模式
 ```bash
-#配置好.env后直接运行主程序
+# 配置好.env后直接运行主程序
 python main.py 
+```
+
+#### Web模式
+```bash
+# 配置好.env后运行Web服务
+python main_web.py 
+# 访问 http://localhost:8000
 ```
 
 ### 环境变量

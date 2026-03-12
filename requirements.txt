@@ -9,6 +9,12 @@ torch==2.5.1+cu121
 zhipuai==2.1.5.20250825
 pyperclip==1.11.0
 
+# Web Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+websockets>=12.0
+python-multipart>=0.0.9
+
 # LangChain (兼容版本)
 langchain>=0.3.20,<0.4.0
 langchain-core>=0.3.0,<0.4.0
@@ -18,21 +24,7 @@ langchain-community>=0.3.0,<0.4.0
 # LangGraph (工作流编排)
 langgraph>=0.2.70,<0.3.0
 
-# For Model Deployment
-
-## After installing sglang or vLLM, please run pip install -U transformers again to upgrade to 5.0.0rc0.
-## Any dependency conflicts related to Transformers can be ignored.
-
-# sglang>=0.5.6.post1
-# vllm>=0.12.0
-# transformers>=5.0.0rc0
-
 # Testing
 pytest>=7.0.0
 pytest-cov>=4.0.0
 pytest-asyncio>=0.21.0
-
-# Optional: for development
-# pre-commit>=4.5.0
-# black>=23.0.0
-# mypy>=1.0.0

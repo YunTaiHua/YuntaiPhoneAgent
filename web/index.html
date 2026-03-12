@@ -4,7 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phone Agent Web - 智能移动助手</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <!-- CSS模块 - 按顺序加载 -->
+    <link rel="stylesheet" href="/static/css/variables.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="stylesheet" href="/static/css/connection.css">
+    <link rel="stylesheet" href="/static/css/tts.css">
+    <link rel="stylesheet" href="/static/css/history.css">
+    <link rel="stylesheet" href="/static/css/dynamic.css">
+    <link rel="stylesheet" href="/static/css/settings.css">
+    <link rel="stylesheet" href="/static/css/components.css">
 </head>
 <body>
     <!-- 导航栏 -->
@@ -413,7 +422,16 @@
     
     <!-- 音频播放器 -->
     <audio id="audio-player" style="display: none;"></audio>
-    
+
+    <!-- JavaScript模块 - 按依赖顺序加载 -->
+    <script src="/static/js/state.js"></script>
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/websocket.js"></script>
+    <script src="/static/js/pages.js"></script>
+    <script src="/static/js/renderers.js"></script>
+    <script src="/static/js/actions.js"></script>
+    <script src="/static/js/popups.js"></script>
+    <script src="/static/js/events.js"></script>
     <script src="/static/app.js"></script>
 </body>
 </html>
