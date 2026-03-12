@@ -1,104 +1,208 @@
 /* ==================== 动态功能页面 ==================== */
-.dynamic-content { display: flex; flex-direction: column; gap: 15px; flex: 1; }
+.dynamic-content { display: flex; flex-direction: column; gap: 18px; flex: 1; }
 
 .tabs {
     display: flex;
-    gap: 2px;
-    background-color: var(--bg-card-alt);
+    gap: 4px;
+    background: linear-gradient(135deg, var(--bg-card-alt) 0%, var(--bg-hover) 100%);
     border-radius: var(--corner-md);
-    padding: 4px;
+    padding: 5px;
+    border: 1px solid var(--border-light);
+}
+
+.tabs-center {
+    justify-content: center;
+    width: fit-content;
+    margin: 0 auto;
+    max-width: 320px;
+}
+
+.tabs-center .tab-btn {
+    flex: 0 0 auto;
+    min-width: 120px;
 }
 
 .tab-btn {
     flex: 1;
-    height: 42px;
+    height: 46px;
     background: transparent;
     border: none;
     border-radius: var(--corner-sm);
-    font-size: 13px;
-    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-normal);
+    position: relative;
 }
-.tab-btn:hover { background-color: var(--bg-hover); }
-.tab-btn.active { background-color: var(--primary); color: var(--text-light); }
+.tab-btn:hover { 
+    color: var(--text-primary);
+    background: var(--bg-card);
+}
+.tab-btn.active { 
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+    color: var(--text-light);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
 
 .tab-content { display: none; flex: 1; }
-.tab-content.active { display: block; }
+.tab-content.active { 
+    display: block;
+    animation: tabFadeIn 0.3s ease-out;
+}
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
-.tab-panels { display: flex; gap: 10px; height: 100%; }
-.tab-left { flex: 3; display: flex; flex-direction: column; gap: 8px; }
+.tab-panels { display: flex; gap: 14px; height: 100%; }
+.tab-left { flex: 3; display: flex; flex-direction: column; gap: 12px; }
 .tab-right { flex: 2; display: flex; flex-direction: column; }
 
 .prompt-textarea {
     flex: 1;
-    min-height: 80px;
+    min-height: 100px;
     background-color: var(--bg-card-alt);
-    border: 1px solid var(--border-medium);
+    border: 2px solid var(--border-light);
     border-radius: var(--corner-md);
-    padding: 10px;
+    padding: 14px;
     font-family: var(--font-family);
-    font-size: 13px;
+    font-size: 14px;
+    line-height: 1.6;
     color: var(--text-primary);
     resize: none;
+    transition: all var(--transition-normal);
 }
-.prompt-textarea:focus { outline: none; border-color: var(--border-focus); }
+.prompt-textarea::placeholder {
+    color: var(--text-disabled);
+}
+.prompt-textarea:focus { 
+    outline: none; 
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
 
 .params-frame {
-    background-color: var(--bg-card-alt);
+    background: linear-gradient(135deg, var(--bg-card-alt) 0%, var(--bg-hover) 100%);
+    border: 1px solid var(--border-light);
     border-radius: var(--corner-md);
-    padding: 15px;
+    padding: 18px;
 }
 
 .param-row {
     display: flex;
     align-items: center;
-    gap: 15px;
-    margin-bottom: 12px;
+    gap: 4px;
+    margin-bottom: 14px;
 }
 .param-row:last-child { margin-bottom: 0; }
 
-.param-label { font-size: 13px; color: var(--text-primary); min-width: 80px; }
+.param-label { 
+    font-size: 14px; 
+    font-weight: 500;
+    color: var(--text-primary); 
+    min-width: 50px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
 .param-select {
-    height: 38px;
-    min-width: 150px;
+    height: 40px;
+    min-width: 120px;
     background-color: var(--bg-input);
-    border: none;
+    border: 2px solid var(--border-light);
     border-radius: var(--corner-md);
-    padding: 0 12px;
-    font-size: 13px;
+    padding: 0 14px;
+    font-size: 14px;
     color: var(--text-primary);
     cursor: pointer;
+    transition: all var(--transition-normal);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
 }
-.param-select-sm { min-width: 100px; height: 34px; }
+.param-select:focus { 
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+.param-select-sm { min-width: 100px; height: 36px; padding: 0 10px; }
+/* 尺寸下拉框特殊处理，确保1920x1080完整显示 */
+#video-size { min-width: 120px; }
 
-.video-params { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
-.video-params .param-row { margin-bottom: 0; }
+.video-params { display: flex; flex-wrap: nowrap; gap: 12px; align-items: center; overflow-x: auto; }
+.video-params .param-row { margin-bottom: 0; flex-shrink: 0; }
 
 .checkbox-option {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     cursor: pointer;
+    padding: 8px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--corner-sm);
+    transition: all var(--transition-normal);
+}
+.checkbox-option:hover {
+    border-color: var(--primary);
 }
 .checkbox-option input[type="checkbox"] {
     width: 18px;
     height: 18px;
     accent-color: var(--primary);
 }
-.checkbox-label { font-size: 13px; color: var(--text-primary); }
+.checkbox-label { 
+    font-size: 14px; 
+    font-weight: 500;
+    color: var(--text-primary); 
+}
 
-.url-section { margin-top: 8px; }
-.url-input { margin-top: 8px; }
+.checkbox-option-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+.checkbox-option-inline input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+}
+
+.param-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+.param-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+}
+
+.url-section { margin-top: 12px; }
+.url-input { 
+    margin-top: 10px;
+    height: 44px;
+}
 
 .log-textarea {
     flex: 1;
     background-color: var(--bg-card-alt);
     border: 1px solid var(--border-light);
     border-radius: var(--corner-md);
-    padding: 10px;
+    padding: 14px;
     font-family: var(--font-family-code);
     font-size: 12px;
+    line-height: 1.7;
     color: var(--text-primary);
     resize: none;
 }

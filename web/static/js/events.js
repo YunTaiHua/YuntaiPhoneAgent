@@ -366,6 +366,22 @@ function init() {
     showWelcomeOverlay();
     // 加载保存的连接配置
     loadConnectionConfig();
+    // 加载版本号
+    loadVersion();
+}
+
+// 加载版本号
+async function loadVersion() {
+    try {
+        const response = await fetch('/api/version');
+        const data = await response.json();
+        const versionEl = $('version');
+        if (versionEl && data.version) {
+            versionEl.textContent = `Version ${data.version}`;
+        }
+    } catch (e) {
+        console.log('获取版本号失败:', e);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', init);

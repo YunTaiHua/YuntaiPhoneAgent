@@ -16,10 +16,12 @@ function showTTSSettingsPopup() {
             <div class="popup-title">🎤 TTS语音设置</div>
             <div class="popup-subtitle">（语音合成有延迟）</div>
             <div class="popup-content">
-                <label class="popup-checkbox">
-                    <input type="checkbox" id="tts-enabled-check" ${state.tts_enabled ? 'checked' : ''}>
-                    <span>启用语音播报</span>
-                </label>
+                <div class="popup-checkbox-center">
+                    <label class="popup-checkbox">
+                        <input type="checkbox" id="tts-enabled-check" ${state.tts_enabled ? 'checked' : ''}>
+                        <span>启用语音播报</span>
+                    </label>
+                </div>
                 <div class="popup-section">
                     <div class="popup-section-title">选择TTS模型:</div>
                     <div class="popup-row">
@@ -81,16 +83,18 @@ function showScrcpyPopup() {
                 <div class="popup-section">
                     <div class="popup-section-title">当前设备: ${state.device_id || '未连接'}</div>
                 </div>
-                <label class="popup-checkbox">
-                    <input type="checkbox" id="scrcpy-always-top">
-                    <span>窗口置顶</span>
-                </label>
+                <div class="popup-checkbox-center">
+                    <label class="popup-checkbox">
+                        <input type="checkbox" id="scrcpy-always-top">
+                        <span>窗口置顶</span>
+                    </label>
+                </div>
             </div>
             <div class="popup-buttons">
                 <button class="btn btn-secondary" id="scrcpy-popup-cancel">取消</button>
                 <button class="btn btn-accent" id="scrcpy-popup-start">启动投屏</button>
             </div>
-            <div class="popup-info">注意：请确保手机已开启USB调试模式<br>点击其他地方时窗口会自动最小化</div>
+            <div class="popup-info">注意：请确保手机已开启USB调试模式</div>
         </div>
     `;
     document.body.appendChild(popup);

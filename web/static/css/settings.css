@@ -1,54 +1,88 @@
 /* ==================== 设置页面 ==================== */
-.settings-content { display: flex; flex-direction: column; gap: 20px; flex: 1; }
+.settings-content { display: flex; flex-direction: column; gap: 24px; flex: 1; }
 
 .settings-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
+    gap: 20px;
+    flex: 1;
 }
 
 .settings-card {
-    min-height: 140px;
-    background-color: var(--bg-card);
-    border: 2px solid var(--border-light);
-    border-radius: var(--corner-lg);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 14px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-card);
+    border: 2px solid var(--border-light);
+    border-radius: var(--corner-lg);
+    padding: 24px;
+    min-height: 0;
 }
-/* 每个设置卡片有不同的悬浮颜色，与GUI一致 */
+.settings-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    transform: scaleX(0);
+    transition: transform var(--transition-normal);
+}
+.settings-card:hover::before {
+    transform: scaleX(1);
+}
+.settings-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+/* 每个设置卡片有不同的悬浮颜色 */
 .settings-card[data-setting="connection"]:hover {
-    background-color: var(--primary);
-    border-color: var(--primary);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+    border-color: transparent;
 }
 .settings-card[data-setting="system"]:hover {
-    background-color: var(--success);
-    border-color: var(--success);
+    background: linear-gradient(135deg, var(--success) 0%, var(--success-hover) 100%);
+    border-color: transparent;
 }
 .settings-card[data-setting="tts"]:hover {
-    background-color: var(--secondary);
-    border-color: var(--secondary);
+    background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-hover) 100%);
+    border-color: transparent;
 }
 .settings-card[data-setting="files"]:hover {
-    background-color: var(--accent);
-    border-color: var(--accent);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+    border-color: transparent;
 }
 .settings-card:hover .settings-icon,
 .settings-card:hover .settings-title {
     color: var(--text-light);
 }
 
-.settings-icon { font-size: 32px; }
-.settings-title { font-size: 20px; font-weight: bold; color: var(--text-primary); }
+.settings-icon { 
+    font-size: 36px;
+    transition: transform var(--transition-normal);
+}
+.settings-card:hover .settings-icon {
+    transform: scale(1.1);
+}
+.settings-title { 
+    font-size: 18px; 
+    font-weight: 600; 
+    color: var(--text-primary);
+    transition: color var(--transition-normal);
+}
 
 .settings-detail { flex: 1; }
 .settings-detail-content {
-    background-color: var(--bg-card-alt);
+    background: linear-gradient(135deg, var(--bg-card-alt) 0%, var(--bg-hover) 100%);
+    border: 1px solid var(--border-light);
     border-radius: var(--corner-md);
-    padding: 20px;
-    margin-bottom: 15px;
+    padding: 24px;
+    margin-bottom: 18px;
 }

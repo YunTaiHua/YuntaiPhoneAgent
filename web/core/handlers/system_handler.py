@@ -125,7 +125,12 @@ async def handle_start_scrcpy(websocket, data: dict, controller: "WebController"
             cmd_args.append("--always-on-top")
 
         # 启动scrcpy
-        subprocess.Popen(cmd_args, shell=True)
+        if os.name == 'nt':
+            # Windows: 使用CREATE_NO_WINDOW隐藏控制台窗口，但不影响GUI窗口
+            subprocess.Popen(cmd_args, creationflags=subprocess.CREATE_NO_WINDOW)
+        else:
+            # Linux/Mac: 直接启动
+            subprocess.Popen(cmd_args)
 
         await controller.ws_manager.broadcast({
             "type": "scrcpy_started"

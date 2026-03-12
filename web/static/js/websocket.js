@@ -186,19 +186,25 @@ function updateState(newState) {
 
     // 更新连接状态指示器
     if (elements.connectionIndicator) {
-        elements.connectionIndicator.textContent = state.is_connected ? `● ${state.device_id}` : '● 未连接';
+        elements.connectionIndicator.innerHTML = state.is_connected 
+            ? `<span class="status-dot"></span>${state.device_id}` 
+            : '<span class="status-dot"></span>未连接';
         elements.connectionIndicator.className = `status-indicator ${state.is_connected ? 'connected' : 'disconnected'}`;
     }
 
     // 更新设备管理页面的连接状态
     if (elements.connectionStatus) {
-        elements.connectionStatus.textContent = state.is_connected ? `● 已连接: ${state.device_id}` : '● 未连接';
+        elements.connectionStatus.textContent = state.is_connected 
+            ? `已连接: ${state.device_id}` 
+            : '未连接';
         elements.connectionStatus.className = `connection-status ${state.is_connected ? 'connected' : ''}`;
     }
 
     // 更新TTS状态指示器
     if (elements.ttsIndicator) {
-        elements.ttsIndicator.textContent = state.tts_enabled ? '● TTS: 开' : '● TTS: 关';
+        elements.ttsIndicator.innerHTML = state.tts_enabled 
+            ? '<span class="status-dot"></span>TTS: 开' 
+            : '<span class="status-dot"></span>TTS: 关';
         elements.ttsIndicator.className = `status-indicator ${state.tts_enabled ? 'connected' : 'disconnected'}`;
     }
 

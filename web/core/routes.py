@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 
 from yuntai.core.config import (
     PROJECT_ROOT, SHORTCUTS, CONVERSATION_HISTORY_FILE, TEMP_DIR,
-    TTS_OUTPUT_DIR, CONNECTION_CONFIG_FILE
+    TTS_OUTPUT_DIR, CONNECTION_CONFIG_FILE, APP_VERSION
 )
 
 from .controller import WebController
@@ -110,6 +110,11 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
     async def get_shortcuts():
         """获取快捷键配置"""
         return JSONResponse(content=SHORTCUTS)
+
+    @app.get("/api/version")
+    async def get_version():
+        """获取应用版本号"""
+        return JSONResponse(content={"version": APP_VERSION})
 
     @app.get("/api/history")
     async def get_history():
