@@ -156,7 +156,11 @@ class ConnectionManager:
         else:
             wireless_ip = config.get("wireless_ip", "")
             wireless_port = config.get("wireless_port", "5555")
-            device_addr = f"{wireless_ip}:{wireless_port}"
+            # 检查wireless_ip是否已包含端口
+            if ":" in wireless_ip:
+                device_addr = wireless_ip
+            else:
+                device_addr = f"{wireless_ip}:{wireless_port}"
 
             try:
                 result = subprocess.run(

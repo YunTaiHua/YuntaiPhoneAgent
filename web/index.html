@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Agent Web - 智能移动助手</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="nav-frame">
+        <div class="nav-title">
+            <div class="nav-emoji">📱</div>
+            <h1>Phone Agent</h1>
+            <div class="nav-subtitle">智能移动助手</div>
+            <div class="nav-version" id="version">Version 1.3.3</div>
+        </div>
+        <div class="nav-buttons">
+            <button class="nav-btn active" data-page="dashboard">🏠 控制中心</button>
+            <button class="nav-btn" data-page="connection">📱 设备管理</button>
+            <button class="nav-btn" data-page="tts">🎤 TTS语音</button>
+            <button class="nav-btn" data-page="history">📊 历史记录</button>
+            <button class="nav-btn" data-page="dynamic">🎨 动态功能</button>
+            <button class="nav-btn" data-page="settings">⚙️ 系统设置</button>
+        </div>
+        <div class="nav-footer">
+            <div class="status-indicator disconnected" id="connection-indicator">● 未连接</div>
+            <div class="status-indicator disconnected" id="tts-indicator">● TTS: 关闭</div>
+            <button class="theme-toggle" id="theme-toggle" title="切换主题">🌙</button>
+        </div>
+    </nav>
+    
+    <!-- 主内容区 -->
+    <main class="main-container">
+        <div class="content-card">
+            <!-- 控制中心页面 -->
+            <div class="page active" id="page-dashboard">
+                <div class="page-header">
+                    <h2 class="page-title">控制中心</h2>
+                    <p class="page-subtitle">执行输出和命令控制中心</p>
+                </div>
+                <div class="dashboard-content">
+                    <div class="dashboard-left">
+                        <div class="card output-frame">
+                            <div class="output-header">
+                                <span class="output-title">📋 执行输出</span>
+                                <button class="enter-btn" id="enter-btn">↵ 模拟回车</button>
+                            </div>
+                            <textarea class="output-text" id="output-text" readonly></textarea>
+                        </div>
+                        <div class="card input-frame">
+                            <span class="input-title">💬 命令输入</span>
+                            <textarea class="command-input" id="command-input" placeholder="输入命令... (Enter发送, Ctrl+Enter换行)"></textarea>
+                            <div class="attached-files" id="attached-files"></div>
+                            <div class="button-row">
+                                <button class="btn btn-primary" id="execute-btn">▶ 执行命令</button>
+                                <button class="btn btn-danger" id="terminate-btn" disabled>⏹ 终止操作</button>
+                                <button class="btn btn-secondary" id="tts-btn">🔊 语音播报</button>
+                                <button class="btn btn-accent" id="clear-btn">🗑 清空历史</button>
+                                <button class="btn btn-secondary" id="scrcpy-btn">📱 手机投屏</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-right">
+                        <div class="card shortcuts-card">
+                            <div class="card-title">⚡ 快捷键</div>
+                            <div class="shortcuts-grid" id="shortcuts-grid"></div>
+                        </div>
+                        <div class="card file-card">
+                            <div class="card-title">📁 文件管理</div>
+                            <div class="file-list" id="file-list"></div>
+                            <button class="upload-btn" id="upload-btn">📤 上传文件</button>
+                            <input type="file" id="file-input" multiple style="display: none;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 设备管理页面 -->
+            <div class="page" id="page-connection">
+                <div class="page-header">
+                    <h2 class="page-title">设备管理</h2>
+                    <p class="page-subtitle">管理您的手机设备连接</p>
+                </div>
+                <!-- 连接状态卡片 -->
+                <div class="card status-card">
+                    <div class="connection-status" id="connection-status">● 未连接</div>
+                </div>
+                <div class="connection-content">
+                    <div class="card connection-form-card">
+                        <div class="card-title">🔗 设备连接设置</div>
+                        
+                        <!-- 设备类型选择 -->
+                        <div class="form-group">
+                            <label class="form-label">📱 设备类型</label>
+                            <select class="form-select" id="device-type-select">
+                                <option value="android">Android (ADB)</option>
+                                <option value="harmonyos">HarmonyOS (HDC)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- 连接方式选择 -->
+                        <div class="form-group">
+                            <label class="form-label">📡 连接方式</label>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="conn-type" value="usb" id="usb-option">
+                                    <span class="radio-label">USB调试连接</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="conn-type" value="wireless" id="wireless-option" checked>
+                                    <span class="radio-label">无线调试连接</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- USB设置 -->
+                        <div class="form-section" id="usb-section" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label">🔌 USB设备ID</label>
+                                <input type="text" class="form-input" id="usb-device-id" placeholder="通过 adb devices / hdc list targets 查看">
+                            </div>
+                        </div>
+                        
+                        <!-- 无线设置 -->
+                        <div class="form-section" id="wireless-section">
+                            <div class="form-group">
+                                <label class="form-label">🌐 IP地址</label>
+                                <input type="text" class="form-input" id="ip-address" placeholder="例如: 192.168.1.100">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">📟 端口</label>
+                                <input type="text" class="form-input" id="port-number" placeholder="默认: 5555" value="5555">
+                            </div>
+                        </div>
+                        
+                        <!-- 按钮区域 -->
+                        <div class="button-row">
+                            <button class="btn btn-secondary" id="detect-devices-btn">🔍 检测设备</button>
+                            <button class="btn btn-primary" id="connect-btn">🔗 连接设备</button>
+                            <button class="btn btn-danger" id="disconnect-btn" disabled>⏹ 断开连接</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TTS语音页面 -->
+            <div class="page" id="page-tts">
+                <div class="page-header">
+                    <h2 class="page-title">TTS语音合成</h2>
+                    <p class="page-subtitle">配置本地语音合成与播报</p>
+                </div>
+                <div class="tts-content">
+                    <div class="tts-left card">
+                        <div class="card-title">🎛️ 模型与音频配置</div>
+                        <div class="tts-form">
+                            <div class="tts-form-row">
+                                <span class="tts-form-label">🤖 GPT模型</span>
+                                <span class="tts-form-value" id="tts-gpt-label">未选择</span>
+                                <button class="tts-select-btn" data-model="gpt">选择</button>
+                            </div>
+                            <div class="tts-form-row">
+                                <span class="tts-form-label">🎙 SoVITS模型</span>
+                                <span class="tts-form-value" id="tts-sovits-label">未选择</span>
+                                <button class="tts-select-btn" data-model="sovits">选择</button>
+                            </div>
+                            <div class="tts-form-row">
+                                <span class="tts-form-label">🎵 参考音频</span>
+                                <span class="tts-form-value" id="tts-audio-label">未选择</span>
+                                <button class="tts-select-btn" data-model="audio">选择</button>
+                            </div>
+                            <div class="tts-form-row">
+                                <span class="tts-form-label">📄 参考文本</span>
+                                <span class="tts-form-value" id="tts-text-label">未选择</span>
+                                <button class="tts-select-btn" data-model="text">选择</button>
+                            </div>
+                        </div>
+                        <div class="tts-synth-section">
+                            <div class="card-title">📝 合成文本</div>
+                            <textarea class="tts-text-input" id="tts-text-input" placeholder="输入要合成的文本..."></textarea>
+                        </div>
+                        <div class="button-row">
+                            <button class="btn btn-primary" id="tts-synth-btn">▶ 执行合成</button>
+                            <button class="btn btn-success" id="tts-load-btn">📂 加载模型</button>
+                            <button class="btn btn-danger" id="tts-stop-btn">⏹ 停止播放</button>
+                        </div>
+                    </div>
+                    <div class="tts-right card">
+                        <div class="card-title">📋 执行输出</div>
+                        <div class="tts-log" id="tts-log"></div>
+                        <div class="tts-audio-section">
+                            <div class="card-title">🎵 历史合成音频</div>
+                            <div class="audio-list" id="audio-list"></div>
+                            <div class="audio-controls">
+                                <button class="btn btn-primary btn-sm" id="audio-play-btn">▶ 播放</button>
+                                <button class="btn btn-secondary btn-sm" id="audio-refresh-btn">🔄 刷新</button>
+                                <button class="btn btn-danger btn-sm" id="audio-delete-btn">🗑️ 删除</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 历史记录页面 -->
+            <div class="page" id="page-history">
+                <div class="page-header">
+                    <h2 class="page-title">历史记录</h2>
+                    <p class="page-subtitle">查看和管理对话历史记录</p>
+                </div>
+                <div class="history-content">
+                    <div class="card history-card">
+                        <div class="history-header">
+                            <div class="card-title">📋 历史记录列表</div>
+                            <div class="history-buttons">
+                                <button class="btn btn-secondary btn-sm" id="refresh-history-btn">🔄 刷新</button>
+                                <button class="btn btn-danger btn-sm" id="clear-history-btn">🗑️ 清空</button>
+                            </div>
+                        </div>
+                        <div class="history-list" id="history-list">
+                            <div class="empty-hint">暂无历史记录</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 动态功能页面 -->
+            <div class="page" id="page-dynamic">
+                <div class="page-header">
+                    <h2 class="page-title">动态功能</h2>
+                    <p class="page-subtitle">图像生成与视频合成</p>
+                </div>
+                <div class="dynamic-content">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="image">🖼️ 图像生成</button>
+                        <button class="tab-btn" data-tab="video">🎬 视频生成</button>
+                    </div>
+                    
+                    <!-- 图像生成选项卡 -->
+                    <div class="tab-content active" id="tab-image">
+                        <div class="tab-panels">
+                            <div class="card tab-left">
+                                <div class="card-title">📝 图像描述</div>
+                                <textarea class="prompt-textarea" id="image-prompt" placeholder="输入图像描述..."></textarea>
+                                
+                                <div class="params-frame">
+                                    <div class="param-row">
+                                        <label class="param-label">📐 图像尺寸</label>
+                                        <select class="param-select" id="image-size">
+                                            <option value="1280x1280">1280x1280</option>
+                                            <option value="1024x1024">1024x1024</option>
+                                            <option value="1024x768">1024x768</option>
+                                            <option value="768x1024">768x1024</option>
+                                            <option value="1920x1080">1920x1080</option>
+                                            <option value="1080x1920">1080x1920</option>
+                                        </select>
+                                    </div>
+                                    <div class="param-row">
+                                        <label class="param-label">✨ 图像质量</label>
+                                        <select class="param-select" id="image-quality">
+                                            <option value="standard">standard</option>
+                                            <option value="hd">hd</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="button-row">
+                                    <button class="btn btn-primary" id="generate-image-btn">🖼️ 生成图像</button>
+                                    <button class="btn btn-secondary" id="preview-image-btn">👁️ 图像预览</button>
+                                </div>
+                            </div>
+                            <div class="card tab-right">
+                                <div class="card-title">📋 生成日志</div>
+                                <textarea class="log-textarea" id="image-log" readonly></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 视频生成选项卡 -->
+                    <div class="tab-content" id="tab-video">
+                        <div class="tab-panels">
+                            <div class="card tab-left">
+                                <div class="card-title">📝 视频描述</div>
+                                <textarea class="prompt-textarea" id="video-prompt" placeholder="输入视频描述..."></textarea>
+                                
+                                <div class="url-section">
+                                    <label class="card-title">🖼️ 参考图片URL (可选，最多2个)</label>
+                                    <input type="text" class="form-input url-input" id="image-url1" placeholder="图片URL 1 - 必须是公开可访问的HTTP/HTTPS链接">
+                                    <input type="text" class="form-input url-input" id="image-url2" placeholder="图片URL 2 - 双图生成时建议图片尺寸一致">
+                                </div>
+                                
+                                <div class="params-frame video-params">
+                                    <div class="param-row">
+                                        <label class="param-label">📐 尺寸</label>
+                                        <select class="param-select param-select-sm" id="video-size">
+                                            <option value="1920x1080">1920x1080</option>
+                                            <option value="1080x1920">1080x1920</option>
+                                            <option value="1280x720">1280x720</option>
+                                            <option value="720x1280">720x1280</option>
+                                            <option value="1024x1024">1024x1024</option>
+                                        </select>
+                                    </div>
+                                    <div class="param-row">
+                                        <label class="param-label">🎞️ 帧率</label>
+                                        <select class="param-select param-select-sm" id="video-fps">
+                                            <option value="30">30</option>
+                                            <option value="60">60</option>
+                                        </select>
+                                    </div>
+                                    <div class="param-row">
+                                        <label class="param-label">✨ 质量</label>
+                                        <select class="param-select param-select-sm" id="video-quality">
+                                            <option value="quality">quality</option>
+                                            <option value="speed">speed</option>
+                                        </select>
+                                    </div>
+                                    <label class="checkbox-option">
+                                        <input type="checkbox" id="video-audio" checked>
+                                        <span class="checkbox-label">🔊 生成音效</span>
+                                    </label>
+                                </div>
+                                
+                                <div class="button-row">
+                                    <button class="btn btn-accent" id="generate-video-btn">🎬 生成视频</button>
+                                    <button class="btn btn-warning" id="preview-video-btn">👁️ 视频预览</button>
+                                </div>
+                            </div>
+                            <div class="card tab-right">
+                                <div class="card-title">📋 生成日志</div>
+                                <textarea class="log-textarea" id="video-log" readonly></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 系统设置页面 -->
+            <div class="page" id="page-settings">
+                <div class="page-header">
+                    <h2 class="page-title">系统设置</h2>
+                    <p class="page-subtitle">配置系统各项参数</p>
+                </div>
+                <div class="settings-content">
+                    <div class="settings-grid">
+                        <div class="settings-card" data-setting="connection">
+                            <div class="settings-icon">🔗</div>
+                            <div class="settings-title">连接配置</div>
+                        </div>
+                        <div class="settings-card" data-setting="system">
+                            <div class="settings-icon">🔍</div>
+                            <div class="settings-title">系统检查</div>
+                        </div>
+                        <div class="settings-card" data-setting="tts">
+                            <div class="settings-icon">🎤</div>
+                            <div class="settings-title">TTS语音</div>
+                        </div>
+                        <div class="settings-card" data-setting="files">
+                            <div class="settings-icon">📁</div>
+                            <div class="settings-title">文件管理</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 设置详情面板 -->
+                    <div class="settings-detail" id="settings-detail" style="display: none;">
+                        <div class="card">
+                            <div class="card-title" id="settings-detail-title">设置详情</div>
+                            <div class="settings-detail-content" id="settings-detail-content"></div>
+                            <div class="button-row">
+                                <button class="btn btn-secondary" id="settings-back-btn">← 返回</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Toast容器 -->
+    <div class="toast-container">
+        <div class="toast" id="toast"></div>
+    </div>
+    
+    <!-- 加载遮罩 -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-card">
+            <div class="loading-text" id="loading-text">正在加载...</div>
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+    
+    <!-- 模态框 -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <div class="modal-title" id="modal-title">选择模型</div>
+            <div class="modal-list" id="modal-list"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="modal-cancel-btn">取消</button>
+                <button class="btn btn-primary" id="modal-confirm-btn">确认</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 确认对话框 -->
+    <div class="confirm-overlay" id="confirm-overlay">
+        <div class="confirm-dialog">
+            <div class="confirm-title" id="confirm-title">确认</div>
+            <div class="confirm-message" id="confirm-message"></div>
+            <div class="confirm-buttons">
+                <button class="btn btn-secondary" id="confirm-cancel-btn">取消</button>
+                <button class="btn btn-danger" id="confirm-ok-btn">确认</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 音频播放器 -->
+    <audio id="audio-player" style="display: none;"></audio>
+    
+    <script src="/static/app.js"></script>
+</body>
+</html>
