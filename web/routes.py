@@ -14,7 +14,7 @@ from typing import List, Dict, Any
 from fastapi import WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 
-from yuntai.core.config import PROJECT_ROOT, SHORTCUTS, CONVERSATION_HISTORY_FILE, TEMP_DIR, TTS_OUTPUT_DIR
+from yuntai.core.config import PROJECT_ROOT, SHORTCUTS, CONVERSATION_HISTORY_FILE, TEMP_DIR, TTS_OUTPUT_DIR, CONNECTION_CONFIG_FILE
 
 from .controller import WebController
 from .ws_manager import ConnectionManager
@@ -24,10 +24,6 @@ WEB_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # TTS音频文件目录（使用config中的定义）
 os.makedirs(TTS_OUTPUT_DIR, exist_ok=True)
-
-# 生成的图像和视频目录
-GENERATED_DIR = os.path.join(PROJECT_ROOT, "temp", "generated")
-os.makedirs(GENERATED_DIR, exist_ok=True)
 
 
 def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
@@ -78,9 +74,6 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
         # 图像可能在多个目录
         possible_paths = [
             os.path.join(TEMP_DIR, "images", filename),  # MediaGenerator保存的位置
-            os.path.join(GENERATED_DIR, filename),
-            os.path.join(PROJECT_ROOT, "temp", "images", filename),
-            os.path.join(PROJECT_ROOT, "temp", "generated", filename),
         ]
         for filepath in possible_paths:
             if os.path.exists(filepath):
@@ -95,9 +88,6 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
         # 视频可能在多个目录
         possible_paths = [
             os.path.join(TEMP_DIR, "videos", filename),  # MediaGenerator保存的位置
-            os.path.join(GENERATED_DIR, filename),
-            os.path.join(PROJECT_ROOT, "temp", "videos", filename),
-            os.path.join(PROJECT_ROOT, "temp", "generated", filename),
         ]
         for filepath in possible_paths:
             if os.path.exists(filepath):
@@ -129,25 +119,33 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
         """获取设备列表"""
         return JSONResponse(content=controller.get_available_devices())
     
-    @app.get("/api/generated/{filename}")
-    async def get_generated_file(filename: str):
-        """获取生成的图像或视频文件"""
-        filepath = os.path.join(GENERATED_DIR, filename)
-        if not os.path.exists(filepath):
-            raise HTTPException(status_code=404, detail="文件不存在")
-        
-        # 根据文件扩展名确定媒体类型
-        ext = os.path.splitext(filename)[1].lower()
-        media_types = {
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.gif': 'image/gif',
-            '.mp4': 'video/mp4',
-            '.webm': 'video/webm'
-        }
-        media_type = media_types.get(ext, 'application/octet-stream')
-        return FileResponse(filepath, media_type=media_type)
+    @app.get("/api/connection_config")
+    async def get_connection_config():
+        """获取连接配置"""
+        try:
+            if os.path.exists(CONNECTION_CONFIG_FILE):
+                with open(CONNECTION_CONFIG_FILE, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    # 提取IP和端口，与yuntai目录逻辑一致
+                    wireless_ip = config.get("wireless_ip", "")
+                    wireless_port = config.get("wireless_port", "5555")
+                    
+                    # 如果wireless_ip包含端口，则分离
+                    if ":" in wireless_ip:
+                        ip, port = wireless_ip.split(":", 1)
+                    else:
+                        ip = wireless_ip
+                        port = wireless_port
+                    
+                    return JSONResponse(content={
+                        "ip": ip, 
+                        "port": port,
+                        "connection_type": config.get("connection_type", "wireless"),
+                        "device_type": config.get("device_type", "android")
+                    })
+        except Exception as e:
+            print(f"读取连接配置失败: {e}")
+        return JSONResponse(content={})
     
     # ==================== 文件上传 ====================
     
@@ -158,10 +156,11 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
             from yuntai.processors.multimodal_processor import MultimodalProcessor
             processor = MultimodalProcessor()
             
-            temp_dir = os.path.join(PROJECT_ROOT, "temp", "uploads")
-            os.makedirs(temp_dir, exist_ok=True)
+            # 使用TEMP_DIR下的uploads目录
+            upload_dir = os.path.join(TEMP_DIR, "uploads")
+            os.makedirs(upload_dir, exist_ok=True)
             
-            file_path = os.path.join(temp_dir, file.filename)
+            file_path = os.path.join(upload_dir, file.filename)
             content = await file.read()
             with open(file_path, "wb") as f:
                 f.write(content)
@@ -187,8 +186,8 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
     async def remove_file(filename: str):
         """移除上传的文件"""
         try:
-            temp_dir = os.path.join(PROJECT_ROOT, "temp", "uploads")
-            file_path = os.path.join(temp_dir, filename)
+            upload_dir = os.path.join(TEMP_DIR, "uploads")
+            file_path = os.path.join(upload_dir, filename)
             
             if file_path in controller.attached_files:
                 controller.attached_files.remove(file_path)
@@ -227,8 +226,8 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
                 "tts_models": controller.get_tts_models()
             }, websocket)
             
-            # 异步预加载TTS
-            controller.preload_tts_async()
+            # 异步预加载TTS，并在加载成功后播放欢迎语音
+            controller.preload_tts_async(play_welcome_after_load=True)
             
             while True:
                 data = await websocket.receive_json()
@@ -276,6 +275,8 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
                     await _handle_get_page_data(websocket, data.get("page"), controller)
                 elif msg_type == "delete_audio":
                     await _handle_delete_audio(websocket, data, controller)
+                elif msg_type == "delete_all_audio":
+                    await _handle_delete_all_audio(websocket, controller)
                 elif msg_type == "clear_history":
                     controller.clear_history()
                     await controller.send_toast("历史记录已清空", "success")
@@ -287,7 +288,7 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
                 elif msg_type == "generate_video":
                     await _handle_generate_video(websocket, data, controller)
                 elif msg_type == "start_scrcpy":
-                    await _handle_start_scrcpy(websocket, controller)
+                    await _handle_start_scrcpy(websocket, data, controller)
                 elif msg_type == "detect_devices":
                     await _handle_detect_devices(websocket, data, controller)
                 elif msg_type == "system_check":
@@ -389,8 +390,8 @@ async def _handle_command(websocket, data: dict, controller: WebController):
                                         }), loop)
 
                             threading.Thread(target=run_continuous_reply, daemon=True).start()
-                            result = f"✅ 持续回复模式已启动"
-                            result_text = result
+                            # 不输出任何结果信息
+                            result_text = ""
                 except Exception as e:
                     result = f"❌ 执行失败: {str(e)}"
                     result_text = result
@@ -498,27 +499,81 @@ async def _handle_terminate(websocket, controller: WebController):
     await controller.send_output(f"\n{'═' * 9} [{timestamp} 操作终止] {'═' * 9}\n", "output")
     await controller.send_output("🛑 正在发送终止信号...\n", "output")
     
-    if controller._current_reply_chain:
-        controller._current_reply_chain.stop()
-    
-    try:
-        if controller.task_chain:
-            controller.task_chain.stop_continuous_reply()
-    except:
-        pass
-    
+    # 设置终止标志
     controller.terminate_flag.set()
-    controller.is_continuous_mode = False
-    controller.is_executing = False
     
-    await controller.send_state_update({
-        "is_executing": False,
-        "is_continuous_mode": False,
-        "execute_button_enabled": True,
-        "terminate_button_enabled": False
-    })
+    def terminate_thread():
+        """异步终止线程"""
+        try:
+            # 停止持续回复
+            if controller._current_reply_chain:
+                controller._current_reply_chain.stop()
+            
+            try:
+                if controller.task_chain:
+                    controller.task_chain.stop_continuous_reply()
+            except:
+                pass
+            
+            # 等待任务真正结束（检查ReplyChain是否还在运行）
+            import time
+            max_wait = 30  # 最多等待30秒
+            waited = 0
+            
+            while waited < max_wait:
+                # 检查ReplyChain是否还在运行
+                is_still_running = False
+                if controller._current_reply_chain:
+                    try:
+                        is_still_running = controller._current_reply_chain.is_running()
+                    except:
+                        pass
+                
+                # 如果不再运行，退出等待
+                if not is_still_running and not controller.is_executing:
+                    break
+                
+                time.sleep(0.2)
+                waited += 0.2
+            
+            # 强制更新状态
+            controller.is_continuous_mode = False
+            controller.is_executing = False
+            
+            # 发送状态更新
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(controller.send_output("✅ 任务已完全终止\n", "output"))
+                loop.run_until_complete(controller.send_state_update({
+                    "is_executing": False,
+                    "is_continuous_mode": False,
+                    "execute_button_enabled": True,
+                    "terminate_button_enabled": False
+                }))
+                loop.run_until_complete(controller.send_toast("任务已终止", "warning"))
+            finally:
+                loop.close()
+                
+        except Exception as e:
+            print(f"终止操作出错: {e}")
+            # 确保状态被更新
+            controller.is_continuous_mode = False
+            controller.is_executing = False
+            
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(controller.send_state_update({
+                    "is_executing": False,
+                    "is_continuous_mode": False,
+                    "execute_button_enabled": True,
+                    "terminate_button_enabled": False
+                }))
+            finally:
+                loop.close()
     
-    await controller.send_toast("已发送终止信号", "warning")
+    threading.Thread(target=terminate_thread, daemon=True).start()
 
 
 async def _handle_tts_synth(websocket, data: dict, controller: WebController):
@@ -612,6 +667,23 @@ async def _handle_tts_select_model(websocket, data: dict, controller: WebControl
     try:
         tts = controller.task_manager.tts_manager
         success = tts.set_current_model(model_type, model_name)
+        
+        # 如果选择的是参考音频，自动匹配对应的参考文本
+        if success and model_type == "audio":
+            audio_basename = os.path.splitext(model_name)[0]
+            txt_filename = audio_basename + ".txt"
+            text_files = list(tts.tts_files_database.get("text", {}).keys())
+            if txt_filename in text_files:
+                tts.set_current_model("text", txt_filename)
+        
+        # 如果选择的是参考文本，自动匹配对应的参考音频
+        if success and model_type == "text":
+            text_basename = os.path.splitext(model_name)[0]
+            wav_filename = text_basename + ".wav"
+            audio_files = list(tts.tts_files_database.get("audio", {}).keys())
+            if wav_filename in audio_files:
+                tts.set_current_model("audio", wav_filename)
+        
         if success:
             await controller.send_toast(f"已选择: {model_name}", "success")
             await controller.ws_manager.broadcast({
@@ -684,10 +756,14 @@ async def _handle_connect_device(websocket, data: dict, controller: WebControlle
     
     def connect_thread():
         try:
-            # 构建配置字典
+            # 构建配置字典，与yuntai目录逻辑一致
             config = {
                 "device_type": device_type,
-                "connection_type": connection_type
+                "connection_type": connection_type,
+                "wireless_ip": "",
+                "wireless_port": "5555",
+                "usb_device_id": "",
+                "device_type_display": "Android (ADB)" if device_type == "android" else "HarmonyOS (HDC)"
             }
             
             if connection_type == "usb":
@@ -696,13 +772,9 @@ async def _handle_connect_device(websocket, data: dict, controller: WebControlle
             else:
                 ip = data.get("ip", "")
                 port = data.get("port", "5555")
-                # 检查IP是否已经包含端口（格式为 ip:port）
-                if ":" in ip:
-                    # IP已经包含端口，直接使用
-                    config["wireless_ip"] = ip
-                else:
-                    # IP不包含端口，添加端口
-                    config["wireless_ip"] = f"{ip}:{port}" if ip else ""
+                # 与yuntai目录逻辑一致：wireless_ip不包含端口，端口单独存储
+                config["wireless_ip"] = ip
+                config["wireless_port"] = port
             
             # 使用TaskManager的connect_device方法
             success, device_id, message = controller.task_manager.connect_device(config)
@@ -755,7 +827,7 @@ async def _handle_shortcut(websocket, data: dict, controller: WebController):
 
 
 async def _handle_delete_audio(websocket, data: dict, controller: WebController):
-    """处理删除音频"""
+    """处理删除单个音频"""
     filename = data.get("filename")
     if filename:
         try:
@@ -769,6 +841,29 @@ async def _handle_delete_audio(websocket, data: dict, controller: WebController)
             })
         except Exception as e:
             await controller.send_toast(f"删除失败: {str(e)}", "error")
+
+
+async def _handle_delete_all_audio(websocket, controller: WebController):
+    """处理删除所有音频"""
+    try:
+        import glob
+        # 删除TTS输出目录下的所有wav文件
+        audio_files = glob.glob(os.path.join(TTS_OUTPUT_DIR, "*.wav"))
+        deleted_count = 0
+        for filepath in audio_files:
+            try:
+                os.remove(filepath)
+                deleted_count += 1
+            except:
+                pass
+        
+        await controller.send_toast(f"已删除 {deleted_count} 个音频文件", "success")
+        await controller.ws_manager.broadcast({
+            "type": "audio_deleted",
+            "audio_history": controller.get_audio_history()
+        })
+    except Exception as e:
+        await controller.send_toast(f"删除失败: {str(e)}", "error")
 
 
 async def _handle_get_page_data(websocket, page: str, controller: WebController):
@@ -1116,7 +1211,7 @@ def start_video_result_polling(controller, task_id: str, image_count: int = 0):
     threading.Thread(target=polling_thread, daemon=True).start()
 
 
-async def _handle_start_scrcpy(websocket, controller: WebController):
+async def _handle_start_scrcpy(websocket, data: dict, controller: WebController):
     """处理启动手机投屏"""
     try:
         if not controller.task_manager.is_connected:
@@ -1125,12 +1220,21 @@ async def _handle_start_scrcpy(websocket, controller: WebController):
         
         import subprocess
         scrcpy_path = controller.scrcpy_path
+        always_on_top = data.get("always_on_top", False) if data else False
         
+        # 构建scrcpy命令参数
+        cmd_args = []
         if scrcpy_path and os.path.exists(scrcpy_path):
-            subprocess.Popen([scrcpy_path], shell=True)
+            cmd_args.append(scrcpy_path)
         else:
-            # 尝试使用系统scrcpy
-            subprocess.Popen(["scrcpy"], shell=True)
+            cmd_args.append("scrcpy")
+        
+        # 添加窗口置顶参数
+        if always_on_top:
+            cmd_args.append("--always-on-top")
+        
+        # 启动scrcpy
+        subprocess.Popen(cmd_args, shell=True)
         
         await controller.ws_manager.broadcast({
             "type": "scrcpy_started"
@@ -1344,6 +1448,6 @@ async def _handle_tts_settings(websocket, data: dict, controller: WebController)
             "type": "tts_models_update",
             "data": controller.get_tts_models()
         })
-        
+
     except Exception as e:
         await controller.send_toast(f"TTS设置失败: {str(e)}", "error")

@@ -14,7 +14,7 @@ import json
 from typing import Optional, Dict, Any, List
 
 from yuntai.core.config import (
-    PROJECT_ROOT, SCRCPY_PATH, SHORTCUTS, CONVERSATION_HISTORY_FILE
+    PROJECT_ROOT, SCRCPY_PATH, SHORTCUTS, CONVERSATION_HISTORY_FILE, TEMP_DIR
 )
 from yuntai.services.task_manager import TaskManager
 from yuntai.chains import TaskChain, ReplyChain
@@ -122,7 +122,7 @@ class WebController:
         
         # 历史记录缓存
         self._history_cache = None
-        self._history_file = os.path.join(PROJECT_ROOT, "temp", "web_history.json")
+        self._history_file = os.path.join(TEMP_DIR, "web_history.json")
 
         # 输出捕获器
         self.output_capture = WebOutputCapture(self)
@@ -299,7 +299,7 @@ class WebController:
         audio_files.sort(key=lambda x: x["mtime"], reverse=True)
         return audio_files
     
-    def preload_tts_async(self):
+    def preload_tts_async(self, play_welcome_after_load=False):
         """异步预加载TTS模块"""
         if self._tts_loaded:
             return
@@ -310,10 +310,86 @@ class WebController:
                 self.tts_enabled = success
                 self._tts_loaded = True
                 print(f"{'✅' if success else '❌'} TTS模块预加载{'成功' if success else '失败'}")
+                
+                # 如果TTS加载成功且需要播放欢迎语音
+                if success and play_welcome_after_load:
+                    self._play_welcome_voice()
+                elif play_welcome_after_load:
+                    # TTS加载失败，直接发送完成消息关闭遮罩
+                    self._send_welcome_complete()
+                    
             except Exception as e:
                 print(f"❌ TTS预加载失败: {e}")
+                if play_welcome_after_load:
+                    self._send_welcome_complete()
         
         threading.Thread(target=load, daemon=True).start()
+    
+    def _send_welcome_complete(self):
+        """发送欢迎完成消息"""
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(self.ws_manager.broadcast({
+                "type": "welcome_complete"
+            }))
+        finally:
+            loop.close()
+    
+    def _play_welcome_voice(self):
+        """播放欢迎语音（TTS测试）"""
+        import time
+        # 等待一小段时间确保TTS完全就绪
+        time.sleep(0.5)
+        
+        welcome_text = "您好，很高兴为您服务"
+        try:
+            tts = self.task_manager.tts_manager
+            
+            if tts and tts.tts_available:
+                # 获取当前参考音频和文本
+                ref_audio = tts.get_current_model("audio")
+                ref_text = tts.get_current_model("text")
+                
+                # 如果未配置，自动选择第一个
+                if not ref_audio:
+                    audio_files = list(tts.tts_files_database.get("audio", {}).keys())
+                    if audio_files:
+                        ref_audio = tts.tts_files_database.get("audio", {}).get(audio_files[0])
+                        print(f"🎵 自动选择参考音频: {audio_files[0]}")
+                
+                if not ref_text:
+                    text_files = list(tts.tts_files_database.get("text", {}).keys())
+                    if text_files:
+                        ref_text = tts.tts_files_database.get("text", {}).get(text_files[0])
+                        print(f"📄 自动选择参考文本: {text_files[0]}")
+                
+                if ref_audio and ref_text:
+                    success, _ = tts.synthesize_text(
+                        text=welcome_text,
+                        ref_audio_path=ref_audio,
+                        ref_text_path=ref_text,
+                        auto_play=True
+                    )
+                    if success:
+                        print("✅ TTS测试成功：欢迎语音播放成功")
+                        self.tts_enabled = True
+                    else:
+                        print("⚠️ TTS测试失败：欢迎语音合成失败")
+                        self.tts_enabled = False
+                else:
+                    print("⚠️ TTS测试跳过：没有可用的参考音频或文本")
+                    self.tts_enabled = False
+            else:
+                print("⚠️ TTS测试跳过：TTS模块不可用")
+                self.tts_enabled = False
+                
+        except Exception as e:
+            print(f"⚠️ TTS测试异常: {e}")
+            self.tts_enabled = False
+        
+        # 发送欢迎完成消息
+        self._send_welcome_complete()
     
     # ==================== 设备管理 ====================
     

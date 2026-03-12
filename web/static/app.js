@@ -27,8 +27,7 @@ const state = {
     generatedImagePath: null,
     generatedVideoPath: null,
     activePopups: [],  // 活动弹窗列表
-    escHandler: null,  // ESC键处理器
-    eventsBound: false  // 事件绑定标志
+    escHandler: null   // ESC键处理器
 };
 
 // ==================== 弹窗管理 ====================
@@ -202,6 +201,12 @@ function connectWebSocket() {
         const data = JSON.parse(event.data);
         handleMessage(data);
     };
+    
+    // 连接成功后不立即播放欢迎语音，等待TTS加载完成
+    state.ws.onopen = () => {
+        console.log('WebSocket连接成功');
+        state.connected = true;
+    };
 }
 
 function sendMessage(type, data = {}) {
@@ -347,6 +352,10 @@ function handleMessage(data) {
                 const resultEl = state.currentFileManagementPopup.querySelector('#file-management-result');
                 if (resultEl) resultEl.value = data.result || '';
             }
+            break;
+        case 'welcome_complete':
+            // 欢迎语音播放完成，隐藏遮罩
+            hideWelcomeOverlay();
             break;
     }
 }
@@ -532,13 +541,16 @@ function switchPage(pageName) {
 
 // 重新绑定页面特定事件
 function rebindPageEvents(pageName) {
-    // 使用标志防止重复绑定
-    if (state.eventsBound) return;
+    // 不再使用eventsBound标志，因为会导致页面切换后事件失效
+    // 改为在绑定前移除旧事件（使用cloneNode方式）
 
     if (pageName === 'dashboard') {
         // 控制中心页面 - 重新绑定按钮事件
         if (elements.clearBtn) {
-            elements.clearBtn.addEventListener('click', async () => {
+            const newBtn = elements.clearBtn.cloneNode(true);
+            elements.clearBtn.parentNode.replaceChild(newBtn, elements.clearBtn);
+            elements.clearBtn = newBtn;
+            newBtn.addEventListener('click', async () => {
                 const confirmed = await showConfirm('确认清空', '确定要清空输出内容吗？');
                 if (confirmed) {
                     if (elements.outputText) elements.outputText.value = '';
@@ -548,34 +560,32 @@ function rebindPageEvents(pageName) {
             });
         }
         if (elements.scrcpyBtn) {
-            elements.scrcpyBtn.addEventListener('click', () => showScrcpyPopup());
+            const newBtn = elements.scrcpyBtn.cloneNode(true);
+            elements.scrcpyBtn.parentNode.replaceChild(newBtn, elements.scrcpyBtn);
+            elements.scrcpyBtn = newBtn;
+            newBtn.addEventListener('click', () => showScrcpyPopup());
         }
         if (elements.ttsBtn) {
-            elements.ttsBtn.addEventListener('click', () => showTTSSettingsPopup());
-        }
-        if (elements.uploadBtn) {
-            elements.uploadBtn.addEventListener('click', () => {
-                if (elements.fileInput) elements.fileInput.click();
-            });
-        }
-        if (elements.fileInput) {
-            elements.fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    handleFileUpload(e.target.files);
-                    e.target.value = '';
-                }
-            });
+            const newBtn = elements.ttsBtn.cloneNode(true);
+            elements.ttsBtn.parentNode.replaceChild(newBtn, elements.ttsBtn);
+            elements.ttsBtn = newBtn;
+            newBtn.addEventListener('click', () => showTTSSettingsPopup());
         }
     } else if (pageName === 'connection') {
         // 设备管理页面
         if (elements.detectDevicesBtn) {
-            elements.detectDevicesBtn.addEventListener('click', () => showDeviceDetectPopup());
+            const newBtn = elements.detectDevicesBtn.cloneNode(true);
+            elements.detectDevicesBtn.parentNode.replaceChild(newBtn, elements.detectDevicesBtn);
+            elements.detectDevicesBtn = newBtn;
+            newBtn.addEventListener('click', () => showDeviceDetectPopup());
         }
     } else if (pageName === 'tts') {
         // TTS页面 - 重新绑定选择按钮
         document.querySelectorAll('.tts-select-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const modelType = btn.dataset.model;
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            newBtn.addEventListener('click', () => {
+                const modelType = newBtn.dataset.model;
                 const modelKeyMap = {
                     'gpt': 'gpt_models',
                     'sovits': 'sovits_models',
@@ -601,8 +611,6 @@ function rebindPageEvents(pageName) {
             });
         });
     }
-
-    state.eventsBound = true;
 }
 
 function handlePageData(page, data) {
@@ -752,10 +760,20 @@ function renderAudioList(audioHistory) {
     `).join('');
     
     elements.audioList.querySelectorAll('.audio-item').forEach(item => {
+        // 单击选择
         item.addEventListener('click', () => {
             elements.audioList.querySelectorAll('.audio-item').forEach(i => i.classList.remove('selected'));
             item.classList.add('selected');
             state.selectedAudio = item.dataset.path;
+        });
+        
+        // 双击播放
+        item.addEventListener('dblclick', () => {
+            if (elements.audioPlayer) {
+                elements.audioPlayer.src = item.dataset.path;
+                elements.audioPlayer.play();
+                showToast('正在播放: ' + item.dataset.name, 'info');
+            }
         });
     });
 }
@@ -957,7 +975,7 @@ function showImagePreviewPopup(imagePath) {
                 <h3>🖼️ 图像预览</h3>
                 <button class="popup-close-btn" id="image-preview-close">✕</button>
             </div>
-            <div class="popup-content">
+            <div class="popup-content image-preview-content">
                 <img src="${imagePath}" alt="生成的图像" class="preview-image" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'error-hint\\'>图像加载失败<br>路径: ${imagePath}</div>';">
             </div>
             <div class="popup-footer">
@@ -1027,9 +1045,23 @@ function initEventListeners() {
     // 命令输入
     if (elements.commandInput) {
         elements.commandInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.ctrlKey) {
-                e.preventDefault();
-                executeCommand();
+            if (e.key === 'Enter') {
+                if (e.ctrlKey) {
+                    // Ctrl+Enter: 插入换行
+                    e.preventDefault();
+                    const textarea = e.target;
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    const value = textarea.value;
+                    textarea.value = value.substring(0, start) + '\n' + value.substring(end);
+                    textarea.selectionStart = textarea.selectionEnd = start + 1;
+                    // 触发input事件以调整高度
+                    textarea.dispatchEvent(new Event('input'));
+                } else {
+                    // 普通Enter: 发送命令
+                    e.preventDefault();
+                    executeCommand();
+                }
             }
         });
         elements.commandInput.addEventListener('input', function() {
@@ -1040,7 +1072,12 @@ function initEventListeners() {
     
     // 控制中心按钮
     if (elements.executeBtn) elements.executeBtn.addEventListener('click', executeCommand);
-    if (elements.terminateBtn) elements.terminateBtn.addEventListener('click', () => sendMessage('terminate'));
+    if (elements.terminateBtn) elements.terminateBtn.addEventListener('click', () => {
+        // 点击终止时，两个按钮都禁用
+        if (elements.executeBtn) elements.executeBtn.disabled = true;
+        if (elements.terminateBtn) elements.terminateBtn.disabled = true;
+        sendMessage('terminate');
+    });
     // 清空历史按钮 - 需要确认（与GUI一致）
     if (elements.clearBtn) elements.clearBtn.addEventListener('click', async () => {
         const confirmed = await showConfirm('确认清空', '确定要清空输出内容吗？');
@@ -1177,12 +1214,10 @@ function initEventListeners() {
     }
     if (elements.audioRefreshBtn) elements.audioRefreshBtn.addEventListener('click', refreshAudioList);
     if (elements.audioDeleteBtn) {
-        elements.audioDeleteBtn.addEventListener('click', () => {
-            if (state.selectedAudio) {
-                const filename = state.selectedAudio.split('/').pop();
-                sendMessage('delete_audio', { filename });
-            } else {
-                showToast('请先选择音频', 'warning');
+        elements.audioDeleteBtn.addEventListener('click', async () => {
+            const confirmed = await showConfirm('确认删除', '确定要删除所有历史音频文件吗？此操作不可恢复！');
+            if (confirmed) {
+                sendMessage('delete_all_audio');
             }
         });
     }
@@ -1254,9 +1289,71 @@ function init() {
     connectWebSocket();
     initEventListeners();
     initShortcuts();
+    // 显示欢迎遮罩
+    showWelcomeOverlay();
+    // 加载保存的连接配置
+    loadConnectionConfig();
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// ==================== 加载连接配置 ====================
+function loadConnectionConfig() {
+    fetch('/api/connection_config')
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.ip && elements.ipAddress) {
+                elements.ipAddress.value = data.ip;
+            }
+            if (data && data.port && elements.portNumber) {
+                elements.portNumber.value = data.port;
+            }
+        })
+        .catch(err => {
+            console.log('加载连接配置失败:', err);
+        });
+}
+
+// ==================== 欢迎遮罩 ====================
+function showWelcomeOverlay() {
+    // 创建欢迎遮罩层
+    const welcomeOverlay = document.createElement('div');
+    welcomeOverlay.id = 'welcome-overlay';
+    welcomeOverlay.className = 'welcome-overlay';
+    welcomeOverlay.innerHTML = `
+        <div class="welcome-card">
+            <div class="welcome-icon">👋</div>
+            <div class="welcome-text">正在加载，请稍候...</div>
+            <div class="welcome-spinner"></div>
+        </div>
+    `;
+    document.body.appendChild(welcomeOverlay);
+    
+    // 标记欢迎遮罩已显示
+    state.welcomeOverlay = welcomeOverlay;
+    
+    // 设置超时机制，最多等待30秒后自动关闭遮罩
+    state.welcomeTimeout = setTimeout(() => {
+        console.log('欢迎遮罩超时，自动关闭');
+        hideWelcomeOverlay();
+    }, 30000);
+}
+
+function hideWelcomeOverlay() {
+    // 清除超时定时器
+    if (state.welcomeTimeout) {
+        clearTimeout(state.welcomeTimeout);
+        state.welcomeTimeout = null;
+    }
+    
+    const welcomeOverlay = document.getElementById('welcome-overlay');
+    if (welcomeOverlay) {
+        welcomeOverlay.classList.add('fade-out');
+        setTimeout(() => {
+            welcomeOverlay.remove();
+        }, 500);
+    }
+}
 
 // ==================== 弹窗函数（与GUI一致） ====================
 
@@ -1270,7 +1367,7 @@ function showTTSSettingsPopup() {
     const popup = document.createElement('div');
     popup.className = 'popup-overlay';
     popup.innerHTML = `
-        <div class="popup-dialog">
+        <div class="popup-dialog popup-dialog-large">
             <div class="popup-title">🎤 TTS语音设置</div>
             <div class="popup-subtitle">（语音合成有延迟）</div>
             <div class="popup-content">
@@ -1305,7 +1402,7 @@ function showTTSSettingsPopup() {
             </div>
             <div class="popup-buttons">
                 <button class="btn btn-secondary" id="tts-popup-cancel">取消</button>
-                <button class="btn btn-primary" id="tts-popup-save">保存设置</button>
+                <button class="btn btn-primary" id="tts-popup-save">保存</button>
             </div>
         </div>
     `;

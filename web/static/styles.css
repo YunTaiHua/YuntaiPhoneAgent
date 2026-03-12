@@ -925,7 +925,7 @@ body {
     min-width: 400px;
     max-width: 500px;
     max-height: 80vh;
-    overflow: auto;
+    overflow: visible;
     box-shadow: var(--shadow-lg);
 }
 
@@ -959,6 +959,7 @@ body {
 
 .popup-content {
     margin-bottom: 20px;
+    overflow: visible;
 }
 
 .popup-section {
@@ -998,6 +999,16 @@ body {
     font-size: 13px;
     color: var(--text-primary);
     cursor: pointer;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.popup-select option {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .popup-checkbox {
@@ -1090,7 +1101,7 @@ body {
     color: var(--text-primary);
 }
 
-.popup-content {
+.popup-content.image-preview-content {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1113,4 +1124,68 @@ body {
     margin-top: 15px;
     padding-top: 10px;
     border-top: 1px solid var(--border-light);
+}
+
+/* ==================== 欢迎遮罩样式 ==================== */
+.welcome-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    transition: opacity 0.5s ease;
+}
+
+.welcome-overlay.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.welcome-card {
+    background-color: var(--bg-card);
+    border-radius: var(--corner-lg);
+    padding: 40px 60px;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    animation: welcome-bounce 0.5s ease;
+}
+
+@keyframes welcome-bounce {
+    0% { transform: scale(0.8); opacity: 0; }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.welcome-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    animation: welcome-wave 1s ease infinite;
+}
+
+@keyframes welcome-wave {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(20deg); }
+    75% { transform: rotate(-20deg); }
+}
+
+.welcome-text {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+}
+
+.welcome-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-light);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    margin: 0 auto;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
