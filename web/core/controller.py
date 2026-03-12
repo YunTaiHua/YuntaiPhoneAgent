@@ -258,22 +258,23 @@ class WebController:
                     self._play_welcome_voice()
                 elif play_welcome_after_load:
                     # TTS加载失败，直接发送完成消息关闭遮罩
-                    self._send_welcome_complete()
+                    self._send_welcome_complete(tts_success=False)
 
             except Exception as e:
                 print(f"❌ TTS预加载失败: {e}")
                 if play_welcome_after_load:
-                    self._send_welcome_complete()
+                    self._send_welcome_complete(tts_success=False)
 
         threading.Thread(target=load, daemon=True).start()
 
-    def _send_welcome_complete(self):
+    def _send_welcome_complete(self, tts_success=False):
         """发送欢迎完成消息"""
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             loop.run_until_complete(self.ws_manager.broadcast({
-                "type": "welcome_complete"
+                "type": "welcome_complete",
+                "tts_success": tts_success
             }))
         finally:
             loop.close()
@@ -316,6 +317,9 @@ class WebController:
                     if success:
                         print("✅ TTS测试成功：欢迎语音播放成功")
                         self.tts_enabled = True
+                        # TTS测试成功，发送成功标记
+                        self._send_welcome_complete(tts_success=True)
+                        return
                     else:
                         print("⚠️ TTS测试失败：欢迎语音合成失败")
                         self.tts_enabled = False
@@ -330,8 +334,8 @@ class WebController:
             print(f"⚠️ TTS测试异常: {e}")
             self.tts_enabled = False
 
-        # 发送欢迎完成消息
-        self._send_welcome_complete()
+        # TTS测试失败或不可用，发送失败标记
+        self._send_welcome_complete(tts_success=False)
 
     # ==================== 设备管理 ====================
 

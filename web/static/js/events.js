@@ -362,8 +362,11 @@ function init() {
     connectWebSocket();
     initEventListeners();
     initShortcuts();
-    // 显示欢迎遮罩
-    showWelcomeOverlay();
+    // 只在第一次访问时显示欢迎遮罩
+    const ttsTestCompleted = localStorage.getItem('tts_test_completed');
+    if (!ttsTestCompleted) {
+        showWelcomeOverlay();
+    }
     // 加载保存的连接配置
     loadConnectionConfig();
     // 加载版本号

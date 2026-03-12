@@ -176,6 +176,13 @@ function handleMessage(data) {
         case 'welcome_complete':
             // 欢迎语音播放完成，隐藏遮罩
             hideWelcomeOverlay();
+            // 无论成功失败都设置标记，避免重复显示遮罩
+            localStorage.setItem('tts_test_completed', 'true');
+            if (data.tts_success) {
+                console.log('✅ TTS测试成功，已设置标记');
+            } else {
+                console.log('⚠️ TTS测试失败，已设置标记（不再显示欢迎遮罩）');
+            }
             break;
     }
 }
