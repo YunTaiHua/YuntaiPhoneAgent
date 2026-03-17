@@ -138,8 +138,13 @@ function initEventListeners() {
             }
         });
         elements.commandInput.addEventListener('input', function() {
-            this.style.height = '42px';
-            this.style.height = Math.min(this.scrollHeight, 175) + 'px';
+            // 如果内容为空，保持单行高度
+            if (this.value.trim() === '') {
+                this.style.height = '48px';
+            } else {
+                this.style.height = '48px';
+                this.style.height = Math.min(this.scrollHeight, 180) + 'px';
+            }
         });
     }
 
@@ -368,6 +373,37 @@ function init() {
     loadConnectionConfig();
     // 加载版本号
     loadVersion();
+    // 添加F键全屏功能
+    initFullscreenToggle();
+}
+
+// 初始化F键全屏功能
+function initFullscreenToggle() {
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F' || e.key === 'f') {
+            // 检查是否在输入框中，避免干扰正常输入
+            const activeElement = document.activeElement;
+            const isInputField = activeElement.tagName === 'INPUT' || 
+                                 activeElement.tagName === 'TEXTAREA' || 
+                                 activeElement.isContentEditable;
+            
+            if (!isInputField) {
+                e.preventDefault();
+                toggleFullscreen();
+            }
+        }
+    });
+}
+
+// 切换全屏
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.log('无法进入全屏模式:', err);
+        });
+    } else {
+        document.exitFullscreen();
+    }
 }
 
 // 加载版本号

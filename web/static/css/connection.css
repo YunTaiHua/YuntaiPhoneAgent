@@ -7,6 +7,9 @@
     border-radius: var(--corner-lg);
     position: relative;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .status-card::before {

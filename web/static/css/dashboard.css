@@ -66,6 +66,7 @@
 
 .command-input {
     min-height: 48px;
+    height: 48px;
     max-height: 180px;
     background-color: var(--bg-card-alt);
     border: 2px solid var(--border-light);
@@ -77,6 +78,7 @@
     resize: none;
     transition: all var(--transition-normal);
     line-height: 1.5;
+    overflow-y: auto;
 }
 .command-input::placeholder {
     color: var(--text-disabled);
