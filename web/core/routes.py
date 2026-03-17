@@ -231,11 +231,15 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
         await ws_manager.connect(websocket)
 
         try:
+            # 检查是否是首次连接（后端启动后的第一个连接）
+            is_first_connection = ws_manager.is_first_connection()
+
             # 发送初始状态
             await controller.send_personal_message({
                 "type": "init",
                 "data": controller.get_state(),
-                "tts_models": controller.get_tts_models()
+                "tts_models": controller.get_tts_models(),
+                "is_first_connection": is_first_connection
             }, websocket)
 
             # 异步预加载TTS，并在加载成功后播放欢迎语音

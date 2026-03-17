@@ -269,6 +269,9 @@ class WebController:
 
     def _send_welcome_complete(self, tts_success=False):
         """发送欢迎完成消息"""
+        # 标记首次连接已完成
+        self.ws_manager.mark_first_connection_done()
+
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:

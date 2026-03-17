@@ -362,11 +362,8 @@ function init() {
     connectWebSocket();
     initEventListeners();
     initShortcuts();
-    // 只在第一次访问时显示欢迎遮罩
-    const ttsTestCompleted = localStorage.getItem('tts_test_completed');
-    if (!ttsTestCompleted) {
-        showWelcomeOverlay();
-    }
+    // 欢迎遮罩的显示由后端控制，不再使用localStorage
+    // 后端会在init消息中发送is_first_connection标志
     // 加载保存的连接配置
     loadConnectionConfig();
     // 加载版本号

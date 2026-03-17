@@ -43,6 +43,11 @@ function handleMessage(data) {
                 state.ttsModels = data.tts_models;
                 updateTTSLabels();
             }
+            // 根据后端状态决定是否显示欢迎遮罩
+            // is_first_connection 为 true 表示这是后端启动后的第一个连接
+            if (data.is_first_connection) {
+                showWelcomeOverlay();
+            }
             break;
         case 'output':
             appendOutput(data.data);
@@ -176,12 +181,11 @@ function handleMessage(data) {
         case 'welcome_complete':
             // 欢迎语音播放完成，隐藏遮罩
             hideWelcomeOverlay();
-            // 无论成功失败都设置标记，避免重复显示遮罩
-            localStorage.setItem('tts_test_completed', 'true');
+            // 后端已经标记首次连接完成，前端无需再设置localStorage
             if (data.tts_success) {
-                console.log('✅ TTS测试成功，已设置标记');
+                console.log('✅ TTS测试成功');
             } else {
-                console.log('⚠️ TTS测试失败，已设置标记（不再显示欢迎遮罩）');
+                console.log('⚠️ TTS测试失败');
             }
             break;
     }
