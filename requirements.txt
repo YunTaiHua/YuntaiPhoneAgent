@@ -8,6 +8,7 @@ soundfile==0.12.1
 torch==2.5.1+cu121
 zhipuai==2.1.5.20250825
 pyperclip==1.11.0
+markitdown>=0.0.1
 
 # Web Framework
 fastapi>=0.115.0
