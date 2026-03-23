@@ -227,6 +227,11 @@ function updateState(newState) {
     if (elements.connectBtn) elements.connectBtn.disabled = state.is_connected;
     if (elements.disconnectBtn) elements.disconnectBtn.disabled = !state.is_connected;
 
+    // 同步更新文件管理卡片
+    if (newState.hasOwnProperty('attached_files')) {
+        renderFileList(newState.attached_files);
+    }
+
     updateAttachedFiles();
 }
 

@@ -35,9 +35,9 @@ function handleFileUpload(files) {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                // 更新文件管理卡片中的文件列表
-                renderFileList(data.files || data.attached_files || []);
-                showToast(`已上传 ${files.length} 个文件`, 'success');
+                const uploadedFiles = data.attached_files || [];
+                renderFileList(uploadedFiles);
+                showToast(`已上传 ${uploadedFiles.length} 个文件`, 'success');
             } else {
                 showToast(data.message, 'error');
             }
