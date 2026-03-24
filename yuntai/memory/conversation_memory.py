@@ -4,7 +4,7 @@
 支持 LangChain Callbacks 自动记录对话历史
 """
 import json
-import os
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
@@ -35,10 +35,10 @@ class ConversationMemoryManager:
         self._memory: Optional[ConversationBufferMemory] = None
         self._forever_memory: str = ""
         
-        if history_file and os.path.exists(history_file):
+        if history_file and Path(history_file).exists():
             self._load_memory()
         
-        if forever_memory_file and os.path.exists(forever_memory_file):
+        if forever_memory_file and Path(forever_memory_file).exists():
             self._load_forever_memory()
         
         # 注册记忆回调处理器
@@ -58,8 +58,7 @@ class ConversationMemoryManager:
     def _load_forever_memory(self):
         """加载永久记忆"""
         try:
-            with open(self.forever_memory_file, 'r', encoding='utf-8') as f:
-                self._forever_memory = f.read().strip()
+            self._forever_memory = Path(self.forever_memory_file).read_text(encoding='utf-8').strip()
         except Exception as e:
             print(f"加载永久记忆失败: {e}")
             self._forever_memory = ""
@@ -108,9 +107,9 @@ class ConversationMemoryManager:
         """保存到文件"""
         try:
             existing_data = []
-            if os.path.exists(filepath):
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    existing_data = json.load(f)
+            file_path = Path(filepath)
+            if file_path.exists():
+                existing_data = json.loads(file_path.read_text(encoding='utf-8'))
             
             if not isinstance(existing_data, list):
                 existing_data = []
@@ -120,8 +119,7 @@ class ConversationMemoryManager:
             if len(existing_data) > self.max_history_length:
                 existing_data = existing_data[-self.max_history_length:]
             
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(existing_data, f, ensure_ascii=False, indent=2)
+            file_path.write_text(json.dumps(existing_data, ensure_ascii=False, indent=2), encoding='utf-8')
                 
         except Exception as e:
             print(f"保存失败: {e}")

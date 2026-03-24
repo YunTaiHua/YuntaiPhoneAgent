@@ -4,12 +4,12 @@ TaskManager - 任务调度和执行模块（重构版）
 任务分发逻辑已迁移到 TaskChain
 """
 
-import os
 import threading
 import time
 import datetime
 import traceback
 from typing import Optional, Dict, Any, Tuple, List
+from pathlib import Path
 import warnings
 import logging
 import queue
@@ -200,21 +200,21 @@ class TTSManager:
 
             if not final_audio_path:
                 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                ref_audio_name = os.path.splitext(os.path.basename(ref_audio_path))[0]
-                final_audio_path = os.path.join(
-                    self.default_tts_config["output_path"],
-                    f"{ref_audio_name}_merged_{timestamp}.wav"
-                )
+                ref_audio_path = Path(ref_audio_path)
+                ref_audio_name = ref_audio_path.stem
+                output_path = Path(self.default_tts_config["output_path"])
+                final_audio_path = output_path / f"{ref_audio_name}_merged_{timestamp}.wav"
 
-                if audio_files_to_merge and os.path.exists(audio_files_to_merge[0]):
+                if audio_files_to_merge and Path(audio_files_to_merge[0]).exists():
                     import shutil
                     shutil.copy2(audio_files_to_merge[0], final_audio_path)
 
             if final_audio_path:
                 for _, segment_file in segment_files:
                     try:
-                        if os.path.exists(segment_file) and segment_file != final_audio_path:
-                            os.remove(segment_file)
+                        segment_path = Path(segment_file)
+                        if segment_path.exists() and segment_file != final_audio_path:
+                            segment_path.unlink()
                     except:
                         pass
 

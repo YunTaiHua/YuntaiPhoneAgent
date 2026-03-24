@@ -2,9 +2,9 @@
 tts_handler.py - TTS语音处理
 """
 
-import os
 import asyncio
 import threading
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -69,7 +69,7 @@ async def handle_tts_synth(websocket, data: dict, controller: "WebController"):
             try:
                 if success and output_path:
                     # 获取文件名
-                    filename = os.path.basename(output_path)
+                    filename = Path(output_path).name
 
                     # 发送TTS日志输出
                     loop.run_until_complete(controller.ws_manager.broadcast({
@@ -121,7 +121,7 @@ async def handle_tts_select_model(websocket, data: dict, controller: "WebControl
 
         # 如果选择的是参考音频，自动匹配对应的参考文本
         if success and model_type == "audio":
-            audio_basename = os.path.splitext(model_name)[0]
+            audio_basename = Path(model_name).stem
             txt_filename = audio_basename + ".txt"
             text_files = list(tts.tts_files_database.get("text", {}).keys())
             if txt_filename in text_files:
@@ -129,7 +129,7 @@ async def handle_tts_select_model(websocket, data: dict, controller: "WebControl
 
         # 如果选择的是参考文本，自动匹配对应的参考音频
         if success and model_type == "text":
-            text_basename = os.path.splitext(model_name)[0]
+            text_basename = Path(model_name).stem
             wav_filename = text_basename + ".wav"
             audio_files = list(tts.tts_files_database.get("audio", {}).keys())
             if wav_filename in audio_files:
@@ -206,7 +206,7 @@ async def handle_tts_settings(websocket, data: dict, controller: "WebController"
         if audio:
             tts.set_current_model("audio", audio)
             # 自动匹配参考文本
-            txt_filename = os.path.splitext(audio)[0] + '.txt'
+            txt_filename = Path(audio).stem + '.txt'
             if txt_filename in tts.tts_files_database.get("text", {}):
                 tts.set_current_model("text", txt_filename)
 

@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
 工具函数模块
+使用 pathlib 进行跨平台路径处理
 """
 import sys
 import shutil
 import subprocess
 import openai
-from typing import Tuple
+from pathlib import Path
+from typing import Tuple, List
 
 
 
@@ -25,12 +27,9 @@ class Utils:
                 pass
 
     def check_system_requirements(self) -> bool:
-        #print(f"\n🔍 检查系统要求...")
         all_passed = True
 
-        #print(f"\n1. 检查ADB安装...", end=" ")
         if shutil.which("adb") is None:
-            #print("\n❌ 失败")
             all_passed = False
         else:
             try:
@@ -45,10 +44,8 @@ class Utils:
                 if result.returncode == 0:
                     print("")
                 else:
-                    #print("\n❌ 失败")
                     all_passed = False
             except Exception:
-                #print("\n❌ 失败")
                 all_passed = False
 
         return all_passed
@@ -71,7 +68,6 @@ class Utils:
             return False
 
     def check_model_api(self, base_url: str, model_name: str, api_key: str = "EMPTY") -> bool:
-        #print(f"\n🔍 检查模型API...")
         try:
             client = openai.OpenAI(base_url=base_url, api_key=api_key, timeout=30.0)
             response = client.chat.completions.create(
@@ -82,32 +78,23 @@ class Utils:
                 stream=False,
             )
             if response.choices and len(response.choices) > 0:
-                #print("✅ 正常")
                 return True
             else:
-                #print("\n❌ 失败")
                 return False
         except Exception as e:
-            #print(f"\n❌ 失败: {e}")
             return False
 
 
-# ==================== TTS 相关工具函数 ====================
-
-import os
 import threading
-from typing import List, Tuple
 
-# 全局TTS合成标志
 tts_page_synthesizing = False
 
-# 状态变量
 is_tts_synthesizing_lock = threading.Lock()
 is_tts_synthesizing = False
 is_playing_audio_lock = threading.Lock()
 is_playing_audio = False
 tts_synthesized_files_lock = threading.Lock()
-tts_synthesized_files = []  # 存储合成的音频文件列表
+tts_synthesized_files: List[Tuple[str, str]] = []
 
 
 def load_synthesized_files(output_dir: str) -> List[Tuple[str, str]]:
@@ -115,11 +102,11 @@ def load_synthesized_files(output_dir: str) -> List[Tuple[str, str]]:
     global tts_synthesized_files
     with tts_synthesized_files_lock:
         tts_synthesized_files = []
-        if os.path.exists(output_dir):
-            wav_files = [f for f in os.listdir(output_dir) if f.endswith('.wav')]
-            for wav_file in sorted(wav_files, reverse=True):
-                abs_path = os.path.join(output_dir, wav_file)
-                tts_synthesized_files.append((abs_path, wav_file))
+        output_path = Path(output_dir)
+        if output_path.exists():
+            wav_files = [f for f in output_path.iterdir() if f.is_file() and f.suffix == '.wav']
+            for wav_file in sorted(wav_files, key=lambda x: x.name, reverse=True):
+                tts_synthesized_files.append((str(wav_file), wav_file.name))
     return tts_synthesized_files
 
 

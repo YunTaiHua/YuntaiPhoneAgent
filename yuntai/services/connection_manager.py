@@ -5,7 +5,7 @@
 """
 import subprocess
 import json
-import os
+from pathlib import Path
 from typing import List, Tuple, Dict, Optional
 
 from yuntai.core.config import (
@@ -41,13 +41,13 @@ class ConnectionManager:
         }
 
         try:
-            if os.path.exists(CONNECTION_CONFIG_FILE):
-                with open(CONNECTION_CONFIG_FILE, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-                    for key in default_config:
-                        if key not in config:
-                            config[key] = default_config[key]
-                    return config
+            config_file = Path(CONNECTION_CONFIG_FILE)
+            if config_file.exists():
+                config = json.loads(config_file.read_text(encoding='utf-8'))
+                for key in default_config:
+                    if key not in config:
+                        config[key] = default_config[key]
+                return config
         except Exception as e:
             print(f"⚠️  读取连接配置失败: {e}")
 
@@ -56,8 +56,8 @@ class ConnectionManager:
     def save_connection_config(self, config: Dict[str, str]):
         """保存连接配置"""
         try:
-            with open(CONNECTION_CONFIG_FILE, 'w', encoding='utf-8') as f:
-                json.dump(config, f, ensure_ascii=False, indent=2)
+            config_file = Path(CONNECTION_CONFIG_FILE)
+            config_file.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding='utf-8')
         except Exception as e:
             print(f"⚠️  保存连接配置失败: {e}")
 

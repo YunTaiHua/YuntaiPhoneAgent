@@ -3,7 +3,7 @@ GUIView - 纯界面构建模块（PyQt6 重构版）
 负责所有UI组件的创建和布局，不包含业务逻辑
 """
 
-import os
+from pathlib import Path
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QFrame, QStackedWidget, QFileDialog,
@@ -1001,8 +1001,8 @@ class GUIView(QMainWindow):
             file_layout.setSpacing(6)
             
             # 文件名（带图标）
-            file_name = os.path.basename(file_path)
-            ext = os.path.splitext(file_name)[1].lower()
+            file_name = Path(file_path).name
+            ext = Path(file_name).suffix.lower()
             
             # 根据文件类型选择图标
             if ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']:

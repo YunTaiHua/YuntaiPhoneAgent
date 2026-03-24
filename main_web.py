@@ -91,6 +91,7 @@ Phone Agent  - 智能版 v1.3.4 -第2006次迭代
 
 import os
 import sys
+from pathlib import Path
 
 # 预加载 onnxruntime (解决DLL冲突问题)
 import onnxruntime
@@ -98,8 +99,8 @@ onnxruntime.get_available_providers()
 
 # 切换到 GPT-SoVITS 目录
 from yuntai.core.config import GPT_SOVITS_ROOT, PROJECT_ROOT, SCRCPY_PATH, APP_VERSION
-if os.path.exists(GPT_SOVITS_ROOT):
-    os.chdir(GPT_SOVITS_ROOT)
+if GPT_SOVITS_ROOT and Path(GPT_SOVITS_ROOT).exists():
+    os.chdir(str(GPT_SOVITS_ROOT))
 
 # FastAPI 相关
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException
@@ -140,9 +141,9 @@ setup_routes(app, controller, ws_manager)
 
 # 挂载静态文件 - 使用web模块所在目录
 from web.core.routes import WEB_DIR
-static_dir = os.path.join(WEB_DIR, "static")
-os.makedirs(static_dir, exist_ok=True)
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
+static_dir = Path(WEB_DIR) / "static"
+static_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 
 # ==================== 主函数 ====================
@@ -164,9 +165,9 @@ def main():
     print_config_summary()
     
     # 创建web目录
-    web_dir = os.path.join(PROJECT_ROOT, "web")
-    os.makedirs(web_dir, exist_ok=True)
-    os.makedirs(os.path.join(web_dir, "static"), exist_ok=True)
+    web_dir = Path(PROJECT_ROOT) / "web"
+    web_dir.mkdir(parents=True, exist_ok=True)
+    (web_dir / "static").mkdir(parents=True, exist_ok=True)
     
     # 启动服务器
     print("\n🚀 启动Web服务器...")

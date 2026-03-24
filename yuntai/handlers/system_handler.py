@@ -3,7 +3,7 @@
   负责处理历史记录、系统设置和文件管理功能
 """
 
-import os
+from pathlib import Path
 import threading
 
 from PyQt6.QtWidgets import (
@@ -433,7 +433,7 @@ class SystemHandler(QObject):
             info_text = f"""文件管理:
 
 历史记录文件: {CONVERSATION_HISTORY_FILE}
-日志目录: {RECORD_LOGS_DIR}/
+日志目录: {RECORD_LOGS_DIR}
 永久记忆文件: {FOREVER_MEMORY_FILE}
 连接配置文件: {CONNECTION_CONFIG_FILE}
 
@@ -444,10 +444,10 @@ TTS相关目录:
 • TTS输出目录: {self.task_manager.tts_manager.default_tts_config['output_path']}
 
 文件状态:
-• 历史记录文件: {'存在' if os.path.exists(CONVERSATION_HISTORY_FILE) else '不存在'}
-• 日志目录: {'存在' if os.path.exists(RECORD_LOGS_DIR) else '不存在'}
-• 永久记忆文件: {'存在' if os.path.exists(FOREVER_MEMORY_FILE) else '不存在'}
-• 连接配置文件: {'存在' if os.path.exists(CONNECTION_CONFIG_FILE) else '不存在'}
+• 历史记录文件: {'存在' if Path(CONVERSATION_HISTORY_FILE).exists() else '不存在'}
+• 日志目录: {'存在' if Path(RECORD_LOGS_DIR).exists() else '不存在'}
+• 永久记忆文件: {'存在' if FOREVER_MEMORY_FILE and Path(FOREVER_MEMORY_FILE).exists() else '不存在'}
+• 连接配置文件: {'存在' if Path(CONNECTION_CONFIG_FILE).exists() else '不存在'}
 """
 
             dialog = QDialog(self.view)

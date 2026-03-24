@@ -1,9 +1,9 @@
 """
 media_generator.py - 媒体生成器模块
 集成ZHIPU_IMAGE_MODEL和ZHIPU_VIDEO_MODEL功能
+使用 pathlib 进行跨平台路径处理
 """
 
-import os
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
@@ -13,7 +13,6 @@ import time
 from typing import Optional, List, Dict, Any
 from pathlib import Path
 
-# 从统一配置导入
 from yuntai.core.config import (
     PROJECT_ROOT,
     TEMP_DIR,
@@ -25,7 +24,6 @@ from yuntai.core.config import (
 
 logger = logging.getLogger(__name__)
 
-# 常量定义
 CHUNK_SIZE = 8192
 TIMEOUT = 30
 MAX_IMAGE_COUNT = 2
@@ -39,7 +37,7 @@ DOWNLOAD_TIMEOUT = 30
 class MediaGenerator:
     """媒体生成器类：处理图像和视频生成"""
 
-    def __init__(self, api_key: Optional[str] = None, project_root: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, project_root: Optional[Path] = None):
         """
         初始化媒体生成器
 
@@ -48,24 +46,20 @@ class MediaGenerator:
             project_root: 项目根目录（可选，从配置获取）
         """
         self.api_key = api_key or ZHIPU_API_KEY
-        self.project_root = project_root or PROJECT_ROOT
+        self.project_root = Path(project_root) if project_root else PROJECT_ROOT
 
-        # 创建输出目录
-        self.image_output_dir = os.path.join(TEMP_DIR, "images")
-        self.video_output_dir = os.path.join(TEMP_DIR, "videos")
+        self.image_output_dir = TEMP_DIR / "images"
+        self.video_output_dir = TEMP_DIR / "videos"
 
-        os.makedirs(self.image_output_dir, exist_ok=True)
-        os.makedirs(self.video_output_dir, exist_ok=True)
+        self.image_output_dir.mkdir(parents=True, exist_ok=True)
+        self.video_output_dir.mkdir(parents=True, exist_ok=True)
 
-        # API端点
         self.image_api_url = f"{ZHIPU_API_BASE_URL}/images/generations"
         self.video_api_url = f"{ZHIPU_API_BASE_URL}/videos/generations"
         self.async_result_url = f"{ZHIPU_API_BASE_URL}/async-result"
 
-        # 线程池
         self.executor = ThreadPoolExecutor(max_workers=2)
 
-        # 支持的图像尺寸
         self.image_sizes = [
             "1280x1280",
             "1024x1024",
@@ -75,7 +69,6 @@ class MediaGenerator:
             "1080x1920"
         ]
 
-        # 支持的视频尺寸
         self.video_sizes = [
             "1920x1080",
             "1080x1920",
@@ -85,7 +78,6 @@ class MediaGenerator:
             "3840x2160"
         ]
 
-        # 支持的视频帧率
         self.video_fps = [30, 60]
 
     def generate_image(self, prompt: str, size: str = "1280x1280",
@@ -155,19 +147,17 @@ class MediaGenerator:
         """
         try:
             if not filename:
-                # 从URL提取文件名
                 filename = f"image_{int(time.time())}.png"
             else:
                 if not filename.endswith('.png'):
                     filename += '.png'
 
-            file_path = os.path.join(self.image_output_dir, filename)
+            file_path = self.image_output_dir / filename
 
             response = requests.get(image_url)
             if response.status_code == 200:
-                with open(file_path, 'wb') as f:
-                    f.write(response.content)
-                return file_path
+                file_path.write_bytes(response.content)
+                return str(file_path)
             else:
                 raise Exception(f"下载失败: {response.status_code}")
 
@@ -192,23 +182,19 @@ class MediaGenerator:
             包含生成结果的字典
         """
         try:
-            # 验证图片URL
             if image_urls:
-                # 验证图片数量
                 if len(image_urls) > 2:
                     return {
                         "success": False,
                         "message": "最多支持2张图片"
                     }
 
-                # 验证图片URL格式
                 valid_urls = []
                 for url in image_urls:
                     url = url.strip()
                     if not url:
                         continue
 
-                    # 检查URL格式
                     if not (url.startswith("http://") or url.startswith("https://")):
                         logger.warning(f"图片URL格式不正确: {url}")
                         continue
@@ -225,7 +211,6 @@ class MediaGenerator:
                 "Content-Type": "application/json"
             }
 
-            # 基础请求体
             payload = {
                 "model": ZHIPU_VIDEO_MODEL,
                 "prompt": prompt,
@@ -235,19 +220,14 @@ class MediaGenerator:
                 "fps": fps
             }
 
-            # 根据图片数量使用不同的字段名
             if image_urls:
                 image_count = len(image_urls)
 
                 if image_count == 1:
-                    # 单张图片：使用image_url字段（字符串）
                     payload["image_url"] = image_urls[0]
-                    #print(f"🖼️ 单图生成：使用 image_url 字段")
 
                 elif image_count == 2:
-                    # 两张图片：使用image_urls字段（列表）
-                    payload["image_urls"] = image_urls  # 注意这里是 image_urls（复数）
-                    #print(f"🖼️ 双图生成：使用 image_urls 字段")
+                    payload["image_urls"] = image_urls
 
                 else:
                     return {
@@ -257,17 +237,11 @@ class MediaGenerator:
 
             logger.info(f"发送视频生成请求: 模型 {ZHIPU_VIDEO_MODEL}")
 
-            if image_urls:
-                pass
-            else:
-                pass
-
             response = requests.post(self.video_api_url, json=payload, headers=headers)
 
             if response.status_code == 200:
                 result = response.json()
 
-                # 提取任务ID
                 task_id = result.get("id") or result.get("request_id")
 
                 if not task_id:
@@ -279,7 +253,6 @@ class MediaGenerator:
 
                 task_status = result.get("task_status", "PROCESSING")
 
-                # 如果立即失败，提取错误信息
                 if task_status == "FAIL":
                     error_info = result.get("error", {})
                     error_msg = error_info.get("message", "未知错误")
@@ -305,7 +278,6 @@ class MediaGenerator:
                 print(f"❌ {error_msg}")
                 print(f"错误响应: {response.text}")
 
-                # 尝试解析错误信息
                 try:
                     error_data = json.loads(response.text)
                     error_info = error_data.get("error", {})
@@ -343,7 +315,6 @@ class MediaGenerator:
             包含视频结果的字典
         """
         try:
-            # 使用原来的查询端点
             url = f"{self.async_result_url}/{task_id}"
             headers = {
                 "Authorization": f"Bearer {self.api_key}"
@@ -431,9 +402,8 @@ class MediaGenerator:
             if not filename:
                 filename = f"cogvideox_{int(time.time())}"
 
-            # 下载视频
             video_filename = f"{filename}.mp4"
-            video_path = os.path.join(self.video_output_dir, video_filename)
+            video_path = self.video_output_dir / video_filename
 
             video_response = requests.get(video_url, stream=True, timeout=TIMEOUT)
 
@@ -447,27 +417,25 @@ class MediaGenerator:
                             f.write(chunk)
                             downloaded += len(chunk)
 
-                # 下载封面（如果提供）
                 cover_path = None
                 if cover_url:
                     try:
                         cover_filename = f"{filename}_cover.png"
-                        cover_path = os.path.join(self.video_output_dir, cover_filename)
+                        cover_path = self.video_output_dir / cover_filename
 
                         cover_response = requests.get(cover_url, timeout=30)
 
                         if cover_response.status_code == 200:
-                            with open(cover_path, 'wb') as f:
-                                f.write(cover_response.content)
+                            cover_path.write_bytes(cover_response.content)
                     except Exception as cover_error:
                         pass
 
                 return {
                     "success": True,
-                    "video_path": video_path,
-                    "cover_path": cover_path,
+                    "video_path": str(video_path),
+                    "cover_path": str(cover_path) if cover_path else None,
                     "message": "下载完成",
-                    "video_size": os.path.getsize(video_path) / (1024 * 1024)  # MB
+                    "video_size": video_path.stat().st_size / (1024 * 1024)
                 }
             else:
                 error_msg = f"视频下载失败: {video_response.status_code}"
@@ -484,7 +452,7 @@ class MediaGenerator:
             }
 
     def wait_for_video_completion(self, task_id: str,
-                                   image_count: int = 0,  # 新增：图片数量
+                                   image_count: int = 0,
                                    interval: int = 10,
                                    max_attempts: int = 100,
                                    callback=None) -> Dict[str, Any]:
@@ -501,21 +469,17 @@ class MediaGenerator:
         Returns:
             最终的视频结果
         """
-        # 调用回调传递初始信息
         if callback:
             callback("START", 0, task_id, "PROCESSING", interval)
 
-        # 根据图片数量设置首次查询延迟
-        initial_delay = 30 if image_count >= 1 else 10  # 双图和单图30秒，文字10秒
+        initial_delay = 30 if image_count >= 1 else 10
 
-        # 首次查询前等待
         if initial_delay > 0:
             if callback:
                 callback("WAIT", 0, task_id, "PROCESSING", initial_delay)
             time.sleep(initial_delay)
 
         for attempt in range(1, max_attempts + 1):
-            # 调用回调传递轮询信息
             result = self.check_video_result(task_id)
             status = result.get("status", "UNKNOWN")
 

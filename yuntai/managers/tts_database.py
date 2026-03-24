@@ -1,10 +1,11 @@
 """
 TTS数据库管理器 - 负责TTS文件扫描和数据库管理
+使用 pathlib 进行跨平台路径处理
 """
 
-import os
 import threading
 from typing import Optional, Tuple, List
+from pathlib import Path
 
 
 class TTSDatabaseManager:
@@ -19,26 +20,22 @@ class TTSDatabaseManager:
         """
         self.default_tts_config = default_tts_config
 
-        # TTS文件数据库
         self.tts_files_database = {
-            "gpt": {},  # {文件名: 正确绝对路径}
-            "sovits": {},  # {文件名: 正确绝对路径}
-            "audio": {},  # {文件名: 正确绝对路径}
-            "text": {}  # {文件名: 正确绝对路径}
+            "gpt": {},
+            "sovits": {},
+            "audio": {},
+            "text": {}
         }
 
-        # 缓存
-        self._text_cache = {}  # {文件路径: 文本内容}
+        self._text_cache = {}
         self._cache_lock = threading.Lock()
 
-        # 当前选中的模型
         self.current_gpt_model = None
         self.current_sovits_model = None
         self.current_ref_audio = None
         self.current_ref_text = None
         self.current_models_lock = threading.Lock()
 
-        # 合成的文件列表
         self.tts_synthesized_files = []
         self.tts_synthesized_files_lock = threading.Lock()
 
@@ -46,59 +43,47 @@ class TTSDatabaseManager:
         """初始化TTS文件数据库"""
         print("🔍 初始化TTS文件数据库...")
 
-        # 确保目录存在
-        for dir_path in [
-            self.default_tts_config["gpt_model_dir"],
-            self.default_tts_config["sovits_model_dir"],
-            self.default_tts_config["ref_audio_root"],
-            self.default_tts_config["output_path"]
-        ]:
-            os.makedirs(dir_path, exist_ok=True)
+        for dir_key in ["gpt_model_dir", "sovits_model_dir", "ref_audio_root", "output_path"]:
+            dir_path = Path(self.default_tts_config[dir_key])
+            dir_path.mkdir(parents=True, exist_ok=True)
             print(f"📁 确保目录存在: {dir_path}")
 
-        # 扫描GPT模型
         self.tts_files_database["gpt"] = {}
-        if os.path.exists(self.default_tts_config["gpt_model_dir"]):
-            for root, _, files in os.walk(self.default_tts_config["gpt_model_dir"]):
-                for file in files:
-                    if file.endswith('.ckpt'):
-                        abs_path = os.path.normpath(os.path.join(root, file))
-                        self.tts_files_database["gpt"][file] = abs_path
+        gpt_model_dir = Path(self.default_tts_config["gpt_model_dir"])
+        if gpt_model_dir.exists():
+            for ckpt_file in gpt_model_dir.rglob("*.ckpt"):
+                abs_path = ckpt_file.resolve()
+                self.tts_files_database["gpt"][ckpt_file.name] = str(abs_path)
         else:
-            print(f"⚠️  GPT模型目录不存在: {self.default_tts_config['gpt_model_dir']}")
+            print(f"⚠️  GPT模型目录不存在: {gpt_model_dir}")
 
-        # 扫描SoVITS模型
         self.tts_files_database["sovits"] = {}
-        if os.path.exists(self.default_tts_config["sovits_model_dir"]):
-            for root, _, files in os.walk(self.default_tts_config["sovits_model_dir"]):
-                for file in files:
-                    if file.endswith('.pth'):
-                        abs_path = os.path.normpath(os.path.join(root, file))
-                        self.tts_files_database["sovits"][file] = abs_path
+        sovits_model_dir = Path(self.default_tts_config["sovits_model_dir"])
+        if sovits_model_dir.exists():
+            for pth_file in sovits_model_dir.rglob("*.pth"):
+                abs_path = pth_file.resolve()
+                self.tts_files_database["sovits"][pth_file.name] = str(abs_path)
         else:
-            print(f"⚠️  SoVITS模型目录不存在: {self.default_tts_config['sovits_model_dir']}")
+            print(f"⚠️  SoVITS模型目录不存在: {sovits_model_dir}")
 
-        # 扫描参考音频
         self.tts_files_database["audio"] = {}
-        if os.path.exists(self.default_tts_config["ref_audio_root"]):
-            for root, _, files in os.walk(self.default_tts_config["ref_audio_root"]):
-                for file in files:
-                    if file.endswith(('.wav', '.mp3', '.flac')):
-                        abs_path = os.path.normpath(os.path.join(root, file))
-                        self.tts_files_database["audio"][file] = abs_path
+        ref_audio_root = Path(self.default_tts_config["ref_audio_root"])
+        if ref_audio_root.exists():
+            for audio_file in ref_audio_root.rglob("*"):
+                if audio_file.suffix.lower() in ('.wav', '.mp3', '.flac'):
+                    abs_path = audio_file.resolve()
+                    self.tts_files_database["audio"][audio_file.name] = str(abs_path)
         else:
-            print(f"⚠️  参考音频目录不存在: {self.default_tts_config['ref_audio_root']}")
+            print(f"⚠️  参考音频目录不存在: {ref_audio_root}")
 
-        # 扫描参考文本
         self.tts_files_database["text"] = {}
-        if os.path.exists(self.default_tts_config["ref_text_root"]):
-            for root, _, files in os.walk(self.default_tts_config["ref_text_root"]):
-                for file in files:
-                    if file.endswith('.txt'):
-                        abs_path = os.path.normpath(os.path.join(root, file))
-                        self.tts_files_database["text"][file] = abs_path
+        ref_text_root = Path(self.default_tts_config["ref_text_root"])
+        if ref_text_root.exists():
+            for text_file in ref_text_root.rglob("*.txt"):
+                abs_path = text_file.resolve()
+                self.tts_files_database["text"][text_file.name] = str(abs_path)
         else:
-            print(f"⚠️  参考文本目录不存在: {self.default_tts_config['ref_text_root']}")
+            print(f"⚠️  参考文本目录不存在: {ref_text_root}")
 
         print(f"✅ 文件数据库初始化完成:")
         print(f"   - GPT模型: {len(self.tts_files_database['gpt'])} 个")
@@ -114,8 +99,8 @@ class TTSDatabaseManager:
             if file_path in self._text_cache:
                 return self._text_cache[file_path]
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    content = f.read().strip()
+                text_file = Path(file_path)
+                content = text_file.read_text(encoding="utf-8").strip()
                 self._text_cache[file_path] = content
                 return content
             except IOError as e:
@@ -160,22 +145,22 @@ class TTSDatabaseManager:
         """获取当前选中模型的文件名"""
         model_path = self.get_current_model(model_type)
         if model_path:
-            return os.path.basename(model_path)
+            return Path(model_path).name
         return "未选择"
 
     def load_synthesized_files(self) -> List[Tuple[str, str]]:
         """加载已合成音频文件"""
         with self.tts_synthesized_files_lock:
             self.tts_synthesized_files = []
-            output_dir = self.default_tts_config["output_path"]
-            if os.path.exists(output_dir):
-                wav_files = [f for f in os.listdir(output_dir) if f.endswith('.wav')]
-                for wav_file in sorted(wav_files, reverse=True):
-                    abs_path = os.path.join(output_dir, wav_file)
-                    self.tts_synthesized_files.append((abs_path, wav_file))
+            output_dir = Path(self.default_tts_config["output_path"])
+            if output_dir.exists():
+                wav_files = [f for f in output_dir.iterdir() if f.is_file() and f.suffix == '.wav']
+                for wav_file in sorted(wav_files, key=lambda x: x.name, reverse=True):
+                    self.tts_synthesized_files.append((str(wav_file), wav_file.name))
         return self.tts_synthesized_files
 
     def add_synthesized_file(self, audio_path: str):
         """添加合成的音频文件到列表"""
         with self.tts_synthesized_files_lock:
-            self.tts_synthesized_files.append((audio_path, os.path.basename(audio_path)))
+            audio_file = Path(audio_path)
+            self.tts_synthesized_files.append((str(audio_file), audio_file.name))

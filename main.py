@@ -97,6 +97,7 @@ import os
 import atexit
 import warnings
 import logging
+from pathlib import Path
 from typing import NoReturn
 
 # 关键修复：在导入PyQt6之前先导入onnxruntime，避免DLL初始化失败
@@ -134,12 +135,12 @@ def main():
     """主函数：切换工作目录→初始化应用→启动主循环→退出时恢复目录"""
     try:
         # 保存原始工作目录
-        original_cwd = os.getcwd()
+        original_cwd = Path.cwd()
 
         # 使用统一配置的 GPT-SoVITS 目录
         gpt_sovits_dir = GPT_SOVITS_ROOT
-        if os.path.exists(gpt_sovits_dir):
-            os.chdir(gpt_sovits_dir)
+        if gpt_sovits_dir and Path(gpt_sovits_dir).exists():
+            os.chdir(str(gpt_sovits_dir))
             #print(f"📂 切换到工作目录: {gpt_sovits_dir}")
 
         # 创建并运行应用

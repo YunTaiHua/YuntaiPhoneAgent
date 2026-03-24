@@ -5,6 +5,7 @@ routes.py - FastAPI路由定义
 
 import os
 import json
+from pathlib import Path
 from fastapi import WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 
@@ -27,28 +28,27 @@ from .handlers import (
 )
 
 # 获取web模块所在目录（core的父目录）
-WEB_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WEB_DIR = Path(__file__).resolve().parent.parent
 
 # TTS音频文件目录（使用config中的定义）
-os.makedirs(TTS_OUTPUT_DIR, exist_ok=True)
+Path(TTS_OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
 
 def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
     """设置所有路由"""
 
     # ==================== 静态文件 ====================
-    static_dir = os.path.join(WEB_DIR, "static")
-    os.makedirs(static_dir, exist_ok=True)
+    static_dir = WEB_DIR / "static"
+    static_dir.mkdir(parents=True, exist_ok=True)
 
     # ==================== 页面路由 ====================
 
     @app.get("/", response_class=HTMLResponse)
     async def index():
         """返回主页面"""
-        html_file = os.path.join(WEB_DIR, "index.html")
-        if os.path.exists(html_file):
-            with open(html_file, "r", encoding="utf-8") as f:
-                return HTMLResponse(content=f.read())
+        html_file = WEB_DIR / "index.html"
+        if html_file.exists():
+            return HTMLResponse(content=html_file.read_text(encoding="utf-8"))
         return HTMLResponse(content=f"<h1>请创建 {html_file} 文件</h1>")
 
     # ==================== API路由 ====================
@@ -68,10 +68,10 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
         """获取音频文件"""
         from urllib.parse import unquote
         filename = unquote(filename)
-        filepath = os.path.join(TTS_OUTPUT_DIR, filename)
-        if not os.path.exists(filepath):
+        filepath = Path(TTS_OUTPUT_DIR) / filename
+        if not filepath.exists():
             raise HTTPException(status_code=404, detail="音频文件不存在")
-        return FileResponse(filepath, media_type="audio/wav")
+        return FileResponse(str(filepath), media_type="audio/wav")
 
     @app.get("/api/images/{filename}")
     async def get_image_file(filename: str):
@@ -80,11 +80,11 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
         filename = unquote(filename)
         # 图像可能在多个目录
         possible_paths = [
-            os.path.join(TEMP_DIR, "images", filename),  # MediaGenerator保存的位置
+            Path(TEMP_DIR) / "images" / filename,  # MediaGenerator保存的位置
         ]
         for filepath in possible_paths:
-            if os.path.exists(filepath):
-                return FileResponse(filepath, media_type="image/png")
+            if filepath.exists():
+                return FileResponse(str(filepath), media_type="image/png")
         raise HTTPException(status_code=404, detail="图像文件不存在")
 
     @app.get("/api/videos/{filename}")
@@ -94,11 +94,11 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
         filename = unquote(filename)
         # 视频可能在多个目录
         possible_paths = [
-            os.path.join(TEMP_DIR, "videos", filename),  # MediaGenerator保存的位置
+            Path(TEMP_DIR) / "videos" / filename,  # MediaGenerator保存的位置
         ]
         for filepath in possible_paths:
-            if os.path.exists(filepath):
-                return FileResponse(filepath, media_type="video/mp4")
+            if filepath.exists():
+                return FileResponse(str(filepath), media_type="video/mp4")
         raise HTTPException(status_code=404, detail="视频文件不存在")
 
     @app.get("/api/tts/audio_history")
@@ -135,26 +135,26 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
     async def get_connection_config():
         """获取连接配置"""
         try:
-            if os.path.exists(CONNECTION_CONFIG_FILE):
-                with open(CONNECTION_CONFIG_FILE, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-                    # 提取IP和端口，与yuntai目录逻辑一致
-                    wireless_ip = config.get("wireless_ip", "")
-                    wireless_port = config.get("wireless_port", "5555")
+            config_file = Path(CONNECTION_CONFIG_FILE)
+            if config_file.exists():
+                config = json.loads(config_file.read_text(encoding="utf-8"))
+                # 提取IP和端口，与yuntai目录逻辑一致
+                wireless_ip = config.get("wireless_ip", "")
+                wireless_port = config.get("wireless_port", "5555")
 
-                    # 如果wireless_ip包含端口，则分离
-                    if ":" in wireless_ip:
-                        ip, port = wireless_ip.split(":", 1)
-                    else:
-                        ip = wireless_ip
-                        port = wireless_port
+                # 如果wireless_ip包含端口，则分离
+                if ":" in wireless_ip:
+                    ip, port = wireless_ip.split(":", 1)
+                else:
+                    ip = wireless_ip
+                    port = wireless_port
 
-                    return JSONResponse(content={
-                        "ip": ip,
-                        "port": port,
-                        "connection_type": config.get("connection_type", "wireless"),
-                        "device_type": config.get("device_type", "android")
-                    })
+                return JSONResponse(content={
+                    "ip": ip,
+                    "port": port,
+                    "connection_type": config.get("connection_type", "wireless"),
+                    "device_type": config.get("device_type", "android")
+                })
         except Exception as e:
             print(f"读取连接配置失败: {e}")
         return JSONResponse(content={})
@@ -169,27 +169,26 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
             processor = MultimodalProcessor()
 
             # 使用TEMP_DIR下的uploads目录
-            upload_dir = os.path.join(TEMP_DIR, "uploads")
-            os.makedirs(upload_dir, exist_ok=True)
+            upload_dir = Path(TEMP_DIR) / "uploads"
+            upload_dir.mkdir(parents=True, exist_ok=True)
 
-            file_path = os.path.join(upload_dir, file.filename)
+            file_path = upload_dir / file.filename
             content = await file.read()
-            with open(file_path, "wb") as f:
-                f.write(content)
+            file_path.write_bytes(content)
 
-            if not processor.is_file_supported(file_path):
-                os.remove(file_path)
+            if not processor.is_file_supported(str(file_path)):
+                file_path.unlink()
                 return JSONResponse(
                     status_code=400,
                     content={"success": False, "message": f"不支持的文件类型: {file.filename}"}
                 )
 
-            controller.attached_files.append(file_path)
+            controller.attached_files.append(str(file_path))
 
             return JSONResponse(content={
                 "success": True,
                 "filename": file.filename,
-                "attached_files": [os.path.basename(f) for f in controller.attached_files]
+                "attached_files": [Path(f).name for f in controller.attached_files]
             })
         except Exception as e:
             return JSONResponse(status_code=500, content={"success": False, "message": str(e)})
@@ -198,18 +197,18 @@ def setup_routes(app, controller: WebController, ws_manager: ConnectionManager):
     async def remove_file(filename: str):
         """移除上传的文件"""
         try:
-            upload_dir = os.path.join(TEMP_DIR, "uploads")
-            file_path = os.path.join(upload_dir, filename)
+            upload_dir = Path(TEMP_DIR) / "uploads"
+            file_path = upload_dir / filename
 
-            if file_path in controller.attached_files:
-                controller.attached_files.remove(file_path)
+            if str(file_path) in controller.attached_files:
+                controller.attached_files.remove(str(file_path))
 
-            if os.path.exists(file_path):
-                os.remove(file_path)
+            if file_path.exists():
+                file_path.unlink()
 
             return JSONResponse(content={
                 "success": True,
-                "attached_files": [os.path.basename(f) for f in controller.attached_files]
+                "attached_files": [Path(f).name for f in controller.attached_files]
             })
         except Exception as e:
             return JSONResponse(status_code=500, content={"success": False, "message": str(e)})

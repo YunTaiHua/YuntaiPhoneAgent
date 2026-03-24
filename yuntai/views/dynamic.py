@@ -3,7 +3,7 @@ DynamicBuilder - 动态功能页面构建器（PyQt6 重构版）
 浅色米白色主题版本 - 左右分栏布局
 """
 
-import os
+from pathlib import Path
 import subprocess
 
 from PyQt6.QtWidgets import (
@@ -631,8 +631,8 @@ class ImagePreviewWindow(QDialog):  # pragma: no cover
         info_layout.setContentsMargins(15, 10, 15, 10)
         
         # 文件信息
-        file_name = os.path.basename(image_path)
-        file_size = os.path.getsize(image_path) / 1024  # KB
+        file_name = Path(image_path).name
+        file_size = Path(image_path).stat().st_size / 1024  # KB
         file_info = f"文件: {file_name} ({file_size:.1f} KB)"
         info_label = QLabel(file_info)
         info_label.setFont(ThemeFonts.BODY_XSMALL)
@@ -701,7 +701,7 @@ class ImagePreviewWindow(QDialog):  # pragma: no cover
             elif platform.system() == "Darwin":  # macOS
                 subprocess.run(["open", "-R", file_path])
             elif platform.system() == "Linux":
-                subprocess.run(["xdg-open", os.path.dirname(file_path)])
+                subprocess.run(["xdg-open", str(Path(file_path).parent)])
         except Exception as e:
             QMessageBox.critical(self, "错误", f"无法打开文件夹: {str(e)}")
 
@@ -756,7 +756,7 @@ class VideoPreviewWindow(QDialog):  # pragma: no cover
         
         # 尝试显示视频封面或占位符
         try:
-            if cover_path and os.path.exists(cover_path):
+            if cover_path and Path(cover_path).exists():
                 try:
                     # 使用PIL加载封面
                     pil_image = Image.open(cover_path)
@@ -809,13 +809,13 @@ class VideoPreviewWindow(QDialog):  # pragma: no cover
         info_layout.setContentsMargins(15, 10, 15, 10)
         
         # 文件信息
-        video_name = os.path.basename(video_path)
-        video_size = os.path.getsize(video_path) / (1024 * 1024)  # MB
+        video_name = Path(video_path).name
+        video_size = Path(video_path).stat().st_size / (1024 * 1024)  # MB
         
         file_info = f"视频: {video_name} ({video_size:.1f} MB)"
-        if cover_path and os.path.exists(cover_path):
-            cover_size = os.path.getsize(cover_path) / 1024  # KB
-            file_info += f" | 封面: {os.path.basename(cover_path)} ({cover_size:.1f} KB)"
+        if cover_path and Path(cover_path).exists():
+            cover_size = Path(cover_path).stat().st_size / 1024  # KB
+            file_info += f" | 封面: {Path(cover_path).name} ({cover_size:.1f} KB)"
         
         info_label = QLabel(file_info)
         info_label.setFont(ThemeFonts.BODY_XSMALL)
@@ -895,6 +895,6 @@ class VideoPreviewWindow(QDialog):  # pragma: no cover
             elif platform.system() == "Darwin":  # macOS
                 subprocess.run(["open", "-R", file_path])
             elif platform.system() == "Linux":
-                subprocess.run(["xdg-open", os.path.dirname(file_path)])
+                subprocess.run(["xdg-open", str(Path(file_path).parent)])
         except Exception as e:
             QMessageBox.critical(self, "错误", f"无法打开文件夹: {str(e)}")

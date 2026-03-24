@@ -2,11 +2,11 @@
 command_handler.py - 命令执行处理
 """
 
-import os
 import asyncio
 import threading
 import datetime
 import traceback
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -138,7 +138,7 @@ async def handle_command(websocket, data: dict, controller: "WebController"):
 def handle_multimodal_chat(text: str, file_paths: list, controller: "WebController", loop) -> str:
     """处理多模态聊天"""
     try:
-        valid_files = [f for f in file_paths if os.path.exists(f)]
+        valid_files = [f for f in file_paths if Path(f).exists()]
         if not valid_files:
             return "没有有效的文件"
 

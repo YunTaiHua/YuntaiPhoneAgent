@@ -5,13 +5,13 @@ GUIController - 事件处理和业务逻辑模块 (PyQt6 重构版)
 """
 
 import sys
-import os
 import threading
 import queue
 import time
 import datetime
 import traceback
 from typing import Optional, Dict, Any, Callable, List
+from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal, QObject
@@ -348,7 +348,7 @@ class GUIController(QObject):
                     if supported:
                         valid_files.append(file_path)
                     else:
-                        file_name = os.path.basename(file_path)
+                        file_name = Path(file_path).name
                         error_messages.append(f"{file_name}: {reason}")
 
                 if valid_files:
@@ -373,10 +373,11 @@ class GUIController(QObject):
             from yuntai.processors.multimodal_processor import MultimodalProcessor
             self.multimodal_processor = MultimodalProcessor()
 
-        if not os.path.exists(file_path):
+        file = Path(file_path)
+        if not file.exists():
             return False, "文件不存在"
         if not self.multimodal_processor.is_file_supported(file_path):
-            ext = os.path.splitext(file_path)[1].lower()
+            ext = file.suffix.lower()
             return False, f"不支持的文件类型: {ext}"
 
         size_ok, msg = self.multimodal_processor.check_file_size(file_path)
@@ -406,7 +407,7 @@ class GUIController(QObject):
             self.attached_files.remove(file_path)
             if self.view:
                 self.view.show_attached_files(self.attached_files, self)
-            self.show_toast(f"已移除: {os.path.basename(file_path)}", "info")
+            self.show_toast(f"已移除: {Path(file_path).name}", "info")
 
     # ============ 核心命令执行 ============
 
@@ -519,7 +520,7 @@ class GUIController(QObject):
 
             valid_files = []
             for file_path in file_paths:
-                if os.path.exists(file_path):
+                if Path(file_path).exists():
                     valid_files.append(file_path)
                 else:
                     print(f"⚠️  文件不存在: {file_path}")
@@ -761,7 +762,8 @@ class GUIController(QObject):
                     tts.set_current_model(model_type, list(tts.tts_files_database[db_key].keys())[0])
 
             if tts.get_current_model("audio") and not tts.get_current_model("text"):
-                audio_name = os.path.splitext(os.path.basename(tts.get_current_model("audio")))[0]
+                audio_path = Path(tts.get_current_model("audio"))
+                audio_name = audio_path.stem
                 txt_file = f"{audio_name}.txt"
                 if txt_file in tts.tts_files_database["text"]:
                     tts.set_current_model("text", txt_file)
@@ -979,7 +981,7 @@ class GUIController(QObject):
     def _save_multimodal_chat_history(self, text: str, file_paths: list, reply: str):
         """保存多模态聊天历史"""
         try:
-            file_names = [os.path.basename(f) for f in file_paths]
+            file_names = [Path(f).name for f in file_paths]
             session_data = {
                 "type": "free_chat",
                 "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

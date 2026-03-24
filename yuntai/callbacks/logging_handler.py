@@ -2,7 +2,7 @@
 日志记录回调处理器
 用于记录 LLM 调用、Chain 执行、Tool 调用等过程的详细日志
 """
-import os
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 from langchain_core.callbacks import BaseCallbackHandler
@@ -12,19 +12,16 @@ from langchain_core.agents import AgentAction, AgentFinish
 
 def _get_default_log_file() -> str:
     """获取默认日志文件路径"""
-    # 获取项目根目录
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(os.path.dirname(current_dir))
-    log_dir = os.path.join(project_root, "temp", "log")
+    current_dir = Path(__file__).resolve().parent
+    project_root = current_dir.parent.parent
+    log_dir = project_root / "temp" / "log"
     
-    # 确保 log 目录存在
-    os.makedirs(log_dir, exist_ok=True)
+    log_dir.mkdir(parents=True, exist_ok=True)
     
-    # 使用日期作为日志文件名
     today = datetime.now().strftime("%Y-%m-%d")
-    log_file = os.path.join(log_dir, f"langchain_callbacks_{today}.log")
+    log_file = log_dir / f"langchain_callbacks_{today}.log"
     
-    return log_file
+    return str(log_file)
 
 
 class LoggingCallbackHandler(BaseCallbackHandler):
@@ -80,6 +77,8 @@ class LoggingCallbackHandler(BaseCallbackHandler):
         
         if self.log_file:
             try:
+                log_path = Path(self.log_file)
+                log_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(self.log_file, 'a', encoding='utf-8') as f:
                     f.write(log_line + '\n')
             except Exception as e:

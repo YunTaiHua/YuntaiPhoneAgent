@@ -2,10 +2,10 @@
 media_handler.py - 媒体生成处理（图像/视频）
 """
 
-import os
 import time
 import asyncio
 import threading
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -61,7 +61,7 @@ async def handle_generate_image(websocket, data: dict, controller: "WebControlle
                             image_path = generator.download_image(image_url, filename.replace('.png', ''))
 
                             # 构建可访问的URL
-                            image_filename = os.path.basename(image_path) if image_path else filename
+                            image_filename = Path(image_path).name if image_path else filename
                             image_url_for_web = f"/api/images/{image_filename}"
 
                             loop.run_until_complete(controller.ws_manager.broadcast({
@@ -272,7 +272,7 @@ def start_video_result_polling(controller, task_id: str, image_count: int = 0):
                         }))
 
                         # 构建正确的视频URL
-                        video_filename = os.path.basename(video_path)
+                        video_filename = Path(video_path).name
                         video_url = f"/api/videos/{video_filename}"
 
                         loop.run_until_complete(controller.ws_manager.broadcast({

@@ -7,6 +7,7 @@
 全部按日文识别
 """
 import os
+from pathlib import Path
 # 禁用tqdm进度条（必须在导入其他模块前设置）
 os.environ['TQDM_DISABLE'] = '1'
 
@@ -68,24 +69,22 @@ from config import pretrained_sovits_name
 
 path_sovits_v3 = pretrained_sovits_name["v3"]
 path_sovits_v4 = pretrained_sovits_name["v4"]
-is_exist_s2gv3 = os.path.exists(path_sovits_v3)
-is_exist_s2gv4 = os.path.exists(path_sovits_v4)
+is_exist_s2gv3 = Path(path_sovits_v3).exists()
+is_exist_s2gv4 = Path(path_sovits_v4).exists()
 
-if os.path.exists("./weight.json"):
+weight_json_path = Path("./weight.json")
+if weight_json_path.exists():
     pass
 else:
-    with open("./weight.json", "w", encoding="utf-8") as file:
-        json.dump({"GPT": {}, "SoVITS": {}}, file)
+    weight_json_path.write_text(json.dumps({"GPT": {}, "SoVITS": {}}, ensure_ascii=False), encoding="utf-8")
 
-with open("./weight.json", "r", encoding="utf-8") as file:
-    weight_data = file.read()
-    weight_data = json.loads(weight_data)
-    gpt_path = os.environ.get("gpt_path", weight_data.get("GPT", {}).get(version, GPT_names[-1]))
-    sovits_path = os.environ.get("sovits_path", weight_data.get("SoVITS", {}).get(version, SoVITS_names[0]))
-    if isinstance(gpt_path, list):
-        gpt_path = gpt_path[0]
-    if isinstance(sovits_path, list):
-        sovits_path = sovits_path[0]
+weight_data = json.loads(weight_json_path.read_text(encoding="utf-8"))
+gpt_path = os.environ.get("gpt_path", weight_data.get("GPT", {}).get(version, GPT_names[-1]))
+sovits_path = os.environ.get("sovits_path", weight_data.get("SoVITS", {}).get(version, SoVITS_names[0]))
+if isinstance(gpt_path, list):
+    gpt_path = gpt_path[0]
+if isinstance(sovits_path, list):
+    sovits_path = sovits_path[0]
 
 # print(2333333)
 # print(os.environ["gpt_path"])
@@ -101,7 +100,7 @@ cnhubert_base_path = os.environ.get("cnhubert_base_path", "GPT_SoVITS/pretrained
 gpt_sovits_root = os.environ.get("GPT_SOVITS_ROOT")
 if not gpt_sovits_root:
     raise EnvironmentError("环境变量 GPT_SOVITS_ROOT 未设置，请在.env文件中配置")
-bert_path = os.environ.get("bert_path", os.path.join(gpt_sovits_root, "GPT_SoVITS", "pretrained_models", "chinese-roberta-wwm-ext-large"))
+bert_path = os.environ.get("bert_path", str(Path(gpt_sovits_root) / "GPT_SoVITS" / "pretrained_models" / "chinese-roberta-wwm-ext-large"))
 infer_ttswebui = os.environ.get("infer_ttswebui", 9872)
 infer_ttswebui = int(infer_ttswebui)
 is_share = os.environ.get("is_share", "False")
@@ -482,7 +481,7 @@ change_gpt_weights(gpt_path)
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 import torch
 
-now_dir = os.getcwd()
+now_dir = Path.cwd()
 
 
 def clean_hifigan_model():

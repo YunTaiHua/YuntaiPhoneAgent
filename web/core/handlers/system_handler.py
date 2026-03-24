@@ -7,6 +7,7 @@ import glob
 import asyncio
 import threading
 import datetime
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from yuntai.core.config import SHORTCUTS, TTS_OUTPUT_DIR
@@ -115,7 +116,7 @@ async def handle_start_scrcpy(websocket, data: dict, controller: "WebController"
 
         # 构建scrcpy命令参数
         cmd_args = []
-        if scrcpy_path and os.path.exists(scrcpy_path):
+        if scrcpy_path and Path(scrcpy_path).exists():
             cmd_args.append(scrcpy_path)
         else:
             cmd_args.append("scrcpy")
@@ -253,7 +254,7 @@ async def handle_file_management(websocket, controller: "WebController"):
         result_text = f"""文件管理:
 
 历史记录文件: {CONVERSATION_HISTORY_FILE}
-日志目录: {RECORD_LOGS_DIR}/
+日志目录: {RECORD_LOGS_DIR}
 永久记忆文件: {FOREVER_MEMORY_FILE}
 连接配置文件: {CONNECTION_CONFIG_FILE}
 
@@ -264,10 +265,10 @@ TTS相关目录:
 • TTS输出目录: {controller.task_manager.tts_manager.default_tts_config.get('output_path', 'N/A')}
 
 文件状态:
-• 历史记录文件: {'存在' if os.path.exists(CONVERSATION_HISTORY_FILE) else '不存在'}
-• 日志目录: {'存在' if os.path.exists(RECORD_LOGS_DIR) else '不存在'}
-• 永久记忆文件: {'存在' if os.path.exists(FOREVER_MEMORY_FILE) else '不存在'}
-• 连接配置文件: {'存在' if os.path.exists(CONNECTION_CONFIG_FILE) else '不存在'}
+• 历史记录文件: {'存在' if Path(CONVERSATION_HISTORY_FILE).exists() else '不存在'}
+• 日志目录: {'存在' if Path(RECORD_LOGS_DIR).exists() else '不存在'}
+• 永久记忆文件: {'存在' if FOREVER_MEMORY_FILE and Path(FOREVER_MEMORY_FILE).exists() else '不存在'}
+• 连接配置文件: {'存在' if Path(CONNECTION_CONFIG_FILE).exists() else '不存在'}
 """
 
         await controller.send_personal_message({
@@ -324,9 +325,9 @@ async def handle_delete_audio(websocket, data: dict, controller: "WebController"
     filename = data.get("filename")
     if filename:
         try:
-            filepath = os.path.join(TTS_OUTPUT_DIR, filename)
-            if os.path.exists(filepath):
-                os.remove(filepath)
+            filepath = Path(TTS_OUTPUT_DIR) / filename
+            if filepath.exists():
+                filepath.unlink()
             await controller.send_toast(f"已删除: {filename}", "success")
             await controller.ws_manager.broadcast({
                 "type": "audio_deleted",
@@ -340,11 +341,12 @@ async def handle_delete_all_audio(websocket, controller: "WebController"):
     """处理删除所有音频"""
     try:
         # 删除TTS输出目录下的所有wav文件
-        audio_files = glob.glob(os.path.join(TTS_OUTPUT_DIR, "*.wav"))
+        tts_dir = Path(TTS_OUTPUT_DIR)
+        audio_files = list(tts_dir.glob("*.wav"))
         deleted_count = 0
         for filepath in audio_files:
             try:
-                os.remove(filepath)
+                filepath.unlink()
                 deleted_count += 1
             except:
                 pass

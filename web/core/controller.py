@@ -10,6 +10,7 @@ import asyncio
 import threading
 import datetime
 import json
+from pathlib import Path
 from typing import Optional, Dict, Any, List
 
 from yuntai.core.config import (
@@ -58,7 +59,7 @@ class WebController:
 
         # 历史记录缓存
         self._history_cache = None
-        self._history_file = os.path.join(TEMP_DIR, "web_history.json")
+        self._history_file = Path(TEMP_DIR) / "web_history.json"
 
         # 输出捕获器
         self.output_capture = WebOutputCapture(self)
@@ -186,7 +187,7 @@ class WebController:
             "device_type": self.device_type,
             "tts_enabled": self.tts_enabled,
             "is_dark_theme": self.is_dark_theme,
-            "attached_files": [os.path.basename(f) for f in self.attached_files],
+            "attached_files": [Path(f).name for f in self.attached_files],
             "current_page": 0
         }
 
@@ -220,18 +221,17 @@ class WebController:
     def get_audio_history(self) -> list:
         """获取历史音频列表"""
         from yuntai.core.config import TTS_OUTPUT_DIR
-        audio_dir = TTS_OUTPUT_DIR
-        if not os.path.exists(audio_dir):
+        audio_dir = Path(TTS_OUTPUT_DIR)
+        if not audio_dir.exists():
             return []
 
         audio_files = []
-        for f in os.listdir(audio_dir):
-            if f.endswith('.wav'):
-                filepath = os.path.join(audio_dir, f)
-                stat = os.stat(filepath)
+        for f in audio_dir.iterdir():
+            if f.suffix == '.wav':
+                stat = f.stat()
                 audio_files.append({
-                    "name": f,
-                    "path": f"/api/tts/audio/{f}",
+                    "name": f.name,
+                    "path": f"/api/tts/audio/{f.name}",
                     "size": stat.st_size,
                     "mtime": datetime.datetime.fromtimestamp(stat.st_mtime).isoformat()
                 })
@@ -356,9 +356,8 @@ class WebController:
     def get_history(self) -> list:
         """获取历史记录"""
         try:
-            if os.path.exists(self._history_file):
-                with open(self._history_file, "r", encoding="utf-8") as f:
-                    return json.load(f)
+            if self._history_file.exists():
+                return json.loads(self._history_file.read_text(encoding="utf-8"))
         except Exception as e:
             print(f"读取历史记录失败: {e}")
         return []
@@ -375,17 +374,16 @@ class WebController:
             # 只保留最近100条
             history = history[:100]
 
-            os.makedirs(os.path.dirname(self._history_file), exist_ok=True)
-            with open(self._history_file, "w", encoding="utf-8") as f:
-                json.dump(history, f, ensure_ascii=False, indent=2)
+            self._history_file.parent.mkdir(parents=True, exist_ok=True)
+            self._history_file.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception as e:
             print(f"保存历史记录失败: {e}")
 
     def clear_history(self) -> dict:
         """清空历史记录"""
         try:
-            if os.path.exists(self._history_file):
-                os.remove(self._history_file)
+            if self._history_file.exists():
+                self._history_file.unlink()
             return {"success": True}
         except Exception as e:
             return {"success": False, "message": str(e)}

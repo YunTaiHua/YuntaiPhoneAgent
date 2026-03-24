@@ -3,10 +3,10 @@
   负责处理TTS语音合成相关功能
 """
 
-import os
 import threading
 import time
 import traceback
+from pathlib import Path
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
@@ -249,16 +249,15 @@ class TTSHandler(QObject):
         def scan_thread():
             try:
                 # 获取输出目录
-                output_dir = self.task_manager.tts_manager.default_tts_config["output_path"]
+                output_dir = Path(self.task_manager.tts_manager.default_tts_config["output_path"])
                 
-                # 确保目录存在
-                if not os.path.exists(output_dir):
-                    os.makedirs(output_dir, exist_ok=True)
+                if not output_dir.exists():
+                    output_dir.mkdir(parents=True, exist_ok=True)
                     self.update_audio_list_signal.emit([])
                     return
                 
                 # 扫描目录中的wav文件
-                wav_files = [f for f in os.listdir(output_dir) if f.endswith('.wav')]
+                wav_files = [f for f in output_dir.iterdir() if f.is_file() and f.suffix == '.wav']
                 
                 if not wav_files:
                     self.update_audio_list_signal.emit([])
@@ -266,9 +265,8 @@ class TTSHandler(QObject):
                 
                 # 按时间倒序排列
                 files = []
-                for wav_file in sorted(wav_files, reverse=True):
-                    abs_path = os.path.join(output_dir, wav_file)
-                    files.append((abs_path, wav_file))
+                for wav_file in sorted(wav_files, key=lambda x: x.name, reverse=True):
+                    files.append((str(wav_file), wav_file.name))
                 
                 # 通过信号更新UI
                 self.update_audio_list_signal.emit(files)
@@ -299,15 +297,16 @@ class TTSHandler(QObject):
         if 0 <= idx < len(files):
             audio_path = files[idx][0]
 
-            if not os.path.exists(audio_path):
+            audio_file = Path(audio_path)
+            if not audio_file.exists():
                 self.tts_add_log(f"❌ 音频文件不存在: {audio_path}")
                 return
 
             def play_thread():
                 try:
-                    self.tts_add_log(f"🔊 正在播放: {os.path.basename(audio_path)}")
+                    self.tts_add_log(f"🔊 正在播放: {Path(audio_path).name}")
                     self.task_manager.tts_manager.play_audio_file(audio_path)
-                    self.tts_add_log(f"✅ 播放完成: {os.path.basename(audio_path)}")
+                    self.tts_add_log(f"✅ 播放完成: {Path(audio_path).name}")
                 except Exception as e:
                     self.tts_add_log(f"❌ 播放失败: {str(e)}")
 
@@ -332,12 +331,12 @@ class TTSHandler(QObject):
 
         def delete_thread():
             try:
-                output_dir = self.task_manager.tts_manager.default_tts_config["output_path"]
-                if not os.path.exists(output_dir):
+                output_dir = Path(self.task_manager.tts_manager.default_tts_config["output_path"])
+                if not output_dir.exists():
                     self.tts_add_log("⚠️ 音频目录不存在")
                     return
 
-                wav_files = [f for f in os.listdir(output_dir) if f.endswith('.wav')]
+                wav_files = [f for f in output_dir.iterdir() if f.is_file() and f.suffix == '.wav']
 
                 if not wav_files:
                     self.tts_add_log("ℹ️ 没有找到历史音频文件")
@@ -345,12 +344,11 @@ class TTSHandler(QObject):
 
                 deleted_count = 0
                 for wav_file in wav_files:
-                    file_path = os.path.join(output_dir, wav_file)
                     try:
-                        os.remove(file_path)
+                        wav_file.unlink()
                         deleted_count += 1
                     except Exception as e:
-                        self.tts_add_log(f"❌ 删除失败 {wav_file}: {str(e)}")
+                        self.tts_add_log(f"❌ 删除失败 {wav_file.name}: {str(e)}")
 
                 if deleted_count > 0:
                     self.tts_add_log(f"✅ 已删除 {deleted_count} 个历史音频文件")
@@ -384,7 +382,9 @@ class TTSHandler(QObject):
         if 0 <= idx < len(files):
             audio_path = files[idx][0]
             
-            if not os.path.exists(audio_path):
+            audio_file = Path(audio_path)
+            
+            if not audio_file.exists():
                 self.tts_add_log(f"❌ 音频文件不存在: {audio_path}")
                 return
             
@@ -395,9 +395,9 @@ class TTSHandler(QObject):
             
             def play_thread():
                 try:
-                    self.tts_add_log(f"🔊 正在播放: {os.path.basename(audio_path)}")
+                    self.tts_add_log(f"🔊 正在播放: {Path(audio_path).name}")
                     self.task_manager.tts_manager.play_audio_file(audio_path)
-                    self.tts_add_log(f"✅ 播放完成: {os.path.basename(audio_path)}")
+                    self.tts_add_log(f"✅ 播放完成: {Path(audio_path).name}")
                 except Exception as e:
                     self.tts_add_log(f"❌ 播放失败: {str(e)}")
             
@@ -463,7 +463,7 @@ class TTSHandler(QObject):
                     audio_label.setText(filename)
                 self.tts_add_log(f"📌 已选择参考音频：{filename}")
 
-                txt_filename = os.path.splitext(filename)[0] + '.txt'
+                txt_filename = Path(filename).stem + '.txt'
                 if txt_filename in self.task_manager.tts_manager.tts_files_database["text"]:
                     if self.task_manager.tts_manager.set_current_model("text", txt_filename):
                         text_label = self.view.get_component("tts_text_label")
@@ -705,8 +705,8 @@ class TTSHandler(QObject):
         gpt_items = ["未选择"] + list(self.task_manager.tts_manager.tts_files_database["gpt"].keys())
         gpt_combo.addItems(gpt_items)
         current_gpt = self.task_manager.tts_manager.get_current_model("gpt")
-        if current_gpt and os.path.basename(current_gpt) in self.task_manager.tts_manager.tts_files_database["gpt"]:
-            gpt_combo.setCurrentText(os.path.basename(current_gpt))
+        if current_gpt and Path(current_gpt).name in self.task_manager.tts_manager.tts_files_database["gpt"]:
+            gpt_combo.setCurrentText(Path(current_gpt).name)
         gpt_layout.addWidget(gpt_combo)
         gpt_layout.addStretch()
         model_layout.addLayout(gpt_layout)
@@ -726,8 +726,8 @@ class TTSHandler(QObject):
         sovits_items = ["未选择"] + list(self.task_manager.tts_manager.tts_files_database["sovits"].keys())
         sovits_combo.addItems(sovits_items)
         current_sovits = self.task_manager.tts_manager.get_current_model("sovits")
-        if current_sovits and os.path.basename(current_sovits) in self.task_manager.tts_manager.tts_files_database["sovits"]:
-            sovits_combo.setCurrentText(os.path.basename(current_sovits))
+        if current_sovits and Path(current_sovits).name in self.task_manager.tts_manager.tts_files_database["sovits"]:
+            sovits_combo.setCurrentText(Path(current_sovits).name)
         sovits_layout.addWidget(sovits_combo)
         sovits_layout.addStretch()
         model_layout.addLayout(sovits_layout)
@@ -747,8 +747,8 @@ class TTSHandler(QObject):
         audio_items = ["未选择"] + list(self.task_manager.tts_manager.tts_files_database["audio"].keys())
         audio_combo.addItems(audio_items)
         current_audio = self.task_manager.tts_manager.get_current_model("audio")
-        if current_audio and os.path.basename(current_audio) in self.task_manager.tts_manager.tts_files_database["audio"]:
-            audio_combo.setCurrentText(os.path.basename(current_audio))
+        if current_audio and Path(current_audio).name in self.task_manager.tts_manager.tts_files_database["audio"]:
+            audio_combo.setCurrentText(Path(current_audio).name)
         audio_layout.addWidget(audio_combo)
         audio_layout.addStretch()
         model_layout.addLayout(audio_layout)
@@ -771,7 +771,7 @@ class TTSHandler(QObject):
 
             if audio_combo.currentText() != "未选择":
                 self.task_manager.tts_manager.set_current_model("audio", audio_combo.currentText())
-                txt_filename = os.path.splitext(audio_combo.currentText())[0] + '.txt'
+                txt_filename = Path(audio_combo.currentText()).stem + '.txt'
                 if txt_filename in self.task_manager.tts_manager.tts_files_database["text"]:
                     self.task_manager.tts_manager.set_current_model("text", txt_filename)
 
