@@ -335,8 +335,27 @@ python main.py
 ```bash
 # After configuring .env, run the Web service
 python main_web.py 
-# Visit http://localhost:8000
+# Local access: http://localhost:8000
+# LAN access: http://<your-ip>:8000 (displayed at startup)
 ```
+
+**External Access Configuration (LAN/Mobile Access)**
+
+To access the Web service from mobile or other devices, you need to open the Windows firewall port:
+
+**Method 1: PowerShell Command (Administrator)**
+```powershell
+netsh advfirewall firewall add rule name="Phone Agent Web - 8000" dir=in action=allow protocol=tcp localport=8000
+```
+
+**Method 2: Windows Settings**
+1. Open **Windows Defender Firewall** → **Advanced Settings**
+2. Click **Inbound Rules** → **New Rule**
+3. Select **Port** → **TCP** → **Specific local ports: 8000**
+4. Select **Allow the connection** → Check all profiles
+5. Name: `Phone Agent Web - 8000`
+
+After configuration, devices on the same LAN can access via the displayed LAN IP address.
 
 ### Environment Variables
 | Variable                        | Description               | Default Value                        |

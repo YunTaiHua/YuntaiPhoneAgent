@@ -335,8 +335,27 @@ python main.py
 ```bash
 # 配置好.env后运行Web服务
 python main_web.py 
-# 访问 http://localhost:8000
+# 本地访问: http://localhost:8000
+# 局域网访问: http://<你的IP>:8000 (启动时会显示)
 ```
+
+**外部访问配置（局域网/手机访问）**
+
+如果需要从手机或其他设备访问Web服务，需要开放Windows防火墙端口：
+
+**方法1：PowerShell命令（管理员权限）**
+```powershell
+netsh advfirewall firewall add rule name="Phone Agent Web - 8000" dir=in action=allow protocol=tcp localport=8000
+```
+
+**方法2：Windows设置**
+1. 打开 **Windows Defender 防火墙** → **高级设置**
+2. 点击 **入站规则** → **新建规则**
+3. 选择 **端口** → **TCP** → **特定本地端口: 8000**
+4. 选择 **允许连接** → 勾选所有配置文件
+5. 名称填写：`Phone Agent Web - 8000`
+
+配置完成后，在同一局域网内的设备可通过显示的局域网IP地址访问。
 
 ### 环境变量
 | 变量                        | 描述               | 默认值                        |

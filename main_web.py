@@ -91,6 +91,7 @@ Phone Agent  - 智能版 v1.3.4 -第2006次迭代
 
 import os
 import sys
+import socket
 from pathlib import Path
 
 # 预加载 onnxruntime (解决DLL冲突问题)
@@ -148,6 +149,18 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # ==================== 主函数 ====================
 
+def get_local_ip():
+    """获取本机局域网IP地址"""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except Exception:
+        return None
+
+
 def main():
     """主函数"""
     print("=" * 60)
@@ -157,21 +170,22 @@ def main():
     
     from yuntai.core.config import validate_config, print_config_summary
     
-    # 验证配置
     if not validate_config():
         print("❌ 配置验证失败，请检查 .env 文件")
         sys.exit(1)
     
     print_config_summary()
     
-    # 创建web目录
     web_dir = Path(PROJECT_ROOT) / "web"
     web_dir.mkdir(parents=True, exist_ok=True)
     (web_dir / "static").mkdir(parents=True, exist_ok=True)
     
-    # 启动服务器
+    local_ip = get_local_ip()
+    
     print("\n🚀 启动Web服务器...")
-    print(f"📍 访问地址: http://localhost:8000")
+    print(f"📍 本地访问: http://localhost:8000")
+    if local_ip:
+        print(f"📍 局域网访问: http://{local_ip}:8000")
     print("📍 按 Ctrl+C 停止服务器\n")
     
     uvicorn.run(
