@@ -95,12 +95,12 @@ if isinstance(sovits_path, list):
 # print(version)###GPT version里没有s2的v2pro
 # print(weight_data.get("GPT", {}).get(version, GPT_names[-1]))
 
-cnhubert_base_path = os.environ.get("cnhubert_base_path", "GPT_SoVITS/pretrained_models/chinese-hubert-base")
-# 使用环境变量GPT_SOVITS_ROOT动态获取路径（必须设置）
 gpt_sovits_root = os.environ.get("GPT_SOVITS_ROOT")
 if not gpt_sovits_root:
     raise EnvironmentError("环境变量 GPT_SOVITS_ROOT 未设置，请在.env文件中配置")
-bert_path = os.environ.get("bert_path", str(Path(gpt_sovits_root) / "GPT_SoVITS" / "pretrained_models" / "chinese-roberta-wwm-ext-large"))
+gpt_sovits_root_path = Path(gpt_sovits_root)
+cnhubert_base_path = os.environ.get("cnhubert_base_path", str(gpt_sovits_root_path / "GPT_SoVITS" / "pretrained_models" / "chinese-hubert-base"))
+bert_path = os.environ.get("bert_path", str(gpt_sovits_root_path / "GPT_SoVITS" / "pretrained_models" / "chinese-roberta-wwm-ext-large"))
 infer_ttswebui = os.environ.get("infer_ttswebui", 9872)
 infer_ttswebui = int(infer_ttswebui)
 is_share = os.environ.get("is_share", "False")
@@ -439,12 +439,9 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         {"__type__": "update", "visible": True if model_version == "v3" else False},
         {"__type__": "update", "value": i18n("合成语音"), "interactive": True},
     )
-    with open("./weight.json") as f:
-        data = f.read()
-        data = json.loads(data)
-        data["SoVITS"][version] = sovits_path
-    with open("./weight.json", "w") as f:
-        f.write(json.dumps(data))
+    data = json.loads(weight_json_path.read_text(encoding="utf-8"))
+    data["SoVITS"][version] = sovits_path
+    weight_json_path.write_text(json.dumps(data), encoding="utf-8")
 
 
 try:
@@ -469,12 +466,9 @@ def change_gpt_weights(gpt_path):
     t2s_model.eval()
     # total = sum([param.nelement() for param in t2s_model.parameters()])
     # print("Number of parameter: %.2fM" % (total / 1e6))
-    with open("./weight.json") as f:
-        data = f.read()
-        data = json.loads(data)
-        data["GPT"][version] = gpt_path
-    with open("./weight.json", "w") as f:
-        f.write(json.dumps(data))
+    data = json.loads(weight_json_path.read_text(encoding="utf-8"))
+    data["GPT"][version] = gpt_path
+    weight_json_path.write_text(json.dumps(data), encoding="utf-8")
 
 
 change_gpt_weights(gpt_path)
@@ -521,8 +515,9 @@ def init_bigvgan():
     global bigvgan_model, hifigan_model, sv_cn_model
     from BigVGAN import bigvgan
 
+    bigvgan_path = now_dir / "GPT_SoVITS" / "pretrained_models" / "models--nvidia--bigvgan_v2_24khz_100band_256x"
     bigvgan_model = bigvgan.BigVGAN.from_pretrained(
-        "%s/GPT_SoVITS/pretrained_models/models--nvidia--bigvgan_v2_24khz_100band_256x" % (now_dir,),
+        str(bigvgan_path),
         use_cuda_kernel=False,
     )  # if True, RuntimeError: Ninja is required to load C++ extensions
     # remove weight norm in the model and set to eval mode
@@ -551,8 +546,9 @@ def init_hifigan():
     )
     hifigan_model.eval()
     hifigan_model.remove_weight_norm()
+    vocoder_path = now_dir / "GPT_SoVITS" / "pretrained_models" / "gsv-v4-pretrained" / "vocoder.pth"
     state_dict_g = torch.load(
-        "%s/GPT_SoVITS/pretrained_models/gsv-v4-pretrained/vocoder.pth" % (now_dir,),
+        str(vocoder_path),
         map_location="cpu",
         weights_only=False,
     )

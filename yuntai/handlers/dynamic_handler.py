@@ -3,7 +3,6 @@
   负责处理图像/视频生成功能
 """
 
-import os
 import threading
 import time
 import traceback

@@ -3,7 +3,6 @@ DashboardBuilder - 控制中心页面构建器（PyQt6 重构版）
 浅色米白色主题版本
 """
 
-import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QFrame, QTextEdit, QScrollArea,

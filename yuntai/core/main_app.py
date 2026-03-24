@@ -4,7 +4,6 @@ MainApp - 主应用程序模块 (PyQt6 重构版)
 """
 
 
-import os
 import sys
 import threading
 import time
