@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from dotenv import load_dotenv
 
-APP_VERSION = "1.3.4"
+APP_VERSION = "1.3.5"
 
 load_dotenv()
 

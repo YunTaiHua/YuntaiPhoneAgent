@@ -1,15 +1,15 @@
 # YuntaiPhoneAgent
 
-Version: 1.3.4
+Version: 1.3.5
 
 **[English Version](README_en.md)**
 
-## Phone Agent 智能版 v1.3.4 代码分析
+## Phone Agent 智能版 v1.3.5 代码分析
 
 ### 📊 项目概述
 
 **项目名称**: YuntaiPhoneAgent
-**版本**: v1.3.4
+**版本**: v1.3.5
 
 ### 🏗️ 架构设计
 
