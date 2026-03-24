@@ -3,7 +3,6 @@
 用于记录 LLM 调用、Chain 执行、Tool 调用等过程的详细日志
 """
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 from datetime import datetime
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.outputs import LLMResult
@@ -37,7 +36,7 @@ class LoggingCallbackHandler(BaseCallbackHandler):
     
     def __init__(
         self,
-        log_file: Optional[str] = None,
+        log_file: str | None = None,
         enable_console: bool = False,
         enable_detailed: bool = True
     ):
@@ -87,10 +86,10 @@ class LoggingCallbackHandler(BaseCallbackHandler):
     # ==================== LLM 回调 ====================
     
     def on_llm_start(
-        self, 
-        serialized: Dict[str, Any], 
-        prompts: List[str], 
-        **kwargs: Any
+        self,
+        serialized: dict[str, object],
+        prompts: list[str],
+        **kwargs: object
     ) -> None:
         """LLM 开始调用"""
         self._llm_calls += 1
@@ -112,7 +111,7 @@ class LoggingCallbackHandler(BaseCallbackHandler):
                 for i, prompt in enumerate(prompts[:3]):
                     print(f"   提示词 {i+1}: {prompt[:100]}...")
     
-    def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
+    def on_llm_end(self, response: LLMResult, **kwargs: object) -> None:
         """LLM 调用结束"""
         # 统计 token 使用
         if response.llm_output and 'token_usage' in response.llm_output:
@@ -132,17 +131,17 @@ class LoggingCallbackHandler(BaseCallbackHandler):
             if self.enable_console:
                 print(summary)
     
-    def on_llm_error(self, error: Exception, **kwargs: Any) -> None:
+    def on_llm_error(self, error: Exception, **kwargs: object) -> None:
         """LLM 调用错误"""
         self._log(f"❌ LLM 调用错误: {str(error)}", level="ERROR")
     
     # ==================== Chain 回调 ====================
     
     def on_chain_start(
-        self, 
-        serialized: Dict[str, Any], 
-        inputs: Dict[str, Any], 
-        **kwargs: Any
+        self,
+        serialized: dict[str, object],
+        inputs: dict[str, object],
+        **kwargs: object
     ) -> None:
         """Chain 开始执行"""
         self._chain_calls += 1
@@ -155,7 +154,7 @@ class LoggingCallbackHandler(BaseCallbackHandler):
                 value_str = str(value)[:100]
                 self._log(f"   输入 {key}: {value_str}...")
     
-    def on_chain_end(self, outputs: Dict[str, Any], **kwargs: Any) -> None:
+    def on_chain_end(self, outputs: dict[str, object], **kwargs: object) -> None:
         """Chain 执行结束"""
         self._log(f"✅ Chain 执行结束")
         
@@ -164,17 +163,17 @@ class LoggingCallbackHandler(BaseCallbackHandler):
                 value_str = str(value)[:100]
                 self._log(f"   输出 {key}: {value_str}...")
     
-    def on_chain_error(self, error: Exception, **kwargs: Any) -> None:
+    def on_chain_error(self, error: Exception, **kwargs: object) -> None:
         """Chain 执行错误"""
         self._log(f"❌ Chain 执行错误: {str(error)}", level="ERROR")
     
     # ==================== Tool 回调 ====================
     
     def on_tool_start(
-        self, 
-        serialized: Dict[str, Any], 
-        input_str: str, 
-        **kwargs: Any
+        self,
+        serialized: dict[str, object],
+        input_str: str,
+        **kwargs: object
     ) -> None:
         """Tool 开始调用"""
         self._tool_calls += 1
@@ -186,9 +185,9 @@ class LoggingCallbackHandler(BaseCallbackHandler):
             self._log(f"   输入: {input_str[:100]}...")
     
     def on_tool_end(
-        self, 
-        output: str, 
-        **kwargs: Any
+        self,
+        output: str,
+        **kwargs: object
     ) -> None:
         """Tool 调用结束"""
         self._log(f"✅ Tool 调用结束")
@@ -196,16 +195,16 @@ class LoggingCallbackHandler(BaseCallbackHandler):
         if self.enable_detailed:
             self._log(f"   输出: {output[:100]}...")
     
-    def on_tool_error(self, error: Exception, **kwargs: Any) -> None:
+    def on_tool_error(self, error: Exception, **kwargs: object) -> None:
         """Tool 调用错误"""
         self._log(f"❌ Tool 调用错误: {str(error)}", level="ERROR")
     
     # ==================== Agent 回调 ====================
     
     def on_agent_action(
-        self, 
-        action: AgentAction, 
-        **kwargs: Any
+        self,
+        action: AgentAction,
+        **kwargs: object
     ) -> None:
         """Agent 执行动作"""
         self._agent_actions += 1
@@ -215,9 +214,9 @@ class LoggingCallbackHandler(BaseCallbackHandler):
         self._log(f"   输入: {str(action.tool_input)[:100]}...")
     
     def on_agent_finish(
-        self, 
-        finish: AgentFinish, 
-        **kwargs: Any
+        self,
+        finish: AgentFinish,
+        **kwargs: object
     ) -> None:
         """Agent 执行完成"""
         self._log(f"✅ Agent 执行完成")
@@ -228,7 +227,7 @@ class LoggingCallbackHandler(BaseCallbackHandler):
     
     # ==================== 统计信息 ====================
     
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, object]:
         """获取统计信息"""
         return {
             "llm_calls": self._llm_calls,
@@ -279,10 +278,10 @@ class PerformanceCallbackHandler(LoggingCallbackHandler):
         self._start_times = {}
     
     def on_llm_start(
-        self, 
-        serialized: Dict[str, Any], 
-        prompts: List[str], 
-        **kwargs: Any
+        self,
+        serialized: dict[str, object],
+        prompts: list[str],
+        **kwargs: object
     ) -> None:
         """LLM 开始调用"""
         super().on_llm_start(serialized, prompts, **kwargs)
@@ -290,7 +289,7 @@ class PerformanceCallbackHandler(LoggingCallbackHandler):
         import time
         self._start_times['llm'] = time.time()
     
-    def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
+    def on_llm_end(self, response: LLMResult, **kwargs: object) -> None:
         """LLM 调用结束"""
         import time
         
@@ -302,10 +301,10 @@ class PerformanceCallbackHandler(LoggingCallbackHandler):
         super().on_llm_end(response, **kwargs)
     
     def on_chain_start(
-        self, 
-        serialized: Dict[str, Any], 
-        inputs: Dict[str, Any], 
-        **kwargs: Any
+        self,
+        serialized: dict[str, object],
+        inputs: dict[str, object],
+        **kwargs: object
     ) -> None:
         """Chain 开始执行"""
         super().on_chain_start(serialized, inputs, **kwargs)
@@ -313,7 +312,7 @@ class PerformanceCallbackHandler(LoggingCallbackHandler):
         import time
         self._start_times['chain'] = time.time()
     
-    def on_chain_end(self, outputs: Dict[str, Any], **kwargs: Any) -> None:
+    def on_chain_end(self, outputs: dict[str, object], **kwargs: object) -> None:
         """Chain 执行结束"""
         import time
         
@@ -325,10 +324,10 @@ class PerformanceCallbackHandler(LoggingCallbackHandler):
         super().on_chain_end(outputs, **kwargs)
     
     def on_tool_start(
-        self, 
-        serialized: Dict[str, Any], 
-        input_str: str, 
-        **kwargs: Any
+        self,
+        serialized: dict[str, object],
+        input_str: str,
+        **kwargs: object
     ) -> None:
         """Tool 开始调用"""
         super().on_tool_start(serialized, input_str, **kwargs)
@@ -337,9 +336,9 @@ class PerformanceCallbackHandler(LoggingCallbackHandler):
         self._start_times['tool'] = time.time()
     
     def on_tool_end(
-        self, 
-        output: str, 
-        **kwargs: Any
+        self,
+        output: str,
+        **kwargs: object
     ) -> None:
         """Tool 调用结束"""
         import time
@@ -351,7 +350,7 @@ class PerformanceCallbackHandler(LoggingCallbackHandler):
         
         super().on_tool_end(output, **kwargs)
     
-    def get_performance_stats(self) -> Dict[str, Any]:
+    def get_performance_stats(self) -> dict[str, object]:
         """获取性能统计"""
         import statistics
         

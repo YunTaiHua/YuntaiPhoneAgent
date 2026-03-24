@@ -1,10 +1,5 @@
-"""
-任务判断 Agent
-使用 ZHIPU_JUDGEMENT_MODEL 判断任务类型
-支持 LangChain Callbacks 记录执行过程
-"""
+"""任务判断 Agent，使用 ZHIPU_JUDGEMENT_MODEL 判断任务类型，支持 LangChain Callbacks 记录执行过程"""
 import json
-from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
 from langchain_core.language_models import BaseChatModel
@@ -26,13 +21,15 @@ from yuntai.callbacks import get_callback_manager
 @dataclass
 class TaskJudgementResult:
     """任务判断结果"""
+
     task_type: str
     target_app: str
     target_object: str
     is_auto: bool
     specific_content: str
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, object]:
+        """转换为字典"""
         return {
             "task_type": self.task_type,
             "target_app": self.target_app,
@@ -44,18 +41,18 @@ class TaskJudgementResult:
 
 class JudgementAgent:
     """任务判断 Agent - 支持 Callbacks 记录执行过程"""
-    
-    def __init__(self, model: Optional[BaseChatModel] = None):
+
+    def __init__(self, model: BaseChatModel | None = None) -> None:
         self.model = model or get_judgement_model()
         self.system_prompt = TASK_JUDGEMENT_PROMPT
-        
+
         # 回调管理器
         self.callback_manager = get_callback_manager()
-    
+
     def judge(
-        self, 
+        self,
         user_input: str,
-        callbacks: Optional[List[BaseCallbackHandler]] = None
+        callbacks: list[BaseCallbackHandler] | None = None
     ) -> TaskJudgementResult:
         """
         判断任务类型（支持 Callbacks）
@@ -113,9 +110,9 @@ class JudgementAgent:
         return self._fallback_judge(user_input)
     
     def _prepare_callbacks(
-        self, 
-        callbacks: Optional[List[BaseCallbackHandler]] = None
-    ) -> List[BaseCallbackHandler]:
+        self,
+        callbacks: list[BaseCallbackHandler] | None = None
+    ) -> list[BaseCallbackHandler]:
         """
         准备回调处理器列表
         

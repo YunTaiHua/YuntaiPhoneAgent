@@ -2,7 +2,6 @@
 智谱模型初始化模块
 使用 langchain_community 集成智谱模型
 """
-from typing import Optional
 from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 from zhipuai import ZhipuAI
@@ -15,7 +14,7 @@ from yuntai.core.config import (
     ZHIPU_JUDGEMENT_MODEL,
 )
 
-_zhipu_client: Optional[ZhipuAI] = None
+_zhipu_client: ZhipuAI | None = None
 
 
 def get_zhipu_client() -> ZhipuAI:

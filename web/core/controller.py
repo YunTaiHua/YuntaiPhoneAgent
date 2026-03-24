@@ -4,6 +4,8 @@ controller.py - Web控制器
 重构版本 - 分离输出捕获类
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import asyncio
@@ -11,12 +13,12 @@ import threading
 import datetime
 import json
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Any, TYPE_CHECKING
 
 from yuntai.core.config import (
     PROJECT_ROOT, SCRCPY_PATH, SHORTCUTS, CONVERSATION_HISTORY_FILE, TEMP_DIR
 )
-from yuntai.services.task_manager import TaskManager
+from yuntai.services.task_manager import TaskManager, TTSManager
 from yuntai.chains import TaskChain, ReplyChain
 from yuntai.agents import JudgementAgent
 from yuntai.callbacks import get_callback_manager, LoggingCallbackHandler, PerformanceCallbackHandler
@@ -24,81 +26,73 @@ from yuntai.callbacks import get_callback_manager, LoggingCallbackHandler, Perfo
 from .ws_manager import ConnectionManager
 from .output_capture import WebOutputCapture
 
+if TYPE_CHECKING:
+    from fastapi import WebSocket
+    from langchain_core.callbacks import BaseCallbackHandler
+
 
 class WebController:
     """Web控制器 - 处理所有Web请求和业务逻辑"""
 
-    def __init__(self, ws_manager: ConnectionManager):
-        self.ws_manager = ws_manager
-        self.project_root = PROJECT_ROOT
-        self.scrcpy_path = SCRCPY_PATH
+    def __init__(self, ws_manager: ConnectionManager) -> None:
+        self.ws_manager: ConnectionManager = ws_manager
+        self.project_root: str = PROJECT_ROOT
+        self.scrcpy_path: str = SCRCPY_PATH
 
-        # 延迟初始化任务管理器（避免阻塞）
-        self._task_manager = None
-        self._task_chain = None
-        self._judgement_agent = None
+        self._task_manager: TaskManager | None = None
+        self._task_chain: TaskChain | None = None
+        self._judgement_agent: JudgementAgent | None = None
 
-        # 状态变量
-        self.is_executing = False
-        self.is_continuous_mode = False
-        self.terminate_flag = threading.Event()
-        self._current_reply_chain = None
+        self.is_executing: bool = False
+        self.is_continuous_mode: bool = False
+        self.terminate_flag: threading.Event = threading.Event()
+        self._current_reply_chain: ReplyChain | None = None
 
-        # 设备类型
-        self.device_type = "android"
+        self.device_type: str = "android"
 
-        # 附件文件
-        self.attached_files: List[str] = []
+        self.attached_files: list[str] = []
 
-        # 主题状态
-        self.is_dark_theme = False
+        self.is_dark_theme: bool = False
 
-        # TTS状态
-        self.tts_enabled = False
-        self._tts_loaded = False
+        self.tts_enabled: bool = False
+        self._tts_loaded: bool = False
 
-        # 历史记录缓存
-        self._history_cache = None
-        self._history_file = Path(TEMP_DIR) / "web_history.json"
+        self._history_cache: list[dict[str, Any]] | None = None
+        self._history_file: Path = Path(TEMP_DIR) / "web_history.json"
 
-        # 输出捕获器
-        self.output_capture = WebOutputCapture(self)
+        self.output_capture: WebOutputCapture = WebOutputCapture(self)
 
-        # 初始化回调管理器
+        self.callback_manager = get_callback_manager()
+        self.logging_handler: LoggingCallbackHandler
+        self.performance_handler: PerformanceCallbackHandler
+
         self._setup_callbacks()
 
-    def _setup_callbacks(self):
+    def _setup_callbacks(self) -> None:
         """设置 LangChain Callbacks"""
-        # 获取全局回调管理器
-        self.callback_manager = get_callback_manager()
-
-        # 创建日志处理器（记录到文件）
         self.logging_handler = LoggingCallbackHandler(
             enable_console=False,
             enable_detailed=True
         )
 
-        # 注册日志处理器
         self.callback_manager.register_handler(
             name="web_logging",
             handler=self.logging_handler,
             is_global=True
         )
 
-        # 创建性能监控处理器
         self.performance_handler = PerformanceCallbackHandler(
             enable_console=False,
             enable_detailed=False
         )
 
-        # 注册性能处理器
         self.callback_manager.register_handler(
             name="web_performance",
             handler=self.performance_handler,
             is_global=True
         )
 
-    def get_callbacks(self) -> List:
+    def get_callbacks(self) -> list[BaseCallbackHandler]:
         """获取回调处理器列表"""
         return self.callback_manager.get_callbacks(include_global=True)
 
@@ -127,9 +121,7 @@ class WebController:
             self._judgement_agent = JudgementAgent()
         return self._judgement_agent
 
-    # ==================== 消息发送方法 ====================
-
-    async def send_output(self, text: str, msg_type: str = "output"):
+    async def send_output(self, text: str, msg_type: str = "output") -> None:
         """发送输出到前端"""
         await self.ws_manager.broadcast({
             "type": msg_type,
@@ -137,7 +129,7 @@ class WebController:
             "timestamp": datetime.datetime.now().isoformat()
         })
 
-    async def send_toast(self, message: str, msg_type: str = "info"):
+    async def send_toast(self, message: str, msg_type: str = "info") -> None:
         """发送Toast消息"""
         await self.ws_manager.broadcast({
             "type": "toast",
@@ -146,7 +138,7 @@ class WebController:
             "timestamp": datetime.datetime.now().isoformat()
         })
 
-    async def send_state_update(self, state: dict):
+    async def send_state_update(self, state: dict[str, Any]) -> None:
         """发送状态更新"""
         await self.ws_manager.broadcast({
             "type": "state_update",
@@ -154,7 +146,7 @@ class WebController:
             "timestamp": datetime.datetime.now().isoformat()
         })
 
-    async def send_tts_loading(self, message: str, show: bool = True):
+    async def send_tts_loading(self, message: str, show: bool = True) -> None:
         """发送TTS加载状态"""
         await self.ws_manager.broadcast({
             "type": "tts_loading",
@@ -163,13 +155,11 @@ class WebController:
             "timestamp": datetime.datetime.now().isoformat()
         })
 
-    async def send_personal_message(self, message: dict, websocket):
+    async def send_personal_message(self, message: dict[str, Any], websocket: WebSocket) -> None:
         """发送个人消息"""
         await self.ws_manager.send_personal_message(message, websocket)
 
-    # ==================== 状态获取 ====================
-
-    def get_state(self) -> dict:
+    def get_state(self) -> dict[str, Any]:
         """获取当前状态"""
         is_connected = False
         device_id = ""
@@ -191,7 +181,7 @@ class WebController:
             "current_page": 0
         }
 
-    def get_tts_models(self) -> dict:
+    def get_tts_models(self) -> dict[str, Any]:
         """获取TTS模型列表"""
         try:
             tts = self.task_manager.tts_manager
@@ -218,14 +208,14 @@ class WebController:
                 "current_text": None
             }
 
-    def get_audio_history(self) -> list:
+    def get_audio_history(self) -> list[dict[str, Any]]:
         """获取历史音频列表"""
         from yuntai.core.config import TTS_OUTPUT_DIR
         audio_dir = Path(TTS_OUTPUT_DIR)
         if not audio_dir.exists():
             return []
 
-        audio_files = []
+        audio_files: list[dict[str, Any]] = []
         for f in audio_dir.iterdir():
             if f.suffix == '.wav':
                 stat = f.stat()
@@ -239,25 +229,21 @@ class WebController:
         audio_files.sort(key=lambda x: x["mtime"], reverse=True)
         return audio_files
 
-    # ==================== TTS预加载 ====================
-
-    def preload_tts_async(self, play_welcome_after_load=False):
+    def preload_tts_async(self, play_welcome_after_load: bool = False) -> None:
         """异步预加载TTS模块"""
         if self._tts_loaded:
             return
 
-        def load():
+        def load() -> None:
             try:
                 success = self.task_manager.preload_tts_modules()
                 self.tts_enabled = success
                 self._tts_loaded = True
                 print(f"{'✅' if success else '❌'} TTS模块预加载{'成功' if success else '失败'}")
 
-                # 如果TTS加载成功且需要播放欢迎语音
                 if success and play_welcome_after_load:
                     self._play_welcome_voice()
                 elif play_welcome_after_load:
-                    # TTS加载失败，直接发送完成消息关闭遮罩
                     self._send_welcome_complete(tts_success=False)
 
             except Exception as e:
@@ -267,9 +253,8 @@ class WebController:
 
         threading.Thread(target=load, daemon=True).start()
 
-    def _send_welcome_complete(self, tts_success=False):
+    def _send_welcome_complete(self, tts_success: bool = False) -> None:
         """发送欢迎完成消息"""
-        # 标记首次连接已完成
         self.ws_manager.mark_first_connection_done()
 
         loop = asyncio.new_event_loop()
@@ -282,10 +267,9 @@ class WebController:
         finally:
             loop.close()
 
-    def _play_welcome_voice(self):
+    def _play_welcome_voice(self) -> None:
         """播放欢迎语音（TTS测试）"""
         import time
-        # 等待一小段时间确保TTS完全就绪
         time.sleep(0.5)
 
         welcome_text = "您好，很高兴为您服务"
@@ -293,11 +277,9 @@ class WebController:
             tts = self.task_manager.tts_manager
 
             if tts and tts.tts_available:
-                # 获取当前参考音频和文本
                 ref_audio = tts.get_current_model("audio")
                 ref_text = tts.get_current_model("text")
 
-                # 如果未配置，自动选择第一个
                 if not ref_audio:
                     audio_files = list(tts.tts_files_database.get("audio", {}).keys())
                     if audio_files:
@@ -320,7 +302,6 @@ class WebController:
                     if success:
                         print("✅ TTS测试成功：欢迎语音播放成功")
                         self.tts_enabled = True
-                        # TTS测试成功，发送成功标记
                         self._send_welcome_complete(tts_success=True)
                         return
                     else:
@@ -337,12 +318,9 @@ class WebController:
             print(f"⚠️ TTS测试异常: {e}")
             self.tts_enabled = False
 
-        # TTS测试失败或不可用，发送失败标记
         self._send_welcome_complete(tts_success=False)
 
-    # ==================== 设备管理 ====================
-
-    def get_available_devices(self) -> list:
+    def get_available_devices(self) -> list[str]:
         """获取可用设备列表"""
         try:
             devices = self.task_manager.detect_devices()
@@ -351,27 +329,25 @@ class WebController:
             print(f"获取设备列表失败: {e}")
             return []
 
-    # ==================== 历史记录 ====================
-
-    def get_history(self) -> list:
+    def get_history(self) -> list[dict[str, Any]]:
         """获取历史记录"""
         try:
             if self._history_file.exists():
-                return json.loads(self._history_file.read_text(encoding="utf-8"))
+                data = json.loads(self._history_file.read_text(encoding="utf-8"))
+                return data if isinstance(data, list) else []
         except Exception as e:
             print(f"读取历史记录失败: {e}")
         return []
 
-    def save_history(self, command: str, result: str):
+    def save_history(self, command: str, result: str) -> None:
         """保存历史记录"""
         try:
             history = self.get_history()
             history.insert(0, {
                 "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "command": command,
-                "result": result[:500] if result else ""  # 限制结果长度
+                "result": result[:500] if result else ""
             })
-            # 只保留最近100条
             history = history[:100]
 
             self._history_file.parent.mkdir(parents=True, exist_ok=True)
@@ -379,7 +355,7 @@ class WebController:
         except Exception as e:
             print(f"保存历史记录失败: {e}")
 
-    def clear_history(self) -> dict:
+    def clear_history(self) -> dict[str, Any]:
         """清空历史记录"""
         try:
             if self._history_file.exists():
@@ -388,9 +364,7 @@ class WebController:
         except Exception as e:
             return {"success": False, "message": str(e)}
 
-    # ==================== 动态功能 ====================
-
-    def get_dynamic_features(self) -> dict:
+    def get_dynamic_features(self) -> dict[str, Any]:
         """获取动态功能列表"""
         return {
             "features": [
@@ -439,9 +413,7 @@ class WebController:
             ]
         }
 
-    # ==================== 设置相关 ====================
-
-    def get_settings_info(self, setting_type: str) -> dict:
+    def get_settings_info(self, setting_type: str) -> dict[str, Any]:
         """获取设置信息"""
         if setting_type == "connection":
             return {

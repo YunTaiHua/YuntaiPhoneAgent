@@ -22,7 +22,7 @@ class AgentExecutor:
     _is_waiting_for_confirmation = threading.Event()
     _lock = threading.Lock()
 
-    def __init__(self, device_type: str = DEVICE_TYPE_ANDROID):
+    def __init__(self, device_type: str = DEVICE_TYPE_ANDROID) -> None:
         """
         初始化Agent执行器
 
@@ -33,12 +33,12 @@ class AgentExecutor:
         AgentExecutor._user_confirmation_event.clear()
         AgentExecutor._is_waiting_for_confirmation.clear()
 
-    def set_device_type(self, device_type: str):
+    def set_device_type(self, device_type: str) -> None:
         """设置设备类型"""
         self.device_type = device_type
 
     @classmethod
-    def _setup_stdin_pipe(cls):
+    def _setup_stdin_pipe(cls) -> None:
         """设置stdin管道用于模拟用户输入"""
         with cls._lock:
             if cls._stdin_write is None:
@@ -49,7 +49,7 @@ class AgentExecutor:
                 sys.stdin = os.fdopen(r, 'r')
 
     @classmethod
-    def _cleanup_stdin_pipe(cls):
+    def _cleanup_stdin_pipe(cls) -> None:
         """清理stdin管道"""
         with cls._lock:
             if cls._stdin_write is not None:
@@ -93,7 +93,7 @@ class AgentExecutor:
         """检查管道是否就绪"""
         return cls._stdin_write is not None
 
-    def phone_agent_exec(self, task: str, args, task_type: str, device_id: str) -> tuple[str, list]:
+    def phone_agent_exec(self, task: str, args, task_type: str, device_id: str) -> tuple[str, list[str]]:
         """phone_agent执行 - 仅支持Android设备"""
         AgentExecutor._user_confirmation_event.clear()
         AgentExecutor._is_waiting_for_confirmation.clear()
@@ -114,7 +114,7 @@ class AgentExecutor:
         finally:
             AgentExecutor._cleanup_stdin_pipe()
 
-    def _exec_android_agent(self, task: str, model_config: ModelConfig, device_id: str, args) -> tuple[str, list]:
+    def _exec_android_agent(self, task: str, model_config: ModelConfig, device_id: str, args) -> tuple[str, list[str]]:
         """执行Android Agent"""
         agent_config = AgentConfig(
             max_steps=args.max_steps,
@@ -125,7 +125,7 @@ class AgentExecutor:
         phone_agent = PhoneAgent(model_config=model_config, agent_config=agent_config)
         return self._execute_agent(task, phone_agent)
 
-    def _execute_agent(self, task: str, agent) -> tuple[str, list]:
+    def _execute_agent(self, task: str, agent) -> tuple[str, list[str]]:
         """通用Agent执行逻辑"""
         task = task.strip()
         if not task:

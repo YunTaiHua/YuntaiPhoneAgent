@@ -3,7 +3,6 @@ ws_manager.py - WebSocket连接管理器
 """
 
 import asyncio
-from typing import List
 from fastapi import WebSocket
 
 
@@ -11,7 +10,7 @@ class ConnectionManager:
     """WebSocket连接管理器"""
 
     def __init__(self):
-        self.active_connections: List[WebSocket] = []
+        self.active_connections: list[WebSocket] = []
         self._lock = asyncio.Lock()
         # 首次连接状态：后端启动后第一个连接需要显示欢迎遮罩
         self._first_connection_occurred = False

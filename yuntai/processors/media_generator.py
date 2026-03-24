@@ -6,11 +6,11 @@ media_generator.py - 媒体生成器模块
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 import requests
 import json
 import time
-from typing import Optional, List, Dict, Any
 from pathlib import Path
 
 from yuntai.core.config import (
@@ -37,7 +37,7 @@ DOWNLOAD_TIMEOUT = 30
 class MediaGenerator:
     """媒体生成器类：处理图像和视频生成"""
 
-    def __init__(self, api_key: Optional[str] = None, project_root: Optional[Path] = None):
+    def __init__(self, api_key: str | None = None, project_root: Path | None = None) -> None:
         """
         初始化媒体生成器
 
@@ -81,7 +81,7 @@ class MediaGenerator:
         self.video_fps = [30, 60]
 
     def generate_image(self, prompt: str, size: str = "1280x1280",
-                       quality: str = "standard") -> Dict[str, Any]:
+                       quality: str = "standard") -> dict[str, Any]:
         """
         使用ZHIPU_IMAGE_MODEL生成图像
 
@@ -134,7 +134,7 @@ class MediaGenerator:
                 "message": f"图像生成未知错误: {str(e)}"
             }
 
-    def download_image(self, image_url: str, filename: str = None) -> str:
+    def download_image(self, image_url: str, filename: str | None = None) -> str:
         """
         下载生成的图像
 
@@ -164,9 +164,9 @@ class MediaGenerator:
         except Exception as e:
             raise Exception(f"下载图像失败: {str(e)}")
 
-    def generate_video(self, prompt: str, image_urls: List[str] = None,
+    def generate_video(self, prompt: str, image_urls: list[str] | None = None,
                        size: str = "1920x1080", fps: int = 30,
-                       quality: str = "quality", with_audio: bool = True) -> Dict[str, Any]:
+                       quality: str = "quality", with_audio: bool = True) -> dict[str, Any]:
         """
         使用ZHIPU_VIDEO_MODEL生成视频
 
@@ -304,7 +304,7 @@ class MediaGenerator:
                 "message": error_msg
             }
 
-    def check_video_result(self, task_id: str) -> Dict[str, Any]:
+    def check_video_result(self, task_id: str) -> dict[str, Any]:
         """
         检查视频生成结果
 
@@ -385,8 +385,8 @@ class MediaGenerator:
                 "message": error_msg
             }
 
-    def download_video(self, video_url: str, cover_url: str = None,
-                       filename: str = None) -> Dict[str, str]:
+    def download_video(self, video_url: str, cover_url: str | None = None,
+                       filename: str | None = None) -> dict[str, str]:
         """
         下载生成的视频
 
@@ -455,7 +455,7 @@ class MediaGenerator:
                                    image_count: int = 0,
                                    interval: int = 10,
                                    max_attempts: int = 100,
-                                   callback=None) -> Dict[str, Any]:
+                                   callback: Any = None) -> dict[str, Any]:
         """
         等待视频生成完成
 

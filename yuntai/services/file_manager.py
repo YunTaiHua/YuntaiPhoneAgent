@@ -7,7 +7,7 @@ import shutil
 import json
 import datetime
 from pathlib import Path
-from typing import Any, List, Dict
+from typing import Any
 
 from yuntai.core.config import (
     CONVERSATION_HISTORY_FILE, RECORD_LOGS_DIR,
@@ -20,7 +20,7 @@ class FileManager:
     def __init__(self):
         pass
 
-    def init_file_system(self):
+    def init_file_system(self) -> None:
         """初始化文件系统，创建必要的目录"""
         try:
             if not TEMP_DIR.exists():
@@ -73,7 +73,7 @@ class FileManager:
         except Exception as e:
             print(f"⚠️  文件系统初始化失败: {e}")
 
-    def cleanup_record_files(self):
+    def cleanup_record_files(self) -> None:
         """清理record文件"""
         try:
             if RECORD_LOGS_DIR.exists():
@@ -166,7 +166,7 @@ class FileManager:
             print(f"⚠️  写入JSON文件失败 {filepath}: {e}")
             return False
 
-    def save_conversation_history(self, session_data: Dict[str, Any]):
+    def save_conversation_history(self, session_data: dict[str, Any]) -> None:
         """保存对话历史到JSON文件"""
         try:
             history = self.safe_read_json_file(str(CONVERSATION_HISTORY_FILE), {"sessions": [], "free_chats": []})
@@ -187,7 +187,7 @@ class FileManager:
         except Exception as e:
             print(f"⚠️  保存对话历史失败: {e}")
 
-    def get_recent_conversation_history(self, target_app: str, target_object: str, limit: int = 5) -> List[Dict]:
+    def get_recent_conversation_history(self, target_app: str, target_object: str, limit: int = 5) -> list[dict]:
         """获取最近的对话历史"""
         try:
             history = self.safe_read_json_file(str(CONVERSATION_HISTORY_FILE), {"sessions": [], "free_chats": []})
@@ -206,7 +206,7 @@ class FileManager:
             print(f"⚠️  读取对话历史失败: {e}")
             return []
 
-    def get_recent_free_chats(self, limit: int = 5) -> List[Dict]:
+    def get_recent_free_chats(self, limit: int = 5) -> list[dict]:
         """获取最近的自由聊天记录"""
         try:
             history = self.safe_read_json_file(str(CONVERSATION_HISTORY_FILE), {"sessions": [], "free_chats": []})

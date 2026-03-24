@@ -2,7 +2,6 @@
 记忆管理回调处理器
 用于自动记录对话历史到记忆系统
 """
-from typing import Any, Dict, List, Optional
 from datetime import datetime
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.outputs import LLMResult
@@ -41,17 +40,17 @@ class MemoryCallbackHandler(BaseCallbackHandler):
         self._conversation_history = []
         
     def on_llm_start(
-        self, 
-        serialized: Dict[str, Any], 
-        prompts: List[str], 
-        **kwargs: Any
+        self,
+        serialized: dict[str, object],
+        prompts: list[str],
+        **kwargs: object
     ) -> None:
         """LLM 开始调用时，记录用户输入"""
         if prompts:
             # 提取用户输入（通常是最后一个提示词）
             self._current_user_input = prompts[-1] if prompts else ""
     
-    def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
+    def on_llm_end(self, response: LLMResult, **kwargs: object) -> None:
         """LLM 调用结束时，记录 AI 响应"""
         if response.generations and response.generations[0]:
             # 提取 AI 响应
@@ -90,7 +89,7 @@ class MemoryCallbackHandler(BaseCallbackHandler):
         except Exception as e:
             print(f"⚠️ 保存到记忆失败: {e}")
     
-    def get_conversation_history(self, limit: int = 10) -> List[Dict[str, str]]:
+    def get_conversation_history(self, limit: int = 10) -> list[dict[str, str]]:
         """获取对话历史"""
         return self._conversation_history[-limit:]
     
@@ -98,7 +97,7 @@ class MemoryCallbackHandler(BaseCallbackHandler):
         """清空历史记录"""
         self._conversation_history = []
     
-    def get_messages_for_langchain(self, limit: int = 10) -> List:
+    def get_messages_for_langchain(self, limit: int = 10) -> list:
         """
         获取 LangChain 格式的消息列表
         
@@ -131,8 +130,8 @@ class SessionMemoryCallbackHandler(MemoryCallbackHandler):
         super().__init__(memory_manager, auto_save, max_history)
         
         # 会话存储：{session_id: [conversations]}
-        self._sessions: Dict[str, List[Dict]] = {}
-        self._current_session_id: Optional[str] = None
+        self._sessions: dict[str, list[dict]] = {}
+        self._current_session_id: str | None = None
     
     def set_session(self, session_id: str):
         """设置当前会话 ID"""
@@ -142,7 +141,7 @@ class SessionMemoryCallbackHandler(MemoryCallbackHandler):
         if session_id not in self._sessions:
             self._sessions[session_id] = []
     
-    def get_current_session(self) -> Optional[str]:
+    def get_current_session(self) -> str | None:
         """获取当前会话 ID"""
         return self._current_session_id
     
@@ -173,10 +172,10 @@ class SessionMemoryCallbackHandler(MemoryCallbackHandler):
         super()._save_to_memory()
     
     def get_session_history(
-        self, 
-        session_id: Optional[str] = None, 
+        self,
+        session_id: str | None = None,
         limit: int = 10
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         """
         获取指定会话的历史记录
         
@@ -193,11 +192,11 @@ class SessionMemoryCallbackHandler(MemoryCallbackHandler):
         
         return self._sessions[sid][-limit:]
     
-    def get_all_sessions(self) -> Dict[str, List[Dict]]:
+    def get_all_sessions(self) -> dict[str, list[dict]]:
         """获取所有会话"""
         return self._sessions
     
-    def clear_session(self, session_id: Optional[str] = None):
+    def clear_session(self, session_id: str | None = None):
         """清空指定会话"""
         sid = session_id or self._current_session_id
         if sid and sid in self._sessions:

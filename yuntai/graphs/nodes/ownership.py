@@ -1,8 +1,5 @@
-"""
-消息归属判断节点
-"""
+"""消息归属判断节点"""
 from difflib import SequenceMatcher
-from typing import List
 
 from yuntai.graphs.state import ReplyState
 

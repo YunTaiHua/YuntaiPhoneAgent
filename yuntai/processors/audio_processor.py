@@ -8,7 +8,6 @@
 
 import subprocess
 import tempfile
-from typing import Optional, Tuple
 import threading
 import time
 from pathlib import Path
@@ -25,7 +24,7 @@ from yuntai.core.config import (
 class AudioProcessor:
     """音频处理器类"""
 
-    def __init__(self, ffmpeg_path: str = None):
+    def __init__(self, ffmpeg_path: str | None = None) -> None:
         """
         初始化音频处理器
 
@@ -80,7 +79,7 @@ class AudioProcessor:
             print(f"⚠️  繁简转换失败: {e}")
             return text
 
-    def check_ffmpeg(self) -> Tuple[bool, str]:
+    def check_ffmpeg(self) -> tuple[bool, str]:
         """
         检查 FFmpeg 是否可用
 
@@ -106,7 +105,7 @@ class AudioProcessor:
         except Exception as e:
             return False, f"FFmpeg 检查失败: {str(e)}"
 
-    def extract_audio_from_video(self, video_path: str, output_path: str = None) -> Tuple[bool, str]:
+    def extract_audio_from_video(self, video_path: str, output_path: str | None = None) -> tuple[bool, str]:
         """
         从视频中提取音频
 
@@ -165,7 +164,7 @@ class AudioProcessor:
         except Exception as e:
             return False, f"音频提取异常: {str(e)}"
 
-    def load_whisper_model(self, model_size: str = "small", device: str = "cpu") -> Tuple[bool, str]:
+    def load_whisper_model(self, model_size: str = "small", device: str = "cpu") -> tuple[bool, str]:
         """
         加载 Whisper 模型（延迟加载）
 
@@ -194,7 +193,7 @@ class AudioProcessor:
         except Exception as e:
             return False, f"Whisper 模型加载失败: {str(e)}"
 
-    def transcribe_audio(self, audio_path: str, language: str = None) -> Tuple[bool, str]:
+    def transcribe_audio(self, audio_path: str, language: str | None = None) -> tuple[bool, str]:
         """
         转录音频为文本
 
@@ -235,8 +234,8 @@ class AudioProcessor:
         except Exception as e:
             return False, f"音频转录失败: {str(e)}"
 
-    def process_video_with_audio(self, video_path: str, prompt: str = None,
-                                language: str = "zh") -> Tuple[bool, dict]:
+    def process_video_with_audio(self, video_path: str, prompt: str | None = None,
+                                language: str = "zh") -> tuple[bool, dict]:
         """
         处理视频并提取音频转录
 
@@ -277,8 +276,8 @@ class AudioProcessor:
         except Exception as e:
             return False, {"error": f"视频+音频处理失败: {str(e)}"}
 
-    def process_audio_only(self, audio_path: str, prompt: str = None,
-                          language: str = "zh") -> Tuple[bool, dict]:
+    def process_audio_only(self, audio_path: str, prompt: str | None = None,
+                          language: str = "zh") -> tuple[bool, dict]:
         """
         单独处理音频文件
 
@@ -313,7 +312,7 @@ class AudioProcessor:
         except Exception as e:
             return False, {"error": f"音频处理失败: {str(e)}"}
 
-    def cleanup_temp_files(self, older_than_hours: int = 24):
+    def cleanup_temp_files(self, older_than_hours: int = 24) -> None:
         """
         清理旧的临时音频文件
 

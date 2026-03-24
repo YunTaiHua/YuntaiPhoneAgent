@@ -6,6 +6,7 @@
 
 import os
 from pathlib import Path
+from typing import Any
 from dotenv import load_dotenv
 
 APP_VERSION = "1.3.4"
@@ -151,7 +152,7 @@ def validate_config():
     return True
 
 
-def print_config_summary():
+def print_config_summary() -> None:
     """
     打印当前配置摘要
 
@@ -176,7 +177,7 @@ def print_config_summary():
     print(summary)
 
 
-def check_required_env_vars():
+def check_required_env_vars() -> None:
     """检查必需的环境变量是否已设置"""
     required_vars = ['ZHIPU_API_KEY']
     for var in required_vars:
@@ -191,7 +192,7 @@ if __name__ == "__main__":
     print_config_summary()
 
 
-def _get_theme_colors():
+def _get_theme_colors() -> type:
     """延迟获取 ThemeColors 类"""
     from yuntai.gui.styles import ThemeColors as _ThemeColors
     return _ThemeColors
@@ -200,7 +201,7 @@ class _ThemeColorsProxy:
     """ThemeColors 的代理类，实现延迟导入"""
     _real_class = None
     
-    def __getattr__(self, name):
+    def __getattr__(self, name) -> Any:
         if self._real_class is None:
             self._real_class = _get_theme_colors()
         return getattr(self._real_class, name)

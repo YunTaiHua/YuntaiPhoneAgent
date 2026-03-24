@@ -3,25 +3,37 @@ TTS引擎 - 负责GPT-SoVITS模型加载、环境设置和核心合成调用
 使用 pathlib 进行跨平台路径处理
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import time
 import threading
 import datetime
 import logging
-from typing import Tuple, Dict, Any
+from typing import Any, TYPE_CHECKING
+
 from pathlib import Path
 import torch
 import soundfile as sf
 import warnings
 
-logger = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from .tts_database import TTSDatabaseManager
+    from .tts_text import TTSTextProcessor
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class TTSEngine:
     """TTS引擎 - 核心合成功能"""
 
-    def __init__(self, default_tts_config: dict, database_manager, text_processor):
+    def __init__(
+        self,
+        default_tts_config: dict[str, Any],
+        database_manager: TTSDatabaseManager,
+        text_processor: TTSTextProcessor
+    ) -> None:
         """
         初始化TTS引擎
 
@@ -30,25 +42,33 @@ class TTSEngine:
             database_manager: 数据库管理器实例
             text_processor: 文本处理器实例
         """
-        self.default_tts_config = default_tts_config
-        self.database_manager = database_manager
-        self.text_processor = text_processor
+        self.default_tts_config: dict[str, Any] = default_tts_config
+        self.database_manager: TTSDatabaseManager = database_manager
+        self.text_processor: TTSTextProcessor = text_processor
 
-        self.bert_model_path = Path(default_tts_config.get("bert_model_path")) if default_tts_config.get("bert_model_path") else None
-        self.hubert_model_path = Path(default_tts_config.get("hubert_model_path")) if default_tts_config.get("hubert_model_path") else None
+        self.bert_model_path: Path | None = (
+            Path(default_tts_config.get("bert_model_path"))
+            if default_tts_config.get("bert_model_path")
+            else None
+        )
+        self.hubert_model_path: Path | None = (
+            Path(default_tts_config.get("hubert_model_path"))
+            if default_tts_config.get("hubert_model_path")
+            else None
+        )
 
-        self.tts_enabled = False
-        self.tts_available = False
-        self.tts_modules_loaded = False
+        self.tts_enabled: bool = False
+        self.tts_available: bool = False
+        self.tts_modules_loaded: bool = False
 
-        self.is_tts_synthesizing = False
-        self.is_tts_synthesizing_lock = threading.Lock()
+        self.is_tts_synthesizing: bool = False
+        self.is_tts_synthesizing_lock: threading.Lock = threading.Lock()
 
-        self.tts_modules: Dict[str, Any] = {}
+        self.tts_modules: dict[str, Any] = {}
 
         warnings.filterwarnings('ignore')
 
-    def load_tts_modules(self) -> Tuple[bool, str]:
+    def load_tts_modules(self) -> tuple[bool, str]:
         """加载TTS模块"""
         if self.tts_modules_loaded:
             return True, "模块已加载"
@@ -61,17 +81,16 @@ class TTSEngine:
             os.environ["TQDM_DISABLE"] = "1"
             os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-            import logging
             logging.getLogger("transformers").setLevel(logging.ERROR)
             logging.getLogger("torch").setLevel(logging.WARNING)
 
             if self.bert_model_path and self.bert_model_path.exists():
                 os.environ["bert_path"] = str(self.bert_model_path)
-                print(f"✅ BERT模型路径已设置")
+                print("✅ BERT模型路径已设置")
 
             if self.hubert_model_path and self.hubert_model_path.exists():
                 os.environ["cnhubert_base_path"] = str(self.hubert_model_path)
-                print(f"✅ HuBERT模型路径已设置")
+                print("✅ HuBERT模型路径已设置")
 
             if self.database_manager.tts_files_database["gpt"]:
                 first_gpt = list(self.database_manager.tts_files_database["gpt"].values())[0]
@@ -93,7 +112,7 @@ class TTSEngine:
             import contextlib
 
             class NullIO(io.StringIO):
-                def write(self, text):
+                def write(self, text: str) -> int:
                     if "error" in text.lower() or "exception" in text.lower():
                         return super().write(text)
                     return len(text)
@@ -142,8 +161,13 @@ class TTSEngine:
             self.tts_available = False
             return False, f"模块加载失败：{str(e)}"
 
-    def synthesize_text(self, text: str, ref_audio_path: str, ref_text_path: str,
-                        auto_play: bool = True) -> Tuple[bool, str]:
+    def synthesize_text(
+        self,
+        text: str,
+        ref_audio_path: str,
+        ref_text_path: str,
+        auto_play: bool = True
+    ) -> tuple[bool, str]:
         """合成文本为语音"""
         with self.is_tts_synthesizing_lock:
             if self.is_tts_synthesizing:
@@ -190,10 +214,10 @@ class TTSEngine:
                 original_sys_stderr = sys.stderr
 
                 class NullWriter:
-                    def write(self, s):
+                    def write(self, s: str) -> int:
                         return len(s)
 
-                    def flush(self):
+                    def flush(self) -> None:
                         pass
 
                 null_writer = NullWriter()
@@ -203,7 +227,6 @@ class TTSEngine:
                 os.environ['TQDM_DISABLE'] = '1'
                 os.environ['PROGRESS_BAR'] = '0'
 
-                import logging
                 logging.getLogger().setLevel(logging.CRITICAL)
 
                 try:
@@ -259,8 +282,14 @@ class TTSEngine:
                 self.is_tts_synthesizing = False
             return False, f"合成出错：{str(e)}"
 
-    def synthesize_text_with_retry(self, text: str, ref_audio_path: str, ref_text_path: str,
-                                   max_retries: int = 2, retry_delay: float = 1.0) -> Tuple[bool, str]:
+    def synthesize_text_with_retry(
+        self,
+        text: str,
+        ref_audio_path: str,
+        ref_text_path: str,
+        max_retries: int = 2,
+        retry_delay: float = 1.0
+    ) -> tuple[bool, str]:
         """
         带重试机制的文本合成
 
@@ -309,7 +338,12 @@ class TTSEngine:
 
         return False, "达到最大重试次数"
 
-    def _synthesize_text_internal(self, text: str, ref_audio_path: str, ref_text_path: str) -> tuple[bool, str]:
+    def _synthesize_text_internal(
+        self,
+        text: str,
+        ref_audio_path: str,
+        ref_text_path: str
+    ) -> tuple[bool, str]:
         """
         内部合成方法 - 实际的文本到语音合成逻辑
 
@@ -377,10 +411,10 @@ class TTSEngine:
                 original_sys_stderr = sys.stderr
 
                 class NullWriter:
-                    def write(self, s):
+                    def write(self, s: str) -> int:
                         return len(s)
 
-                    def flush(self):
+                    def flush(self) -> None:
                         pass
 
                 null_writer = NullWriter()
@@ -390,7 +424,6 @@ class TTSEngine:
                 os.environ['TQDM_DISABLE'] = '1'
                 os.environ['PROGRESS_BAR'] = '0'
 
-                import logging
                 logging.getLogger().setLevel(logging.CRITICAL)
 
                 try:

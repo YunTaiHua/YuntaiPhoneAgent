@@ -4,7 +4,6 @@
 """
 import re
 import json
-from typing import List, Dict, Any, Tuple, Optional
 from difflib import SequenceMatcher
 
 from zhipuai import ZhipuAI
@@ -16,7 +15,7 @@ SIMILARITY_THRESHOLD = 0.6
 MAX_MESSAGE_LIST_LENGTH = 50
 
 
-def parse_messages(record: str, zhipu_client: ZhipuAI) -> List[Dict[str, str]]:
+def parse_messages(record: str, zhipu_client: ZhipuAI) -> list[dict[str, str]]:
     """
     解析聊天记录，提取消息
     
@@ -121,7 +120,7 @@ def _standardize_color(color: str) -> str:
     return "未知"
 
 
-def _emergency_extract(record: str) -> List[Dict[str, str]]:
+def _emergency_extract(record: str) -> list[dict[str, str]]:
     """紧急提取方法：当AI解析失败时使用"""
     record_clean = re.sub(r"思考过程:|性能指标:|总推理时间:|首 Token 延迟|思考完成延迟", "", record)
     record_clean = re.sub(r"[^\u4e00-\u9fff\w\s\.,，。！？；：""''💪~]", "", record_clean)
@@ -173,10 +172,10 @@ def is_message_similar(msg1: str, msg2: str, threshold: float = 0.6) -> bool:
 
 
 def determine_message_ownership(
-    messages: List[Dict[str, str]],
-    my_messages_list: List[str],
-    other_messages_list: List[str]
-) -> Tuple[List[str], List[str]]:
+    messages: list[dict[str, str]],
+    my_messages_list: list[str],
+    other_messages_list: list[str]
+) -> tuple[list[str], list[str]]:
     """
     判断消息归属
     
@@ -234,7 +233,7 @@ def determine_message_ownership(
 
 def generate_reply(
     latest_message: str,
-    history_messages: List[str],
+    history_messages: list[str],
     zhipu_client: ZhipuAI,
     system_prompt: str = ""
 ) -> str:
@@ -299,10 +298,10 @@ def generate_reply(
 
 
 def check_new_messages(
-    current_other_messages: List[str],
-    previous_other_messages: List[str],
-    my_messages_list: List[str]
-) -> Tuple[bool, List[str]]:
+    current_other_messages: list[str],
+    previous_other_messages: list[str],
+    my_messages_list: list[str]
+) -> tuple[bool, list[str]]:
     """
     检查是否有新消息
     

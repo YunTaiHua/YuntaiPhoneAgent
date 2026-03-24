@@ -6,7 +6,6 @@
 import subprocess
 import json
 from pathlib import Path
-from typing import List, Tuple, Dict, Optional
 
 from yuntai.core.config import (
     CONNECTION_CONFIG_FILE,
@@ -25,11 +24,11 @@ class ConnectionManager:
         """
         self.device_type = device_type
 
-    def set_device_type(self, device_type: str):
+    def set_device_type(self, device_type: str) -> None:
         """设置设备类型"""
         self.device_type = device_type
 
-    def load_connection_config(self) -> Dict[str, str]:
+    def load_connection_config(self) -> dict[str, str]:
         """加载连接配置"""
         default_config = {
             "connection_type": "wireless",
@@ -53,7 +52,7 @@ class ConnectionManager:
 
         return default_config
 
-    def save_connection_config(self, config: Dict[str, str]):
+    def save_connection_config(self, config: dict[str, str]) -> None:
         """保存连接配置"""
         try:
             config_file = Path(CONNECTION_CONFIG_FILE)
@@ -61,13 +60,13 @@ class ConnectionManager:
         except Exception as e:
             print(f"⚠️  保存连接配置失败: {e}")
 
-    def get_available_devices(self) -> List[str]:
+    def get_available_devices(self) -> list[str]:
         """获取可用的设备列表（支持多平台）"""
         if self.device_type == DEVICE_TYPE_HARMONY:
             return self._get_harmony_devices()
         return self._get_android_devices()
 
-    def _get_android_devices(self) -> List[str]:
+    def _get_android_devices(self) -> list[str]:
         """获取Android设备列表 (ADB)"""
         devices = []
         try:
@@ -91,7 +90,7 @@ class ConnectionManager:
             print(f"⚠️  获取Android设备列表失败: {e}")
             return []
 
-    def _get_harmony_devices(self) -> List[str]:
+    def _get_harmony_devices(self) -> list[str]:
         """获取HarmonyOS设备列表 (HDC)"""
         devices = []
         try:
@@ -113,7 +112,7 @@ class ConnectionManager:
             print(f"⚠️  获取HarmonyOS设备列表失败: {e}")
             return []
 
-    def connect_to_device(self, config: Dict[str, str]) -> Tuple[bool, str, str]:
+    def connect_to_device(self, config: dict[str, str]) -> tuple[bool, str, str]:
         """
         连接到设备（支持Android和HarmonyOS）
 
@@ -131,7 +130,7 @@ class ConnectionManager:
         else:
             return self._connect_android_device(device_id, connection_type, config)
 
-    def _connect_android_device(self, device_id: str, connection_type: str, config: Dict[str, str]) -> Tuple[bool, str, str]:
+    def _connect_android_device(self, device_id: str, connection_type: str, config: dict[str, str]) -> tuple[bool, str, str]:
         """连接Android设备 (ADB)"""
         if connection_type == "usb":
             devices = self._get_android_devices()
@@ -181,7 +180,7 @@ class ConnectionManager:
             except Exception as e:
                 return False, "", f"连接失败: {str(e)}"
 
-    def _connect_harmony_device(self, device_id: str, connection_type: str, config: Dict[str, str]) -> Tuple[bool, str, str]:
+    def _connect_harmony_device(self, device_id: str, connection_type: str, config: dict[str, str]) -> tuple[bool, str, str]:
         """连接HarmonyOS设备 (HDC)"""
         if connection_type == "usb":
             devices = self._get_harmony_devices()

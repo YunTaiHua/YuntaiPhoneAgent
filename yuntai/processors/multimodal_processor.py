@@ -6,10 +6,13 @@
 使用 pathlib 进行跨平台路径处理
 """
 
+from __future__ import annotations
+
 import base64
 import mimetypes
-from typing import Dict, List, Optional, Tuple, Union
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
 from zhipuai import ZhipuAI
 
 from yuntai.core.config import (
@@ -18,21 +21,24 @@ from yuntai.core.config import (
     ALLOWED_AUDIO_EXTENSIONS
 )
 
+if TYPE_CHECKING:
+    from yuntai.processors.audio_processor import AudioProcessor
+
 
 class MultimodalProcessor:
     """多模态处理器类（使用zhipuai库的正确调用方式，支持音频处理）"""
 
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: str | None = None) -> None:
         """
         初始化多模态处理器
 
         Args:
             api_key: 智谱API密钥，如果为None则使用配置中的密钥
         """
-        self.api_key = api_key or ZHIPU_API_KEY
-        self.model = ZHIPU_MULTIMODAL_MODEL
+        self.api_key: str = api_key or ZHIPU_API_KEY
+        self.model: str = ZHIPU_MULTIMODAL_MODEL
 
-        self.client = ZhipuAI(api_key=self.api_key)
+        self.client: ZhipuAI = ZhipuAI(api_key=self.api_key)
 
         from yuntai.core.config import (
             ALLOWED_IMAGE_EXTENSIONS,
@@ -40,22 +46,22 @@ class MultimodalProcessor:
             ALLOWED_FILE_EXTENSIONS,
             MAX_FILE_SIZE
         )
-        self.allowed_image_extensions = ALLOWED_IMAGE_EXTENSIONS
-        self.allowed_video_extensions = ALLOWED_VIDEO_EXTENSIONS
-        self.allowed_file_extensions = ALLOWED_FILE_EXTENSIONS
-        self.allowed_audio_extensions = ALLOWED_AUDIO_EXTENSIONS
-        self.max_file_size = MAX_FILE_SIZE
+        self.allowed_image_extensions: tuple[str, ...] = ALLOWED_IMAGE_EXTENSIONS
+        self.allowed_video_extensions: tuple[str, ...] = ALLOWED_VIDEO_EXTENSIONS
+        self.allowed_file_extensions: tuple[str, ...] = ALLOWED_FILE_EXTENSIONS
+        self.allowed_audio_extensions: tuple[str, ...] = ALLOWED_AUDIO_EXTENSIONS
+        self.max_file_size: int = MAX_FILE_SIZE
 
-        self.audio_processor = None
+        self.audio_processor: AudioProcessor | None = None
 
-    def get_audio_processor(self):
+    def get_audio_processor(self) -> AudioProcessor:
         """延迟初始化音频处理器"""
         if self.audio_processor is None:
             from yuntai.processors.audio_processor import AudioProcessor
             self.audio_processor = AudioProcessor(ffmpeg_path=FFMPEG_PATH)
         return self.audio_processor
 
-    def parse_document_to_text(self, file_path: str) -> Optional[str]:
+    def parse_document_to_text(self, file_path: str) -> str | None:
         """
         使用 markitdown 解析文档为文本
         支持所有 markitdown 支持的格式
@@ -78,7 +84,7 @@ class MultimodalProcessor:
             print(f"❌ markitdown 解析文档失败 {file_path}: {e}")
             return None
 
-    def encode_file_to_base64(self, file_path: str) -> Optional[str]:
+    def encode_file_to_base64(self, file_path: str) -> str | None:
         """
         将文件编码为base64（根据官方文档要求）
 
@@ -103,7 +109,7 @@ class MultimodalProcessor:
             print(f"❌ 编码文件失败 {file_path}: {e}")
             return None
 
-    def get_file_type(self, file_path: str) -> Tuple[str, str]:
+    def get_file_type(self, file_path: str) -> tuple[str, str]:
         """
         获取文件类型和MIME类型
 
@@ -136,9 +142,9 @@ class MultimodalProcessor:
     def prepare_multimodal_messages(
             self,
             text: str,
-            file_paths: List[str] = None,
-            history: List[Dict] = None
-    ) -> Tuple[List[Dict], Optional[Dict]]:
+            file_paths: list[str] | None = None,
+            history: list[dict] | None = None
+    ) -> tuple[list[dict], dict | None]:
         """
         准备多模态消息（根据官方文档格式）
         支持音频处理和视频音频同步处理
@@ -273,11 +279,11 @@ class MultimodalProcessor:
     def process_with_files(
             self,
             text: str,
-            file_paths: List[str] = None,
-            history: List[Dict] = None,
+            file_paths: list[str] | None = None,
+            history: list[dict] | None = None,
             temperature: float = 0.7,
             max_tokens: int = 2000
-    ) -> Tuple[bool, str, Optional[Dict]]:
+    ) -> tuple[bool, str, dict | None]:
         """
         使用ZHIPU_MULTIMODAL_MODEL处理多模态输入（使用官方推荐的调用方式）
         支持视频音频同步处理和单独音频处理
@@ -396,7 +402,7 @@ class MultimodalProcessor:
 
         return ext in allowed_extensions
 
-    def check_file_size(self, file_path: str) -> Tuple[bool, str]:
+    def check_file_size(self, file_path: str) -> tuple[bool, str]:
         """
         检查文件大小是否超过限制
 

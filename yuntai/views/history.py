@@ -1,7 +1,11 @@
-﻿"""
+"""
 HistoryBuilder - 历史记录页面构建器（PyQt6 重构版）
 浅色米白色主题版本
 """
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
@@ -12,27 +16,28 @@ from PyQt6.QtGui import QCursor, QFont
 
 from yuntai.gui.styles import ThemeColors, ThemeFonts, ThemeCorner, ThemeSpacing
 
+if TYPE_CHECKING:
+    from yuntai.gui.gui_view import GUIView
+
 
 class HistoryBuilder:
     """历史记录页面构建器"""
 
-    def __init__(self, view_instance):
-        self.view = view_instance
-        self.components = view_instance.components
+    def __init__(self, view_instance: GUIView) -> None:
+        self.view: GUIView = view_instance
+        self.components: dict[str, Any] = view_instance.components
     
     @property
-    def colors(self):
+    def colors(self) -> ThemeColors:
         """动态获取当前主题颜色"""
         return self.view.colors
 
-    def create_page(self):
+    def create_page(self) -> None:
         """创建历史记录页面（只执行一次）"""
         self.view._highlight_nav_button(3)
 
-        # 获取页面容器
         page = self.view.content_pages[3]
         
-        # 检查是否已有布局，如果有则直接返回（页面已创建）
         if page.layout() is not None:
             return
         
@@ -40,7 +45,6 @@ class HistoryBuilder:
         page_layout.setContentsMargins(30, 30, 30, 30)
         page_layout.setSpacing(0)
 
-        # 标题卡片 - 居中对齐
         header_card = self._create_card(corner_radius=ThemeCorner.LG)
         header_layout = QVBoxLayout(header_card)
         header_layout.setContentsMargins(30, 20, 30, 20)
@@ -61,13 +65,11 @@ class HistoryBuilder:
         page_layout.addWidget(header_card)
         page_layout.addSpacing(20)
 
-        # 历史记录显示区域
         history_frame = self._create_card()
         history_layout = QVBoxLayout(history_frame)
         history_layout.setContentsMargins(20, 15, 20, 20)
         history_layout.setSpacing(0)
 
-        # 标题和按钮区域
         title_button_frame = QFrame()
         title_button_frame.setStyleSheet("background: transparent; border: none;")
         title_button_layout = QHBoxLayout(title_button_frame)
@@ -79,7 +81,6 @@ class HistoryBuilder:
         title_button_layout.addWidget(title_label)
         title_button_layout.addStretch()
 
-        # 刷新按钮
         self.components["refresh_history_btn"] = QPushButton("🔄 刷新")
         self.components["refresh_history_btn"].setFont(ThemeFonts.BODY_MEDIUM)
         self.components["refresh_history_btn"].setFixedSize(100, 36)
@@ -98,7 +99,6 @@ class HistoryBuilder:
         title_button_layout.addWidget(self.components["refresh_history_btn"])
         title_button_layout.addSpacing(10)
 
-        # 清空按钮
         self.components["clear_history_btn"] = QPushButton("🗑️ 清空")
         self.components["clear_history_btn"].setFont(ThemeFonts.BODY_MEDIUM)
         self.components["clear_history_btn"].setFixedSize(100, 36)
@@ -119,7 +119,6 @@ class HistoryBuilder:
         history_layout.addWidget(title_button_frame)
         history_layout.addSpacing(15)
 
-        # 历史记录文本框
         self.components["history_text"] = QTextEdit()
         self.components["history_text"].setFont(ThemeFonts.CODE_MEDIUM)
         self.components["history_text"].setReadOnly(True)
@@ -136,7 +135,7 @@ class HistoryBuilder:
 
         page_layout.addWidget(history_frame, 1)
 
-    def _create_card(self, corner_radius=ThemeCorner.MD, shadow_type='md'):
+    def _create_card(self, corner_radius: int = ThemeCorner.MD, shadow_type: str = 'md') -> QFrame:
         """创建卡片样式的Frame"""
         card = QFrame()
         card.setStyleSheet(f"""
@@ -146,6 +145,5 @@ class HistoryBuilder:
                 border-radius: {corner_radius}px;
             }}
         """)
-        # 应用阴影效果
         self.view._apply_shadow(card, shadow_type)
         return card

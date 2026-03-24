@@ -1,8 +1,4 @@
-"""
-生成回复节点
-支持 LangChain Callbacks 实现流式输出
-"""
-from typing import Optional, List
+"""生成回复节点，支持 LangChain Callbacks 实现流式输出"""
 from langchain_core.callbacks import BaseCallbackHandler
 
 from yuntai.graphs.state import ReplyState
@@ -13,7 +9,7 @@ from yuntai.callbacks import get_callback_manager, StreamingCallbackHandler
 
 def generate_reply(
     state: ReplyState,
-    callbacks: Optional[List[BaseCallbackHandler]] = None
+    callbacks: list[BaseCallbackHandler] | None = None
 ) -> dict:
     """
     生成回复节点（支持 Callbacks 流式输出）
@@ -92,8 +88,8 @@ def generate_reply(
 
 
 def _prepare_callbacks(
-    callbacks: Optional[List[BaseCallbackHandler]] = None
-) -> List[BaseCallbackHandler]:
+    callbacks: list[BaseCallbackHandler] | None = None
+) -> list[BaseCallbackHandler]:
     """
     准备回调处理器列表
     

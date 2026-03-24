@@ -1,26 +1,19 @@
-"""
-流式输出回调处理器
-实现真正的流式输出到 GUI，支持打字机效果
-"""
-from typing import Any, Dict, List, Optional, Callable
+"""流式输出回调处理器，实现真正的流式输出到 GUI，支持打字机效果"""
+from collections.abc import Callable
+
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.outputs import LLMResult
 
 
 class StreamingCallbackHandler(BaseCallbackHandler):
-    """
-    流式输出回调处理器
-    
-    用于实时捕获 LLM 生成的 token 并输出到 GUI
-    实现真正的流式输出效果
-    """
-    
+    """流式输出回调处理器，用于实时捕获 LLM 生成的 token 并输出到 GUI"""
+
     def __init__(
         self,
-        output_callback: Optional[Callable[[str], None]] = None,
-        complete_callback: Optional[Callable[[str], None]] = None,
+        output_callback: Callable[[str], None] | None = None,
+        complete_callback: Callable[[str], None] | None = None,
         enable_typewriter: bool = True
-    ):
+    ) -> None:
         """
         初始化流式输出处理器
         
@@ -39,21 +32,17 @@ class StreamingCallbackHandler(BaseCallbackHandler):
         self._is_streaming = False
         
     def on_llm_start(
-        self, 
-        serialized: Dict[str, Any], 
-        prompts: List[str], 
-        **kwargs: Any
+        self,
+        serialized: dict[str, object],
+        prompts: list[str],
+        **kwargs: object
     ) -> None:
         """LLM 开始调用时触发"""
         self._current_response = ""
         self._is_streaming = True
         
-    def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
-        """
-        新 token 生成时触发
-        
-        这是实现流式输出的关键方法
-        """
+    def on_llm_new_token(self, token: str, **kwargs: object) -> None:
+        """新 token 生成时触发，这是实现流式输出的关键方法"""
         if not self._is_streaming:
             return
             
@@ -67,10 +56,10 @@ class StreamingCallbackHandler(BaseCallbackHandler):
             except Exception as e:
                 print(f"⚠️ 流式输出回调失败: {e}")
     
-    def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
+    def on_llm_end(self, response: LLMResult, **kwargs: object) -> None:
         """LLM 调用结束时触发"""
         self._is_streaming = False
-        
+
         # 调用完成回调
         if self.complete_callback and self._current_response:
             try:
@@ -78,7 +67,7 @@ class StreamingCallbackHandler(BaseCallbackHandler):
             except Exception as e:
                 print(f"⚠️ 完成回调失败: {e}")
     
-    def on_llm_error(self, error: Exception, **kwargs: Any) -> None:
+    def on_llm_error(self, error: Exception, **kwargs: object) -> None:
         """LLM 调用出错时触发"""
         self._is_streaming = False
         print(f"❌ LLM 调用错误: {error}")
@@ -87,25 +76,21 @@ class StreamingCallbackHandler(BaseCallbackHandler):
         """获取当前收集的响应"""
         return self._current_response
     
-    def reset(self):
+    def reset(self) -> None:
         """重置状态"""
         self._current_response = ""
         self._is_streaming = False
 
 
 class QtStreamingCallbackHandler(StreamingCallbackHandler):
-    """
-    专为 PyQt GUI 设计的流式输出处理器
-    
-    使用 Qt 信号机制实现线程安全的 GUI 更新
-    """
-    
+    """专为 PyQt GUI 设计的流式输出处理器，使用 Qt 信号机制实现线程安全的 GUI 更新"""
+
     def __init__(
         self,
-        append_signal=None,
-        complete_signal=None,
+        append_signal: object = None,
+        complete_signal: object = None,
         enable_typewriter: bool = True
-    ):
+    ) -> None:
         """
         初始化 Qt 流式输出处理器
         
@@ -118,7 +103,7 @@ class QtStreamingCallbackHandler(StreamingCallbackHandler):
         self.append_signal = append_signal
         self.complete_signal = complete_signal
         
-    def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
+    def on_llm_new_token(self, token: str, **kwargs: object) -> None:
         """新 token 生成时触发，使用 Qt 信号更新 GUI"""
         if not self._is_streaming:
             return
@@ -132,7 +117,7 @@ class QtStreamingCallbackHandler(StreamingCallbackHandler):
             except Exception as e:
                 print(f"⚠️ Qt 信号发送失败: {e}")
     
-    def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
+    def on_llm_end(self, response: LLMResult, **kwargs: object) -> None:
         """LLM 调用结束时触发"""
         self._is_streaming = False
         
@@ -145,22 +130,18 @@ class QtStreamingCallbackHandler(StreamingCallbackHandler):
 
 
 class AsyncStreamingCallbackHandler(StreamingCallbackHandler):
-    """
-    异步流式输出处理器
-    
-    用于异步场景下的流式输出
-    """
-    
+    """异步流式输出处理器，用于异步场景下的流式输出"""
+
     def __init__(
         self,
-        output_callback: Optional[Callable[[str], None]] = None,
-        complete_callback: Optional[Callable[[str], None]] = None,
+        output_callback: Callable[[str], None] | None = None,
+        complete_callback: Callable[[str], None] | None = None,
         enable_typewriter: bool = True
-    ):
+    ) -> None:
         super().__init__(output_callback, complete_callback, enable_typewriter)
         self._async_queue = []
         
-    async def on_llm_new_token_async(self, token: str, **kwargs: Any) -> None:
+    async def on_llm_new_token_async(self, token: str, **kwargs: object) -> None:
         """异步处理新 token"""
         if not self._is_streaming:
             return

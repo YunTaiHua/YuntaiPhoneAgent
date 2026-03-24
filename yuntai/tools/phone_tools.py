@@ -3,7 +3,7 @@
 封装 PhoneAgent 的核心功能
 """
 import json
-from typing import Optional, Tuple, List, Dict, Any, Callable
+from collections.abc import Callable
 from langchain.tools import tool
 
 from phone_agent import PhoneAgent
@@ -40,7 +40,7 @@ class PhoneToolManager:
     def __init__(self, device_id: str, max_steps: int = 100):
         self.device_id = device_id
         self.max_steps = max_steps
-        self._agent: Optional[PhoneAgent] = None
+        self._agent: PhoneAgent | None = None
     
     def _get_agent(self) -> PhoneAgent:
         if self._agent is None:
@@ -52,7 +52,7 @@ class PhoneToolManager:
             self._agent.reset()
             self._agent = None
     
-    def open_app(self, app_name: str) -> Tuple[bool, str]:
+    def open_app(self, app_name: str) -> tuple[bool, str]:
         """打开指定APP"""
         try:
             agent = self._get_agent()
@@ -65,7 +65,7 @@ class PhoneToolManager:
         except Exception as e:
             return False, f"打开APP失败: {str(e)}"
     
-    def execute_operation(self, task: str) -> Tuple[bool, str]:
+    def execute_operation(self, task: str) -> tuple[bool, str]:
         """执行复杂手机操作"""
         try:
             agent = self._get_agent()
@@ -78,11 +78,11 @@ class PhoneToolManager:
             return False, f"操作执行失败: {str(e)}"
     
     def extract_chat_records(
-        self, 
-        app_name: str, 
+        self,
+        app_name: str,
         chat_object: str,
         extra_prompt: str = ""
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """提取聊天记录"""
         try:
             agent = self._get_agent()
@@ -105,11 +105,11 @@ class PhoneToolManager:
             return False, f"提取聊天记录失败: {str(e)}"
     
     def send_message(
-        self, 
-        app_name: str, 
-        chat_object: str, 
+        self,
+        app_name: str,
+        chat_object: str,
         message: str
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """发送消息"""
         try:
             agent = self._get_agent()
@@ -131,35 +131,35 @@ class PhoneToolManager:
             return False, f"发送消息失败: {str(e)}"
 
 
-def open_app_tool(device_id: str, app_name: str) -> Tuple[bool, str]:
+def open_app_tool(device_id: str, app_name: str) -> tuple[bool, str]:
     """打开APP工具函数"""
     manager = PhoneToolManager(device_id)
     return manager.open_app(app_name)
 
 
-def execute_phone_operation(device_id: str, task: str) -> Tuple[bool, str]:
+def execute_phone_operation(device_id: str, task: str) -> tuple[bool, str]:
     """执行手机操作工具函数"""
     manager = PhoneToolManager(device_id)
     return manager.execute_operation(task)
 
 
 def extract_chat_records_tool(
-    device_id: str, 
-    app_name: str, 
+    device_id: str,
+    app_name: str,
     chat_object: str,
     extra_prompt: str = ""
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """提取聊天记录工具函数"""
     manager = PhoneToolManager(device_id)
     return manager.extract_chat_records(app_name, chat_object, extra_prompt)
 
 
 def send_message_tool(
-    device_id: str, 
-    app_name: str, 
-    chat_object: str, 
+    device_id: str,
+    app_name: str,
+    chat_object: str,
     message: str
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """发送消息工具函数"""
     manager = PhoneToolManager(device_id)
     return manager.send_message(app_name, chat_object, message)

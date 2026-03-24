@@ -4,7 +4,6 @@
 """
 import datetime
 import time
-from typing import List, Dict, Any, Optional
 
 from yuntai.tools.time_tool import TimeTool
 
@@ -16,8 +15,8 @@ def get_current_time_info() -> str:
 
 def get_history_context(
     file_manager,
-    target_app: Optional[str] = None,
-    target_object: Optional[str] = None,
+    target_app: str | None = None,
+    target_object: str | None = None,
     limit: int = 5
 ) -> str:
     """获取历史对话上下文"""

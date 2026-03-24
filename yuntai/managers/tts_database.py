@@ -3,41 +3,43 @@ TTS数据库管理器 - 负责TTS文件扫描和数据库管理
 使用 pathlib 进行跨平台路径处理
 """
 
+from __future__ import annotations
+
 import threading
-from typing import Optional, Tuple, List
+from typing import Any
 from pathlib import Path
 
 
 class TTSDatabaseManager:
     """TTS数据库管理器"""
 
-    def __init__(self, default_tts_config: dict):
+    def __init__(self, default_tts_config: dict[str, Any]) -> None:
         """
         初始化TTS数据库管理器
 
         Args:
             default_tts_config: 默认TTS配置
         """
-        self.default_tts_config = default_tts_config
+        self.default_tts_config: dict[str, Any] = default_tts_config
 
-        self.tts_files_database = {
+        self.tts_files_database: dict[str, dict[str, str]] = {
             "gpt": {},
             "sovits": {},
             "audio": {},
             "text": {}
         }
 
-        self._text_cache = {}
-        self._cache_lock = threading.Lock()
+        self._text_cache: dict[str, str] = {}
+        self._cache_lock: threading.Lock = threading.Lock()
 
-        self.current_gpt_model = None
-        self.current_sovits_model = None
-        self.current_ref_audio = None
-        self.current_ref_text = None
-        self.current_models_lock = threading.Lock()
+        self.current_gpt_model: str | None = None
+        self.current_sovits_model: str | None = None
+        self.current_ref_audio: str | None = None
+        self.current_ref_text: str | None = None
+        self.current_models_lock: threading.Lock = threading.Lock()
 
-        self.tts_synthesized_files = []
-        self.tts_synthesized_files_lock = threading.Lock()
+        self.tts_synthesized_files: list[tuple[str, str]] = []
+        self.tts_synthesized_files_lock: threading.Lock = threading.Lock()
 
     def init_tts_files_database(self) -> bool:
         """初始化TTS文件数据库"""
@@ -85,7 +87,7 @@ class TTSDatabaseManager:
         else:
             print(f"⚠️  参考文本目录不存在: {ref_text_root}")
 
-        print(f"✅ 文件数据库初始化完成:")
+        print("✅ 文件数据库初始化完成:")
         print(f"   - GPT模型: {len(self.tts_files_database['gpt'])} 个")
         print(f"   - SoVITS模型: {len(self.tts_files_database['sovits'])} 个")
         print(f"   - 参考音频: {len(self.tts_files_database['audio'])} 个")
@@ -128,7 +130,7 @@ class TTSDatabaseManager:
                     return True
         return False
 
-    def get_current_model(self, model_type: str) -> Optional[str]:
+    def get_current_model(self, model_type: str) -> str | None:
         """获取当前选中的模型"""
         with self.current_models_lock:
             if model_type == "gpt":
@@ -148,7 +150,7 @@ class TTSDatabaseManager:
             return Path(model_path).name
         return "未选择"
 
-    def load_synthesized_files(self) -> List[Tuple[str, str]]:
+    def load_synthesized_files(self) -> list[tuple[str, str]]:
         """加载已合成音频文件"""
         with self.tts_synthesized_files_lock:
             self.tts_synthesized_files = []
@@ -159,7 +161,7 @@ class TTSDatabaseManager:
                     self.tts_synthesized_files.append((str(wav_file), wav_file.name))
         return self.tts_synthesized_files
 
-    def add_synthesized_file(self, audio_path: str):
+    def add_synthesized_file(self, audio_path: str) -> None:
         """添加合成的音频文件到列表"""
         with self.tts_synthesized_files_lock:
             audio_file = Path(audio_path)

@@ -3,6 +3,10 @@ ConnectionBuilder - 设备管理页面构建器（PyQt6 重构版）
 浅色米白色主题版本
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QFrame, QLineEdit, QComboBox,
@@ -13,27 +17,28 @@ from PyQt6.QtGui import QCursor, QFont
 
 from yuntai.gui.styles import ThemeColors, ThemeFonts, ThemeCorner, ThemeSpacing
 
+if TYPE_CHECKING:
+    from yuntai.gui.gui_view import GUIView
+
 
 class ConnectionBuilder:
     """设备管理页面构建器"""
 
-    def __init__(self, view_instance):
-        self.view = view_instance
-        self.components = view_instance.components
+    def __init__(self, view_instance: GUIView) -> None:
+        self.view: GUIView = view_instance
+        self.components: dict[str, Any] = view_instance.components
     
     @property
-    def colors(self):
+    def colors(self) -> ThemeColors:
         """动态获取当前主题颜色"""
         return self.view.colors
 
-    def create_page(self):
+    def create_page(self) -> None:
         """创建设备管理页面（只执行一次）"""
         self.view._highlight_nav_button(1)
 
-        # 获取页面容器
         page = self.view.content_pages[1]
         
-        # 检查是否已有布局，如果有则直接返回（页面已创建）
         if page.layout() is not None:
             return
         
@@ -41,7 +46,6 @@ class ConnectionBuilder:
         page_layout.setContentsMargins(30, 30, 30, 30)
         page_layout.setSpacing(0)
 
-        # 标题卡片 - 居中对齐
         header_card = self._create_card(corner_radius=ThemeCorner.LG)
         header_layout = QVBoxLayout(header_card)
         header_layout.setContentsMargins(30, 20, 30, 20)
@@ -62,7 +66,6 @@ class ConnectionBuilder:
         page_layout.addWidget(header_card)
         page_layout.addSpacing(20)
 
-        # 连接状态卡片 - 有边框
         self.components["status_card"] = QFrame()
         self.components["status_card"].setObjectName("statusCard")
         self.components["status_card"].setFixedHeight(90)
@@ -73,7 +76,6 @@ class ConnectionBuilder:
                 border-radius: {ThemeCorner.LG}px;
             }}
         """)
-        # 应用阴影效果
         self.view._apply_shadow(self.components["status_card"], 'md')
         status_layout = QVBoxLayout(self.components["status_card"])
         status_layout.setContentsMargins(30, 20, 30, 20)
@@ -89,12 +91,11 @@ class ConnectionBuilder:
         page_layout.addWidget(self.components["status_card"])
         page_layout.addSpacing(16)
 
-        # 连接设置表单
         self._create_connection_form(page_layout)
 
         page_layout.addStretch()
 
-    def _create_card(self, corner_radius=ThemeCorner.MD, shadow_type='md'):
+    def _create_card(self, corner_radius: int = ThemeCorner.MD, shadow_type: str = 'md') -> QFrame:
         """创建卡片样式的Frame"""
         card = QFrame()
         card.setStyleSheet(f"""
@@ -104,24 +105,21 @@ class ConnectionBuilder:
                 border-radius: {corner_radius}px;
             }}
         """)
-        # 应用阴影效果
         self.view._apply_shadow(card, shadow_type)
         return card
 
-    def _create_connection_form(self, parent_layout):
+    def _create_connection_form(self, parent_layout: QVBoxLayout) -> None:
         """创建设备连接表单 - 现代化卡片样式"""
         form_frame = self._create_card()
         form_layout = QVBoxLayout(form_frame)
         form_layout.setContentsMargins(25, 25, 25, 25)
         form_layout.setSpacing(20)
 
-        # 表单标题
         form_title = QLabel("🔗 设备连接设置")
         form_title.setFont(ThemeFonts.TITLE_SMALL)
         form_title.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
         form_layout.addWidget(form_title)
 
-        # 设备类型选择
         device_type_frame = QFrame()
         device_type_frame.setStyleSheet("background: transparent; border: none;")
         device_type_layout = QVBoxLayout(device_type_frame)
@@ -133,7 +131,6 @@ class ConnectionBuilder:
         device_type_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
         device_type_layout.addWidget(device_type_label)
 
-        # 设备类型下拉框容器
         device_type_border = QFrame()
         device_type_border.setStyleSheet(f"""
             QFrame {{
@@ -185,7 +182,6 @@ class ConnectionBuilder:
         device_type_layout.addWidget(device_type_border)
         form_layout.addWidget(device_type_frame)
 
-        # 连接方式选择
         conn_type_frame = QFrame()
         conn_type_frame.setStyleSheet("background: transparent; border: none;")
         conn_type_layout = QVBoxLayout(conn_type_frame)
@@ -197,7 +193,6 @@ class ConnectionBuilder:
         conn_type_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
         conn_type_layout.addWidget(conn_type_label)
 
-        # 单选按钮容器
         radio_container = QFrame()
         radio_container.setStyleSheet("background: transparent; border: none;")
         radio_layout = QHBoxLayout(radio_container)
@@ -265,7 +260,6 @@ class ConnectionBuilder:
         conn_type_layout.addWidget(radio_container)
         form_layout.addWidget(conn_type_frame)
 
-        # USB设置
         self.components["usb_frame"] = QFrame()
         self.components["usb_frame"].setStyleSheet(f"""
             QFrame {{
@@ -300,7 +294,6 @@ class ConnectionBuilder:
         """)
         usb_layout.addWidget(self.components["usb_entry"])
 
-        # 无线设置
         self.components["wireless_frame"] = QFrame()
         self.components["wireless_frame"].setStyleSheet(f"""
             QFrame {{
@@ -312,7 +305,6 @@ class ConnectionBuilder:
         wireless_layout.setContentsMargins(20, 15, 20, 15)
         wireless_layout.setSpacing(12)
 
-        # IP地址
         ip_label = QLabel("🌐 IP地址")
         ip_label.setFont(QFont(ThemeFonts.FONT_FAMILY, 13, QFont.Weight.Bold))
         ip_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
@@ -336,7 +328,6 @@ class ConnectionBuilder:
         """)
         wireless_layout.addWidget(self.components["ip_entry"])
 
-        # 端口
         port_label = QLabel("📟 端口")
         port_label.setFont(QFont(ThemeFonts.FONT_FAMILY, 13, QFont.Weight.Bold))
         port_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
@@ -361,27 +352,22 @@ class ConnectionBuilder:
         """)
         wireless_layout.addWidget(self.components["port_entry"])
 
-        # 默认显示无线设置，USB设置默认隐藏
         form_layout.addWidget(self.components["wireless_frame"])
         form_layout.addWidget(self.components["usb_frame"])
         self.components["usb_frame"].hide()
 
-        # 按钮区域
         button_frame = QFrame()
         button_frame.setStyleSheet("background: transparent; border: none;")
         button_layout = QHBoxLayout(button_frame)
         button_layout.setContentsMargins(0, 5, 0, 0)
         button_layout.setSpacing(12)
 
-        # 检测设备按钮
         self.components["detect_devices_btn"] = self._create_button("🔍 检测设备", "secondary")
         button_layout.addWidget(self.components["detect_devices_btn"])
 
-        # 连接设备按钮
         self.components["connect_device_btn"] = self._create_button("🔗 连接设备", "primary")
         button_layout.addWidget(self.components["connect_device_btn"])
 
-        # 断开连接按钮
         self.components["disconnect_device_btn"] = self._create_button("⏹ 断开连接", "danger")
         button_layout.addWidget(self.components["disconnect_device_btn"])
 
@@ -397,7 +383,7 @@ class ConnectionBuilder:
         btn.setFixedHeight(40)
         btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
-        colors_map = {
+        colors_map: dict[str, tuple[str, str]] = {
             "primary": (self.colors.PRIMARY, self.colors.PRIMARY_HOVER),
             "secondary": (self.colors.SECONDARY, self.colors.SECONDARY_HOVER),
             "danger": (self.colors.DANGER, self.colors.DANGER_HOVER),

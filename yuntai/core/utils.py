@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import openai
 from pathlib import Path
-from typing import Tuple, List
+
 
 
 
@@ -17,7 +17,7 @@ class Utils:
     def __init__(self):
         pass
 
-    def enable_windows_color(self):
+    def enable_windows_color(self) -> None:
         if sys.platform == "win32":
             try:
                 import ctypes
@@ -94,10 +94,10 @@ is_tts_synthesizing = False
 is_playing_audio_lock = threading.Lock()
 is_playing_audio = False
 tts_synthesized_files_lock = threading.Lock()
-tts_synthesized_files: List[Tuple[str, str]] = []
+tts_synthesized_files: list[tuple[str, str]] = []
 
 
-def load_synthesized_files(output_dir: str) -> List[Tuple[str, str]]:
+def load_synthesized_files(output_dir: str) -> list[tuple[str, str]]:
     """加载已合成音频文件"""
     global tts_synthesized_files
     with tts_synthesized_files_lock:

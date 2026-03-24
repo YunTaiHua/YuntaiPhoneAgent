@@ -5,7 +5,7 @@ from pathlib import Path
 
 now_dir = Path.cwd()
 sys.path.append(str(now_dir))
-from typing import Dict
+
 
 # 使用 try-except 导入 torch
 try:
@@ -38,7 +38,7 @@ except ImportError:
 
 
 class Text2SemanticLightningModule(LightningModule):
-    def __init__(self, config, output_dir, is_train=True):
+    def __init__(self, config, output_dir, is_train=True) -> None:
         super().__init__()
         self.config = config
         self.top_k = 3
@@ -61,7 +61,7 @@ class Text2SemanticLightningModule(LightningModule):
             self.eval_dir = output_dir / "eval"
             self.eval_dir.mkdir(parents=True, exist_ok=True)
 
-    def training_step(self, batch: Dict, batch_idx: int):
+    def training_step(self, batch: dict, batch_idx: int) -> None:
         opt = self.optimizers()
         scheduler = self.lr_schedulers()
         forward = self.model.forward if self.config["train"].get("if_dpo", False) == True else self.model.forward_old
@@ -102,7 +102,7 @@ class Text2SemanticLightningModule(LightningModule):
             sync_dist=True,
         )
 
-    def validation_step(self, batch: Dict, batch_idx: int):
+    def validation_step(self, batch: dict, batch_idx: int) -> None:
         return
 
     # # get loss
@@ -139,7 +139,7 @@ class Text2SemanticLightningModule(LightningModule):
     # save_path = os.path.join(self.eval_dir, save_name)
     # torch.save(pred_semantic.detach().cpu(), save_path)
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> dict:
         model_parameters = self.model.parameters()
         parameters_names = []
         parameters_names.append([name_param_pair[0] for name_param_pair in self.model.named_parameters()])

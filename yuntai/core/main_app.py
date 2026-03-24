@@ -9,7 +9,6 @@ import threading
 import time
 import atexit
 import logging
-from typing import Optional, TYPE_CHECKING
 
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QTimer, Qt

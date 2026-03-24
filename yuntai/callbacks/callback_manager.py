@@ -1,12 +1,10 @@
-"""
-回调管理器
-统一管理所有回调处理器，提供便捷的配置和使用接口
-"""
-from typing import Any, Dict, List, Optional, Callable
+"""回调管理器，统一管理所有回调处理器，提供便捷的配置和使用接口"""
+from collections.abc import Callable
+
 from langchain_core.callbacks import BaseCallbackHandler
 
 from yuntai.callbacks.streaming_handler import (
-    StreamingCallbackHandler, 
+    StreamingCallbackHandler,
     QtStreamingCallbackHandler,
     AsyncStreamingCallbackHandler
 )
@@ -22,36 +20,22 @@ from yuntai.callbacks.memory_handler import (
 
 
 class CallbackManager:
-    """
-    回调管理器
-    
-    统一管理所有回调处理器，提供：
-    - 便捷的处理器创建和配置
-    - 统一的回调列表管理
-    - 全局和局部回调支持
-    """
-    
-    def __init__(self):
+    """回调管理器，统一管理所有回调处理器"""
+
+    def __init__(self) -> None:
         """初始化回调管理器"""
-        self._handlers: Dict[str, BaseCallbackHandler] = {}
-        self._global_handlers: List[BaseCallbackHandler] = []
-        
+        self._handlers: dict[str, BaseCallbackHandler] = {}
+        self._global_handlers: list[BaseCallbackHandler] = []
+
     # ==================== 处理器注册 ====================
-    
+
     def register_handler(
-        self, 
-        name: str, 
+        self,
+        name: str,
         handler: BaseCallbackHandler,
         is_global: bool = False
-    ):
-        """
-        注册回调处理器
-        
-        Args:
-            name: 处理器名称
-            handler: 处理器实例
-            is_global: 是否为全局处理器
-        """
+    ) -> None:
+        """注册回调处理器"""
         # 如果已存在同名处理器，先注销旧的
         if name in self._handlers:
             old_handler = self._handlers[name]
@@ -64,29 +48,29 @@ class CallbackManager:
             if handler not in self._global_handlers:
                 self._global_handlers.append(handler)
     
-    def unregister_handler(self, name: str):
+    def unregister_handler(self, name: str) -> None:
         """注销回调处理器"""
         if name in self._handlers:
             handler = self._handlers[name]
             if handler in self._global_handlers:
                 self._global_handlers.remove(handler)
             del self._handlers[name]
-    
-    def get_handler(self, name: str) -> Optional[BaseCallbackHandler]:
+
+    def get_handler(self, name: str) -> BaseCallbackHandler | None:
         """获取指定名称的处理器"""
         return self._handlers.get(name)
-    
-    def get_all_handlers(self) -> Dict[str, BaseCallbackHandler]:
+
+    def get_all_handlers(self) -> dict[str, BaseCallbackHandler]:
         """获取所有处理器"""
         return self._handlers.copy()
-    
+
     # ==================== 快捷创建方法 ====================
-    
+
     def create_streaming_handler(
         self,
         name: str = "streaming",
-        output_callback: Optional[Callable[[str], None]] = None,
-        complete_callback: Optional[Callable[[str], None]] = None,
+        output_callback: Callable[[str], None] | None = None,
+        complete_callback: Callable[[str], None] | None = None,
         enable_typewriter: bool = True,
         is_global: bool = False
     ) -> StreamingCallbackHandler:
@@ -114,8 +98,8 @@ class CallbackManager:
     def create_qt_streaming_handler(
         self,
         name: str = "qt_streaming",
-        append_signal=None,
-        complete_signal=None,
+        append_signal: object = None,
+        complete_signal: object = None,
         enable_typewriter: bool = True,
         is_global: bool = False
     ) -> QtStreamingCallbackHandler:
@@ -143,7 +127,7 @@ class CallbackManager:
     def create_logging_handler(
         self,
         name: str = "logging",
-        log_file: Optional[str] = None,
+        log_file: str | None = None,
         enable_console: bool = True,
         enable_detailed: bool = True,
         is_global: bool = False
@@ -172,7 +156,7 @@ class CallbackManager:
     def create_performance_handler(
         self,
         name: str = "performance",
-        log_file: Optional[str] = None,
+        log_file: str | None = None,
         enable_console: bool = True,
         enable_detailed: bool = True,
         is_global: bool = False
@@ -201,7 +185,7 @@ class CallbackManager:
     def create_memory_handler(
         self,
         name: str = "memory",
-        memory_manager=None,
+        memory_manager: object = None,
         auto_save: bool = True,
         max_history: int = 50,
         is_global: bool = False
@@ -230,8 +214,8 @@ class CallbackManager:
     def create_file_memory_handler(
         self,
         name: str = "file_memory",
-        file_manager=None,
-        memory_manager=None,
+        file_manager: object = None,
+        memory_manager: object = None,
         auto_save: bool = True,
         max_history: int = 50,
         is_global: bool = False
@@ -262,10 +246,10 @@ class CallbackManager:
     # ==================== 回调列表管理 ====================
     
     def get_callbacks(
-        self, 
+        self,
         include_global: bool = True,
-        handler_names: Optional[List[str]] = None
-    ) -> List[BaseCallbackHandler]:
+        handler_names: list[str] | None = None
+    ) -> list[BaseCallbackHandler]:
         """
         获取回调处理器列表
         
@@ -302,8 +286,8 @@ class CallbackManager:
     def get_callbacks_for_invoke(
         self,
         include_global: bool = True,
-        handler_names: Optional[List[str]] = None
-    ) -> Dict[str, List[BaseCallbackHandler]]:
+        handler_names: list[str] | None = None
+    ) -> dict[str, list[BaseCallbackHandler]]:
         """
         获取用于 invoke 调用的回调配置
         
@@ -319,7 +303,7 @@ class CallbackManager:
     
     # ==================== 统计和摘要 ====================
     
-    def print_all_statistics(self):
+    def print_all_statistics(self) -> None:
         """打印所有处理器的统计信息"""
         print("\n" + "=" * 60)
         print("📊 回调处理器统计摘要")
@@ -354,7 +338,7 @@ class CallbackManager:
         
         print("\n" + "=" * 60)
     
-    def reset_all_statistics(self):
+    def reset_all_statistics(self) -> None:
         """重置所有处理器的统计信息"""
         for handler in self._handlers.values():
             if hasattr(handler, 'reset_statistics'):
@@ -366,11 +350,11 @@ class CallbackManager:
     
     def setup_default_handlers(
         self,
-        output_callback: Optional[Callable[[str], None]] = None,
-        log_file: Optional[str] = None,
-        memory_manager=None,
-        file_manager=None
-    ):
+        output_callback: Callable[[str], None] | None = None,
+        log_file: str | None = None,
+        memory_manager: object = None,
+        file_manager: object = None
+    ) -> None:
         """
         设置默认的回调处理器组合
         
@@ -410,14 +394,14 @@ class CallbackManager:
                 is_global=True
             )
     
-    def clear_all(self):
+    def clear_all(self) -> None:
         """清空所有处理器"""
         self._handlers.clear()
         self._global_handlers.clear()
 
 
 # 全局单例
-_global_callback_manager: Optional[CallbackManager] = None
+_global_callback_manager: CallbackManager | None = None
 
 
 def get_callback_manager() -> CallbackManager:
@@ -428,7 +412,7 @@ def get_callback_manager() -> CallbackManager:
     return _global_callback_manager
 
 
-def reset_callback_manager():
+def reset_callback_manager() -> None:
     """重置全局回调管理器"""
     global _global_callback_manager
     if _global_callback_manager:

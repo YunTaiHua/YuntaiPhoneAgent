@@ -10,7 +10,8 @@ import queue
 import time
 import datetime
 import traceback
-from typing import Optional, Dict, Any, Callable, List
+from collections.abc import Callable
+from typing import Any
 from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
@@ -212,7 +213,7 @@ class GUIController(QObject):
         # 可以在这里添加完成后的处理逻辑
         pass
     
-    def get_callbacks(self) -> List:
+    def get_callbacks(self) -> list:
         """获取 GUI 控制器的回调处理器列表"""
         return self.callback_manager.get_callbacks(include_global=True)
 

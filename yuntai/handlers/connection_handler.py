@@ -7,7 +7,6 @@ import os
 import subprocess
 import threading
 import pyperclip
-from typing import Optional, Dict, Any, Callable
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 

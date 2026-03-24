@@ -1,17 +1,15 @@
-"""
-更新记忆节点
-"""
+"""更新记忆节点"""
 import datetime
 import threading
-from typing import Optional
 
 from yuntai.graphs.state import ReplyState
 
-_file_manager: Optional[object] = None
-_tts_manager: Optional[object] = None
+_file_manager: object | None = None
+_tts_manager: object | None = None
 
 
-def set_managers(file_manager=None, tts_manager=None):
+def set_managers(file_manager: object | None = None, tts_manager: object | None = None) -> None:
+    """设置管理器实例"""
     global _file_manager, _tts_manager
     _file_manager = file_manager
     _tts_manager = tts_manager
@@ -61,7 +59,7 @@ def update_memory(state: ReplyState) -> dict:
 
 
 def prune_messages(state: ReplyState) -> dict:
-    """修剪消息列表，保持最大50条"""
+    """修剪消息列表，保持最大 50 条"""
     other = list(state["other_messages"])
     my = list(state["my_messages"])
     

@@ -5,8 +5,8 @@
 """
 import json
 from pathlib import Path
-from typing import List, Dict, Any, Optional
 from datetime import datetime
+from typing import Any
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_core.callbacks import BaseCallbackHandler
@@ -32,7 +32,7 @@ class ConversationMemoryManager:
         # 回调管理器
         self.callback_manager = get_callback_manager()
         
-        self._memory: Optional[ConversationBufferMemory] = None
+        self._memory: ConversationBufferMemory | None = None
         self._forever_memory: str = ""
         
         if history_file and Path(history_file).exists():
@@ -81,7 +81,7 @@ class ConversationMemoryManager:
         elif role == "assistant":
             memory.chat_memory.add_ai_message(content)
     
-    def get_messages(self, limit: int = 10) -> List[BaseMessage]:
+    def get_messages(self, limit: int = 10) -> list[BaseMessage]:
         """获取消息列表"""
         memory = self.get_memory()
         messages = memory.chat_memory.messages
@@ -103,7 +103,7 @@ class ConversationMemoryManager:
         if self._memory:
             self._memory.clear()
     
-    def save_to_file(self, data: Dict[str, Any], filepath: str):
+    def save_to_file(self, data: dict[str, Any], filepath: str) -> None:
         """保存到文件"""
         try:
             existing_data = []
@@ -142,7 +142,7 @@ class ConversationMemoryManager:
             is_global=True
         )
     
-    def get_callbacks(self) -> List[BaseCallbackHandler]:
+    def get_callbacks(self) -> list[BaseCallbackHandler]:
         """获取记忆相关的回调处理器"""
         return self.callback_manager.get_callbacks(
             include_global=True,
@@ -156,7 +156,7 @@ class FreeChatMemory:
     def __init__(self, file_manager=None):
         self.file_manager = file_manager
     
-    def get_recent_chats(self, limit: int = 5) -> List[Dict[str, Any]]:
+    def get_recent_chats(self, limit: int = 5) -> list[dict[str, Any]]:
         """获取最近的聊天记录"""
         if not self.file_manager:
             return []
@@ -182,20 +182,20 @@ class ChatSessionMemory:
     def __init__(self, file_manager=None):
         self.file_manager = file_manager
     
-    def get_recent_session(self, app_name: str, chat_object: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def get_recent_session(self, app_name: str, chat_object: str, limit: int = 5) -> list[dict[str, Any]]:
         """获取最近的会话记录"""
         if not self.file_manager:
             return []
         return self.file_manager.get_recent_conversation_history(app_name, chat_object, limit=limit)
     
     def save_session(
-        self, 
-        app_name: str, 
-        chat_object: str, 
-        reply: str, 
-        other_messages: List[str],
+        self,
+        app_name: str,
+        chat_object: str,
+        reply: str,
+        other_messages: list[str],
         cycle: int = 1
-    ):
+    ) -> None:
         """保存会话记录"""
         if not self.file_manager:
             return

@@ -1,21 +1,20 @@
-"""
-流程控制节点
-"""
+"""流程控制节点"""
 import time
 import threading
-from typing import Optional
 
 from yuntai.graphs.state import ReplyState
 
-_terminate_event: Optional[threading.Event] = None
+_terminate_event: threading.Event | None = None
 
 
-def set_terminate_event(event: threading.Event):
+def set_terminate_event(event: threading.Event) -> None:
+    """设置终止事件"""
     global _terminate_event
     _terminate_event = event
 
 
-def check_terminate():
+def check_terminate() -> bool:
+    """检查是否收到终止信号"""
     if _terminate_event and _terminate_event.is_set():
         return True
     return False

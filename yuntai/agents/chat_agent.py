@@ -1,9 +1,5 @@
-"""
-聊天 Agent
-使用 ZHIPU_CHAT_MODEL 进行自由聊天
-支持 LangChain Callbacks 实现流式输出
-"""
-from typing import Dict, Any, Optional, List, Callable
+"""聊天 Agent，使用 ZHIPU_CHAT_MODEL 进行自由聊天，支持 LangChain Callbacks 实现流式输出"""
+from collections.abc import Callable
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -19,12 +15,12 @@ class ChatAgent:
     """聊天 Agent - 支持 Callbacks 流式输出"""
     
     def __init__(
-        self, 
-        model: Optional[BaseChatModel] = None,
-        file_manager=None,
-        tts_manager=None,
+        self,
+        model: BaseChatModel | None = None,
+        file_manager: object = None,
+        tts_manager: object = None,
         enable_streaming: bool = True
-    ):
+    ) -> None:
         self.model = model or get_chat_model()
         self.zhipu_client = get_zhipu_client()
         self.file_manager = file_manager
@@ -36,23 +32,23 @@ class ChatAgent:
         self.callback_manager = get_callback_manager()
         
         # 流式输出回调（可外部设置）
-        self._streaming_callback: Optional[Callable[[str], None]] = None
-        self._complete_callback: Optional[Callable[[str], None]] = None
-    
-    def set_streaming_callback(self, callback: Callable[[str], None]):
+        self._streaming_callback: Callable[[str], None] | None = None
+        self._complete_callback: Callable[[str], None] | None = None
+
+    def set_streaming_callback(self, callback: Callable[[str], None]) -> None:
         """设置流式输出回调函数"""
         self._streaming_callback = callback
-    
-    def set_complete_callback(self, callback: Callable[[str], None]):
+
+    def set_complete_callback(self, callback: Callable[[str], None]) -> None:
         """设置完成回调函数"""
         self._complete_callback = callback
     
     def chat(
-        self, 
-        user_input: str, 
+        self,
+        user_input: str,
         include_memory: bool = True,
-        callbacks: Optional[List[BaseCallbackHandler]] = None,
-        enable_streaming: Optional[bool] = None
+        callbacks: list[BaseCallbackHandler] | None = None,
+        enable_streaming: bool | None = None
     ) -> str:
         """
         进行自由聊天（支持流式输出）
@@ -134,10 +130,10 @@ class ChatAgent:
             return f"聊天失败: {str(e)}"
     
     def _prepare_callbacks(
-        self, 
-        callbacks: Optional[List[BaseCallbackHandler]] = None,
+        self,
+        callbacks: list[BaseCallbackHandler] | None = None,
         enable_streaming: bool = True
-    ) -> List[BaseCallbackHandler]:
+    ) -> list[BaseCallbackHandler]:
         """
         准备回调处理器列表
         
@@ -169,11 +165,11 @@ class ChatAgent:
         return all_callbacks
     
     def chat_with_history(
-        self, 
-        user_input: str, 
-        history: List[Dict[str, str]],
-        callbacks: Optional[List[BaseCallbackHandler]] = None,
-        enable_streaming: Optional[bool] = None
+        self,
+        user_input: str,
+        history: list[dict[str, str]],
+        callbacks: list[BaseCallbackHandler] | None = None,
+        enable_streaming: bool | None = None
     ) -> str:
         """
         带历史记录的聊天（支持流式输出）
@@ -216,11 +212,11 @@ class ChatAgent:
             return f"聊天失败: {str(e)}"
     
     def chat_stream(
-        self, 
-        user_input: str, 
+        self,
+        user_input: str,
         include_memory: bool = True,
-        callbacks: Optional[List[BaseCallbackHandler]] = None
-    ):
+        callbacks: list[BaseCallbackHandler] | None = None
+    ) -> None:
         """
         流式聊天（返回生成器）
         

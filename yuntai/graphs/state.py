@@ -1,11 +1,9 @@
-"""
-LangGraph 状态定义
-"""
-from typing import TypedDict, List, Dict, Optional, Annotated
+"""LangGraph 状态定义"""
+from typing import Annotated, TypedDict
 from operator import add
 
 
-def merge_lists(left: List, right: List) -> List:
+def merge_lists(left: list, right: list) -> list:
     """合并列表，去重"""
     result = list(left)
     for item in right:
@@ -15,39 +13,48 @@ def merge_lists(left: List, right: List) -> List:
 
 
 class ReplyState(TypedDict):
+    """回复工作流状态定义"""
+
+    # 基本信息
     app_name: str
     chat_object: str
     device_id: str
-    
+
+    # 循环控制
     cycle_count: int
     max_cycles: int
     should_continue: bool
     terminate_flag: bool
-    
+
+    # 消息解析
     extracted_records: str
     parse_success: bool
-    parsed_messages: List[Dict[str, str]]
-    
-    other_messages: Annotated[List[str], merge_lists]
-    my_messages: Annotated[List[str], merge_lists]
-    current_other_messages: List[str]
-    current_my_messages: List[str]
-    
+    parsed_messages: list[dict[str, str]]
+
+    # 消息记录
+    other_messages: Annotated[list[str], merge_lists]
+    my_messages: Annotated[list[str], merge_lists]
+    current_other_messages: list[str]
+    current_my_messages: list[str]
+
+    # 最新消息
     latest_message: str
     previous_latest_message: str
     is_new_message: bool
-    
+
+    # 回复生成
     generated_reply: str
     send_success: bool
     last_sent_reply: str
-    
-    error: Optional[str]
+
+    # 错误处理
+    error: str | None
     retry_count: int
     wait_seconds: int
-    
+
+    # 结果
     result_message: str
-    
-    seen_other_messages: List[str]
+    seen_other_messages: list[str]
 
 
 class ReplyStateBuilder:

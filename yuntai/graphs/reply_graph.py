@@ -1,8 +1,6 @@
-"""
-LangGraph 持续回复工作流
-"""
+"""LangGraph 持续回复工作流"""
 import threading
-from typing import Optional, Tuple, Literal
+from typing import Literal
 
 from langgraph.graph import StateGraph, END
 
@@ -25,7 +23,8 @@ from yuntai.graphs.nodes.control import set_terminate_event
 class ReplyGraph:
     """持续回复工作流"""
     
-    def __init__(self, file_manager=None, tts_manager=None):
+    def __init__(self, file_manager: object = None, tts_manager: object = None) -> None:
+        """初始化回复工作流"""
         self.file_manager = file_manager
         self.tts_manager = tts_manager
         self.terminate_event = threading.Event()
@@ -115,12 +114,12 @@ class ReplyGraph:
         return "end"
     
     def run(
-        self, 
-        app_name: str, 
-        chat_object: str, 
+        self,
+        app_name: str,
+        chat_object: str,
         device_id: str = "",
         max_cycles: int = 30
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         运行持续回复
         
@@ -162,15 +161,15 @@ class ReplyGraph:
         finally:
             self._running = False
     
-    def stop(self):
+    def stop(self) -> None:
         """停止工作流"""
         self.terminate_event.set()
-    
+
     def is_running(self) -> bool:
         """是否正在运行"""
         return self._running
-    
-    def reset(self):
+
+    def reset(self) -> None:
         """重置状态"""
         self.terminate_event.clear()
         self._running = False

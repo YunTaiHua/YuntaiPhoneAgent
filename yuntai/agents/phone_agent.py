@@ -1,9 +1,5 @@
-"""
-手机操作 Agent
-使用 ZHIPU_MODEL 执行手机操作
-"""
+"""手机操作 Agent，使用 ZHIPU_MODEL 执行手机操作"""
 import re
-from typing import Dict, Any, Optional, Tuple
 
 from phone_agent import PhoneAgent as ExternalPhoneAgent
 from phone_agent.model import ModelConfig
@@ -21,11 +17,11 @@ from yuntai.core.agent_executor import AgentExecutor
 
 class PhoneAgentWrapper:
     """手机操作 Agent 包装器"""
-    
-    def __init__(self, device_id: str, max_steps: int = 100):
+
+    def __init__(self, device_id: str, max_steps: int = 100) -> None:
         self.device_id = device_id
         self.max_steps = max_steps
-        self._agent: Optional[ExternalPhoneAgent] = None
+        self._agent: ExternalPhoneAgent | None = None
     
     def _create_agent(self) -> ExternalPhoneAgent:
         """创建 PhoneAgent 实例"""
@@ -48,20 +44,20 @@ class PhoneAgentWrapper:
             self._agent = self._create_agent()
         return self._agent
     
-    def _reset_agent(self):
+    def _reset_agent(self) -> None:
         if self._agent:
             self._agent.reset()
             self._agent = None
-    
-    def _setup_pipe(self):
+
+    def _setup_pipe(self) -> None:
         """设置管道"""
         AgentExecutor._setup_stdin_pipe()
-    
-    def _cleanup_pipe(self):
+
+    def _cleanup_pipe(self) -> None:
         """清理管道"""
         AgentExecutor._cleanup_stdin_pipe()
-    
-    def execute(self, task: str) -> Tuple[bool, str]:
+
+    def execute(self, task: str) -> tuple[bool, str]:
         """
         执行手机操作
         
@@ -85,15 +81,15 @@ class PhoneAgentWrapper:
         finally:
             self._cleanup_pipe()
     
-    def open_app(self, app_name: str) -> Tuple[bool, str]:
+    def open_app(self, app_name: str) -> tuple[bool, str]:
         """打开 APP"""
         return self.execute(f"打开{app_name}")
-    
+
     def extract_chat_records(
-        self, 
-        app_name: str, 
+        self,
+        app_name: str,
         chat_object: str
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         提取聊天记录
         
@@ -129,11 +125,11 @@ class PhoneAgentWrapper:
             self._cleanup_pipe()
     
     def send_message(
-        self, 
-        app_name: str, 
-        chat_object: str, 
+        self,
+        app_name: str,
+        chat_object: str,
         message: str
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         发送消息
         
@@ -169,33 +165,33 @@ class PhoneAgentWrapper:
 
 class PhoneAgent:
     """手机操作 Agent 类"""
-    
-    def __init__(self, device_id: str = ""):
+
+    def __init__(self, device_id: str = "") -> None:
         self.device_id = device_id
-        self._wrapper: Optional[PhoneAgentWrapper] = None
-    
-    def set_device_id(self, device_id: str):
+        self._wrapper: PhoneAgentWrapper | None = None
+
+    def set_device_id(self, device_id: str) -> None:
         """设置设备 ID"""
         self.device_id = device_id
         self._wrapper = None
-    
+
     def _get_wrapper(self) -> PhoneAgentWrapper:
         if self._wrapper is None:
             self._wrapper = PhoneAgentWrapper(self.device_id)
         return self._wrapper
-    
-    def execute_operation(self, task: str) -> Tuple[bool, str]:
+
+    def execute_operation(self, task: str) -> tuple[bool, str]:
         """执行复杂操作"""
         return self._get_wrapper().execute(task)
-    
-    def open_app(self, app_name: str) -> Tuple[bool, str]:
+
+    def open_app(self, app_name: str) -> tuple[bool, str]:
         """打开 APP"""
         return self._get_wrapper().open_app(app_name)
-    
-    def extract_chat_records(self, app_name: str, chat_object: str) -> Tuple[bool, str]:
+
+    def extract_chat_records(self, app_name: str, chat_object: str) -> tuple[bool, str]:
         """提取聊天记录"""
         return self._get_wrapper().extract_chat_records(app_name, chat_object)
-    
-    def send_message(self, app_name: str, chat_object: str, message: str) -> Tuple[bool, str]:
+
+    def send_message(self, app_name: str, chat_object: str, message: str) -> tuple[bool, str]:
         """发送消息"""
         return self._get_wrapper().send_message(app_name, chat_object, message)

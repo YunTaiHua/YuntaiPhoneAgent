@@ -1,8 +1,5 @@
-"""
-解析消息节点
-"""
+"""解析消息节点"""
 import json
-from typing import Dict, List
 
 from yuntai.graphs.state import ReplyState
 from yuntai.models import get_zhipu_client
@@ -119,7 +116,7 @@ def _standardize_color(color: str) -> str:
     return "未知"
 
 
-def _emergency_extract(record: str) -> List[Dict[str, str]]:
+def _emergency_extract(record: str) -> list[dict[str, str]]:
     import re
     record_clean = re.sub(r"思考过程:|性能指标:|总推理时间:|首 Token 延迟|思考完成延迟", "", record)
     record_clean = re.sub(r"[^\u4e00-\u9fff\w\s\.,，。！？；：""''💪~]", "", record_clean)
