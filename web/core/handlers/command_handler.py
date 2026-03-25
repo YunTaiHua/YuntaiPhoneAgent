@@ -51,6 +51,7 @@ async def handle_command(websocket, data: dict, controller: "WebController"):
         try:
             if has_attachments:
                 result = handle_multimodal_chat(command, controller.attached_files, controller, loop)
+                result_text = result
             else:
                 try:
                     controller.task_chain.device_id = controller.task_manager.device_id if controller.task_manager.is_connected else ""
@@ -111,7 +112,8 @@ async def handle_command(websocket, data: dict, controller: "WebController"):
 
         finally:
             # 输出结果或错误（在停止输出捕获之前）
-            if result_text:
+            # 多模态处理已在内部流式输出，无需重复打印
+            if result_text and not has_attachments:
                 if result_text.startswith("❌"):
                     print(result_text)
                 else:
@@ -163,6 +165,6 @@ def handle_multimodal_chat(text: str, file_paths: list, controller: "WebControll
                 except Exception as e:
                     print(f"TTS播报失败: {e}")
 
-        return "" if success else f"❌ 多模态分析失败: {response}"
+        return response if success else f"❌ 多模态分析失败: {response}"
     except Exception as e:
         return f"❌ 多模态处理失败: {str(e)}"
