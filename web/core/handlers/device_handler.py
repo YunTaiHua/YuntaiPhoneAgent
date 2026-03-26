@@ -15,8 +15,6 @@ async def handle_connect_device(websocket, data: dict, controller: "WebControlle
     device_type = data.get("device_type", "android")
     connection_type = data.get("connection_type", "wireless")
 
-    await controller.send_output("正在连接设备...\n", "output")
-
     def connect_thread():
         try:
             # 构建配置字典，与yuntai目录逻辑一致
@@ -46,7 +44,6 @@ async def handle_connect_device(websocket, data: dict, controller: "WebControlle
             asyncio.set_event_loop(loop)
             try:
                 if success:
-                    loop.run_until_complete(controller.send_output(f"✅ 设备连接成功: {device_id}\n", "output"))
                     loop.run_until_complete(controller.send_toast(f"已连接: {device_id}", "success"))
                     loop.run_until_complete(controller.send_state_update({
                         "is_connected": True,
@@ -54,7 +51,6 @@ async def handle_connect_device(websocket, data: dict, controller: "WebControlle
                         "device_type": device_type
                     }))
                 else:
-                    loop.run_until_complete(controller.send_output(f"❌ 设备连接失败: {message}\n", "output"))
                     loop.run_until_complete(controller.send_toast(f"连接失败: {message}", "error"))
             finally:
                 loop.close()
@@ -62,7 +58,6 @@ async def handle_connect_device(websocket, data: dict, controller: "WebControlle
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
-                loop.run_until_complete(controller.send_output(f"❌ 连接错误: {str(e)}\n", "output"))
                 loop.run_until_complete(controller.send_toast(f"连接错误: {str(e)}", "error"))
             finally:
                 loop.close()

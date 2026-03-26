@@ -12,6 +12,7 @@ import asyncio
 import threading
 import datetime
 import json
+import logging
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
@@ -25,6 +26,8 @@ from yuntai.callbacks import get_callback_manager, LoggingCallbackHandler, Perfo
 
 from .ws_manager import ConnectionManager
 from .output_capture import WebOutputCapture
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from fastapi import WebSocket
@@ -284,13 +287,13 @@ class WebController:
                     audio_files = list(tts.tts_files_database.get("audio", {}).keys())
                     if audio_files:
                         ref_audio = tts.tts_files_database.get("audio", {}).get(audio_files[0])
-                        print(f"🎵 自动选择参考音频: {audio_files[0]}")
+                        logger.info(f"自动选择参考音频: {audio_files[0]}")
 
                 if not ref_text:
                     text_files = list(tts.tts_files_database.get("text", {}).keys())
                     if text_files:
                         ref_text = tts.tts_files_database.get("text", {}).get(text_files[0])
-                        print(f"📄 自动选择参考文本: {text_files[0]}")
+                        logger.info(f"自动选择参考文本: {text_files[0]}")
 
                 if ref_audio and ref_text:
                     success, _ = tts.synthesize_text(
@@ -300,22 +303,22 @@ class WebController:
                         auto_play=True
                     )
                     if success:
-                        print("✅ TTS测试成功：欢迎语音播放成功")
+                        logger.info("TTS测试成功：欢迎语音播放成功")
                         self.tts_enabled = True
                         self._send_welcome_complete(tts_success=True)
                         return
                     else:
-                        print("⚠️ TTS测试失败：欢迎语音合成失败")
+                        logger.warning("TTS测试失败：欢迎语音合成失败")
                         self.tts_enabled = False
                 else:
-                    print("⚠️ TTS测试跳过：没有可用的参考音频或文本")
+                    logger.warning("TTS测试跳过：没有可用的参考音频或文本")
                     self.tts_enabled = False
             else:
-                print("⚠️ TTS测试跳过：TTS模块不可用")
+                logger.warning("TTS测试跳过：TTS模块不可用")
                 self.tts_enabled = False
 
         except Exception as e:
-            print(f"⚠️ TTS测试异常: {e}")
+            logger.error(f"TTS测试异常: {e}")
             self.tts_enabled = False
 
         self._send_welcome_complete(tts_success=False)
