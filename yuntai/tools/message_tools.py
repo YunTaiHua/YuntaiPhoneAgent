@@ -9,6 +9,13 @@ from difflib import SequenceMatcher
 from zhipuai import ZhipuAI
 
 from yuntai.core.config import ZHIPU_CHAT_MODEL
+from yuntai.prompts import (
+    PARSE_MESSAGES_SYSTEM_PROMPT,
+    PARSE_MESSAGES_PROMPT,
+    PARSE_MESSAGES_MAX_LENGTH,
+    REPLY_NODE_SYSTEM_PROMPT,
+    REPLY_NODE_USER_PROMPT,
+)
 
 
 SIMILARITY_THRESHOLD = 0.6
@@ -29,29 +36,14 @@ def parse_messages(record: str, zhipu_client: ZhipuAI) -> list[dict[str, str]]:
     if not record or len(record.strip()) < 10:
         return []
     
-    prompt_text = f"""从以下聊天记录中提取所有有效消息，返回JSON格式。
-
-聊天记录：
-{record[:2000]}
-
-返回格式要求：
-{{
-  "messages": [
-    {{"content": "消息内容", "position": "左侧有头像/右侧有头像/未知", "color": "白色/红色/蓝色/绿色/粉色/紫色/黑色/灰色/橙色/黄色/未知"}}
-  ]
-}}
-
-重要：
-1. 只输出JSON，不要有其他文字
-2. position只能是：左侧有头像、右侧有头像、未知
-3. 消息内容要完整，不要截断
-"""
+    records_text = record[:PARSE_MESSAGES_MAX_LENGTH]
+    prompt_text = PARSE_MESSAGES_PROMPT.format(records=records_text)
     
     try:
         stream = zhipu_client.chat.completions.create(
             model=ZHIPU_CHAT_MODEL,
             messages=[
-                {"role": "system", "content": "你必须只输出符合要求的JSON，不要加任何额外文字！"},
+                {"role": "system", "content": PARSE_MESSAGES_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt_text}
             ],
             temperature=0.0,
@@ -258,22 +250,17 @@ def generate_reply(
         for i, msg in enumerate(history_messages[-5:], 1):
             history_prompt += f"{i}. {msg[:50]}...\n"
     
-    default_system = """你是一个友好的助手，名字叫'小芸'，性别为女。
-根据对方的消息，生成一个自然、友好的回复。
-回复要简洁，通常1-2句话即可。
-直接输出回复内容，不要加任何标注。"""
-    
-    prompt = f"""对方发来消息：{latest_message}
-{history_prompt}
-
-请生成回复："""
+    user_prompt = REPLY_NODE_USER_PROMPT.format(
+        latest_message=latest_message,
+        history_prompt=history_prompt
+    )
     
     try:
         stream = zhipu_client.chat.completions.create(
             model=ZHIPU_CHAT_MODEL,
             messages=[
-                {"role": "system", "content": system_prompt or default_system},
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": system_prompt or REPLY_NODE_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
             ],
             temperature=0.7,
             stream=True,

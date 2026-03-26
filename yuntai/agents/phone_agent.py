@@ -11,8 +11,19 @@ from yuntai.core.config import (
     ZHIPU_MODEL,
     ZHIPU_CHAT_MODEL,
 )
-from yuntai.prompts import PHONE_OPERATION_PROMPT, PHONE_EXTRACT_CHAT_PROMPT
+from yuntai.prompts import (
+    PHONE_OPERATION_PROMPT,
+    PHONE_EXTRACT_CHAT_PROMPT,
+    PHONE_SEND_MESSAGE_PROMPT,
+    PHONE_EXTRACT_TASK_PROMPT,
+    PHONE_SEND_TASK_QQ,
+    PHONE_SEND_TASK_WECHAT,
+    PHONE_SEND_TASK_DEFAULT,
+)
 from yuntai.core.agent_executor import AgentExecutor
+
+
+from yuntai.prompts.agent_executor_prompt import CHAT_MESSAGE_PROMPT
 
 
 class PhoneAgentWrapper:
@@ -39,7 +50,7 @@ class PhoneAgentWrapper:
         )
         return ExternalPhoneAgent(model_config=model_config, agent_config=agent_config)
     
-    def _get_agent(self) -> "ExternalPhoneAgent":
+    def _get_agent(self) -> ExternalPhoneAgent:
         if self._agent is None:
             self._agent = self._create_agent()
         return self._agent
@@ -100,17 +111,11 @@ class PhoneAgentWrapper:
         Returns:
             (是否成功, 聊天记录)
         """
-        task = f"""在{app_name}中进入{chat_object}的聊天窗口，向下滑动1次，提取当前屏幕可见的聊天记录
-
-重要说明：
-1. 键盘已经关闭，不需要点击聊天区空白处关闭键盘
-2. 直接向下滑动1次即可
-3. 准确描述每条消息的气泡颜色（如白色、红色、蓝色、绿色等）
-4. 准确描述每条消息的头像位置（左侧有头像/右侧有头像）
-5. 不要判断发送方，只需描述客观信息
-6. 不要简化描述，必须明确说明头像位置
-7. 不要向上滑动
-"""
+        task = PHONE_EXTRACT_TASK_PROMPT.format(
+            app_name=app_name,
+            chat_object=chat_object,
+            extra_prompt=""
+        )
         task_with_prompt = task + "\n\n" + PHONE_EXTRACT_CHAT_PROMPT
         
         self._setup_pipe()
@@ -142,11 +147,23 @@ class PhoneAgentWrapper:
             (是否成功, 执行结果)
         """
         if app_name == "QQ":
-            task = f"在{app_name}中给{chat_object}发送消息：{message}，点击右下角的发送按钮，然后使用Back按钮关闭键盘"
+            task = PHONE_SEND_TASK_QQ.format(
+                app_name=app_name,
+                chat_object=chat_object,
+                message=message
+            )
         elif app_name == "微信":
-            task = f"在{app_name}中给{chat_object}发送消息：{message}，点击右侧的发送按钮，然后使用Back按钮关闭键盘"
+            task = PHONE_SEND_TASK_WECHAT.format(
+                app_name=app_name,
+                chat_object=chat_object,
+                message=message
+            )
         else:
-            task = f"在{app_name}中给{chat_object}发送消息：{message}，然后点击发送按钮，然后使用Back按钮关闭键盘"
+            task = PHONE_SEND_TASK_DEFAULT.format(
+                app_name=app_name,
+                chat_object=chat_object,
+                message=message
+            )
         
         self._setup_pipe()
         try:
@@ -154,7 +171,7 @@ class PhoneAgentWrapper:
             result = agent.run(task)
             self._reset_agent()
             
-            success_keywords = ["已成功发送消息", "消息已成功发送", "发送了消息", "发送成功", "发送了", "已发送"]
+            success_keywords = ["已成功发送消息", "消息已成功发送", "发送了消息", "发送成功", "发送了", "已发送", "点击了发送", "发送按钮", "点击发送按钮"]
             success = any(keyword in result for keyword in success_keywords)
             return success, result
         except Exception as e:
@@ -170,6 +187,8 @@ class PhoneAgent:
         self.device_id = device_id
         self._wrapper: PhoneAgentWrapper | None = None
 
+        self._last_extract_result: tuple[bool, str] = (False, "")
+
     def set_device_id(self, device_id: str) -> None:
         """设置设备 ID"""
         self.device_id = device_id
@@ -184,14 +203,16 @@ class PhoneAgent:
         """执行复杂操作"""
         return self._get_wrapper().execute(task)
 
+    
     def open_app(self, app_name: str) -> tuple[bool, str]:
         """打开 APP"""
         return self._get_wrapper().open_app(app_name)
 
+    
     def extract_chat_records(self, app_name: str, chat_object: str) -> tuple[bool, str]:
         """提取聊天记录"""
         return self._get_wrapper().extract_chat_records(app_name, chat_object)
-
+    
     def send_message(self, app_name: str, chat_object: str, message: str) -> tuple[bool, str]:
         """发送消息"""
         return self._get_wrapper().send_message(app_name, chat_object, message)

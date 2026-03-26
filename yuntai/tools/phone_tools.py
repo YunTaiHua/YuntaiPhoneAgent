@@ -15,6 +15,12 @@ from yuntai.core.config import (
     ZHIPU_API_BASE_URL,
     ZHIPU_MODEL,
 )
+from yuntai.prompts import (
+    PHONE_EXTRACT_TASK_PROMPT,
+    PHONE_SEND_TASK_QQ,
+    PHONE_SEND_TASK_WECHAT,
+    PHONE_SEND_TASK_DEFAULT,
+)
 
 
 def _create_phone_agent(device_id: str, max_steps: int = 100, lang: str = "cn") -> PhoneAgent:
@@ -37,7 +43,7 @@ def _create_phone_agent(device_id: str, max_steps: int = 100, lang: str = "cn") 
 class PhoneToolManager:
     """手机操作工具管理器"""
     
-    def __init__(self, device_id: str, max_steps: int = 100):
+    def __init__(self, device_id: str, max_steps: int = 100) -> None:
         self.device_id = device_id
         self.max_steps = max_steps
         self._agent: PhoneAgent | None = None
@@ -47,7 +53,7 @@ class PhoneToolManager:
             self._agent = _create_phone_agent(self.device_id, self.max_steps)
         return self._agent
     
-    def _reset_agent(self):
+    def _reset_agent(self) -> None:
         if self._agent:
             self._agent.reset()
             self._agent = None
@@ -83,21 +89,24 @@ class PhoneToolManager:
         chat_object: str,
         extra_prompt: str = ""
     ) -> tuple[bool, str]:
-        """提取聊天记录"""
+        """
+        提取聊天记录
+        
+        Args:
+            app_name: APP 名称
+            chat_object: 聊天对象
+            extra_prompt: 额外提示词
+        
+        Returns:
+            (是否成功, 聊天记录)
+        """
         try:
             agent = self._get_agent()
-            task = f"""在{app_name}中进入{chat_object}的聊天窗口，向下滑动1次，提取当前屏幕可见的聊天记录
-
-重要说明：
-1. 键盘已经关闭，不需要点击聊天区空白处关闭键盘
-2. 直接向下滑动1次即可
-3. 准确描述每条消息的气泡颜色（如白色、红色、蓝色、绿色等）
-4. 准确描述每条消息的头像位置（左侧有头像/右侧有头像）
-5. 不要判断发送方，只需描述客观信息
-6. 不要简化描述，必须明确说明头像位置
-7. 不要向上滑动
-{extra_prompt}
-"""
+            task = PHONE_EXTRACT_TASK_PROMPT.format(
+                app_name=app_name,
+                chat_object=chat_object,
+                extra_prompt=extra_prompt
+            )
             result = agent.run(task)
             self._reset_agent()
             return True, result
@@ -110,16 +119,38 @@ class PhoneToolManager:
         chat_object: str,
         message: str
     ) -> tuple[bool, str]:
-        """发送消息"""
+        """
+        发送消息
+        
+        Args:
+            app_name: APP 名称
+            chat_object: 聊天对象
+            message: 消息内容
+        
+        Returns:
+            (是否成功, 执行结果)
+        """
         try:
             agent = self._get_agent()
             
             if app_name == "QQ":
-                task = f"在{app_name}中给{chat_object}发送消息：{message}，点击右下角的发送按钮，然后使用Back按钮关闭键盘"
+                task = PHONE_SEND_TASK_QQ.format(
+                    app_name=app_name,
+                    chat_object=chat_object,
+                    message=message
+                )
             elif app_name == "微信":
-                task = f"在{app_name}中给{chat_object}发送消息：{message}，点击右侧的发送按钮，然后使用Back按钮关闭键盘"
+                task = PHONE_SEND_TASK_WECHAT.format(
+                    app_name=app_name,
+                    chat_object=chat_object,
+                    message=message
+                )
             else:
-                task = f"在{app_name}中给{chat_object}发送消息：{message}，然后点击发送按钮，然后使用Back按钮关闭键盘"
+                task = PHONE_SEND_TASK_DEFAULT.format(
+                    app_name=app_name,
+                    chat_object=chat_object,
+                    message=message
+                )
             
             result = agent.run(task)
             self._reset_agent()

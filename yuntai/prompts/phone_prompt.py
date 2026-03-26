@@ -42,3 +42,21 @@ PHONE_SEND_MESSAGE_PROMPT = """在{app_name}中给{chat_object}发送消息：{m
 1. 准确输入完整的消息内容
 2. 点击发送按钮
 3. 发送后使用Back按钮关闭键盘"""
+
+PHONE_EXTRACT_TASK_PROMPT = """在{app_name}中进入{chat_object}的聊天窗口，向下滑动1次，提取当前屏幕可见的聊天记录
+
+重要说明：
+1. 键盘已经关闭，不需要点击聊天区空白处关闭键盘
+2. 直接向下滑动1次即可
+3. 准确描述每条消息的气泡颜色（如白色、红色、蓝色、绿色等）
+4. 准确描述每条消息的头像位置（左侧有头像/右侧有头像）
+5. 不要判断发送方，只需描述客观信息
+6. 不要简化描述，必须明确说明头像位置
+7. 不要向上滑动
+{extra_prompt}"""
+
+PHONE_SEND_TASK_QQ = "在{app_name}中给{chat_object}发送消息：{message}，点击右下角的发送按钮，然后使用Back按钮关闭键盘"
+
+PHONE_SEND_TASK_WECHAT = "在{app_name}中给{chat_object}发送消息：{message}，点击右侧的发送按钮，然后使用Back按钮关闭键盘"
+
+PHONE_SEND_TASK_DEFAULT = "在{app_name}中给{chat_object}发送消息：{message}，然后点击发送按钮，然后使用Back按钮关闭键盘"

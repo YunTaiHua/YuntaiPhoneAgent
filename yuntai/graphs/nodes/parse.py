@@ -4,6 +4,11 @@ import json
 from yuntai.graphs.state import ReplyState
 from yuntai.models import get_zhipu_client
 from yuntai.core.config import ZHIPU_CHAT_MODEL
+from yuntai.prompts import (
+    PARSE_MESSAGES_SYSTEM_PROMPT,
+    PARSE_MESSAGES_PROMPT,
+    PARSE_MESSAGES_MAX_LENGTH,
+)
 
 
 def parse_messages(state: ReplyState) -> dict:
@@ -24,29 +29,14 @@ def parse_messages(state: ReplyState) -> dict:
     
     client = get_zhipu_client()
     
-    prompt_text = f"""从以下聊天记录中提取所有有效消息，返回JSON格式。
-
-聊天记录：
-{records[:2000]}
-
-返回格式要求：
-{{
-  "messages": [
-    {{"content": "消息内容", "position": "左侧有头像/右侧有头像/未知", "color": "白色/红色/蓝色/绿色/粉色/紫色/黑色/灰色/橙色/黄色/未知"}}
-  ]
-}}
-
-重要：
-1. 只输出JSON，不要有其他文字
-2. position只能是：左侧有头像、右侧有头像、未知
-3. 消息内容要完整，不要截断
-"""
+    records_text = records[:PARSE_MESSAGES_MAX_LENGTH]
+    prompt_text = PARSE_MESSAGES_PROMPT.format(records=records_text)
     
     try:
         stream = client.chat.completions.create(
             model=ZHIPU_CHAT_MODEL,
             messages=[
-                {"role": "system", "content": "你必须只输出符合要求的JSON，不要加任何额外文字！"},
+                {"role": "system", "content": PARSE_MESSAGES_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt_text}
             ],
             temperature=0.0,
@@ -79,6 +69,7 @@ def parse_messages(state: ReplyState) -> dict:
                     "color": _standardize_color(msg.get("color", "未知"))
                 })
         
+        print(f"📋 解析到 {len(parsed_messages)} 条消息")
         return {
             "parse_success": True,
             "parsed_messages": parsed_messages,
@@ -93,6 +84,7 @@ def parse_messages(state: ReplyState) -> dict:
 
 
 def _standardize_position(position: str) -> str:
+    """标准化头像位置"""
     if not position or position == "未知":
         return "未知"
     if "左" in position.lower():
@@ -103,6 +95,7 @@ def _standardize_position(position: str) -> str:
 
 
 def _standardize_color(color: str) -> str:
+    """标准化气泡颜色"""
     if not color or color == "未知":
         return "未知"
     color_lower = color.lower()
@@ -117,6 +110,7 @@ def _standardize_color(color: str) -> str:
 
 
 def _emergency_extract(record: str) -> list[dict[str, str]]:
+    """紧急提取方法：当AI解析失败时使用"""
     import re
     record_clean = re.sub(r"思考过程:|性能指标:|总推理时间:|首 Token 延迟|思考完成延迟", "", record)
     record_clean = re.sub(r"[^\u4e00-\u9fff\w\s\.,，。！？；：""''💪~]", "", record_clean)

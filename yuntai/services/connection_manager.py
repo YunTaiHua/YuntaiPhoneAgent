@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 """
-连接管理模块 - 支持USB和无线调试两种方式
-仅支持Android (ADB) 设备
+连接管理模块
+
+支持USB和无线调试两种方式，兼容 Android (ADB) 和 HarmonyOS (HDC) 设备。
+
+Example:
+    >>> manager = ConnectionManager()
+    >>> config = manager.load_connection_config()
+    >>> success, device_id, message = manager.connect_to_device(config)
 """
+
 import subprocess
 import json
 from pathlib import Path
@@ -10,27 +17,60 @@ from pathlib import Path
 from yuntai.core.config import (
     CONNECTION_CONFIG_FILE,
     DEFAULT_DEVICE_TYPE,
-    DEVICE_TYPE_HARMONY
+    DEVICE_TYPE_HARMONY,
 )
 
 
 class ConnectionManager:
-    def __init__(self, device_type: str = DEFAULT_DEVICE_TYPE):
+    """
+    连接管理器
+    
+    负责设备连接管理，支持 USB 和无线两种连接方式，
+    兼容 Android (ADB) 和 HarmonyOS (HDC) 设备。
+    
+    Attributes:
+        device_type: 设备类型 (android/harmony)
+    
+    Example:
+        >>> manager = ConnectionManager()
+        >>> devices = manager.get_available_devices()
+        >>> success, device_id, msg = manager.connect_to_device(config)
+    """
+    
+    def __init__(self, device_type: str = DEFAULT_DEVICE_TYPE) -> None:
         """
         初始化连接管理器
-
+        
         Args:
-            device_type: 设备类型 (android)
+            device_type: 设备类型，可选值为 'android' 或 'harmony'
         """
-        self.device_type = device_type
+        self.device_type: str = device_type
 
     def set_device_type(self, device_type: str) -> None:
-        """设置设备类型"""
+        """
+        设置设备类型
+        
+        Args:
+            device_type: 设备类型 (android/harmony)
+        """
         self.device_type = device_type
 
     def load_connection_config(self) -> dict[str, str]:
-        """加载连接配置"""
-        default_config = {
+        """
+        加载连接配置
+        
+        从配置文件加载连接配置，如果文件不存在则返回默认配置。
+        
+        Returns:
+            连接配置字典，包含以下字段:
+            - connection_type: 连接类型 (usb/wireless)
+            - wireless_ip: 无线连接 IP 地址
+            - wireless_port: 无线连接端口
+            - usb_device_id: USB 设备 ID
+            - device_type: 设备类型
+            - device_type_display: 设备类型显示名称
+        """
+        default_config: dict[str, str] = {
             "connection_type": "wireless",
             "wireless_ip": "",
             "wireless_port": "5555",
@@ -53,7 +93,12 @@ class ConnectionManager:
         return default_config
 
     def save_connection_config(self, config: dict[str, str]) -> None:
-        """保存连接配置"""
+        """
+        保存连接配置
+        
+        Args:
+            config: 连接配置字典
+        """
         try:
             config_file = Path(CONNECTION_CONFIG_FILE)
             config_file.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding='utf-8')
@@ -61,14 +106,26 @@ class ConnectionManager:
             print(f"⚠️  保存连接配置失败: {e}")
 
     def get_available_devices(self) -> list[str]:
-        """获取可用的设备列表（支持多平台）"""
+        """
+        获取可用的设备列表
+        
+        根据当前设备类型，返回可用的设备 ID 列表。
+        
+        Returns:
+            设备 ID 列表
+        """
         if self.device_type == DEVICE_TYPE_HARMONY:
             return self._get_harmony_devices()
         return self._get_android_devices()
 
     def _get_android_devices(self) -> list[str]:
-        """获取Android设备列表 (ADB)"""
-        devices = []
+        """
+        获取 Android 设备列表 (ADB)
+        
+        Returns:
+            Android 设备 ID 列表
+        """
+        devices: list[str] = []
         try:
             result = subprocess.run(
                 ["adb", "devices"],
@@ -91,8 +148,13 @@ class ConnectionManager:
             return []
 
     def _get_harmony_devices(self) -> list[str]:
-        """获取HarmonyOS设备列表 (HDC)"""
-        devices = []
+        """
+        获取 HarmonyOS 设备列表 (HDC)
+        
+        Returns:
+            HarmonyOS 设备 ID 列表
+        """
+        devices: list[str] = []
         try:
             result = subprocess.run(
                 ["hdc", "list", "targets"],
@@ -114,9 +176,22 @@ class ConnectionManager:
 
     def connect_to_device(self, config: dict[str, str]) -> tuple[bool, str, str]:
         """
-        连接到设备（支持Android和HarmonyOS）
-
-        Returns: (是否成功, 设备ID, 消息)
+        连接到设备
+        
+        根据配置连接到 Android 或 HarmonyOS 设备。
+        
+        Args:
+            config: 连接配置字典
+        
+        Returns:
+            元组 (是否成功, 设备ID, 消息)
+        
+        Example:
+            >>> success, device_id, msg = manager.connect_to_device({
+            ...     "connection_type": "wireless",
+            ...     "wireless_ip": "192.168.1.100",
+            ...     "wireless_port": "5555"
+            ... })
         """
         device_type = config.get("device_type", self.device_type)
         connection_type = config.get("connection_type", "wireless")
@@ -130,8 +205,23 @@ class ConnectionManager:
         else:
             return self._connect_android_device(device_id, connection_type, config)
 
-    def _connect_android_device(self, device_id: str, connection_type: str, config: dict[str, str]) -> tuple[bool, str, str]:
-        """连接Android设备 (ADB)"""
+    def _connect_android_device(
+        self,
+        device_id: str,
+        connection_type: str,
+        config: dict[str, str]
+    ) -> tuple[bool, str, str]:
+        """
+        连接 Android 设备 (ADB)
+        
+        Args:
+            device_id: 设备 ID
+            connection_type: 连接类型 (usb/wireless)
+            config: 连接配置
+        
+        Returns:
+            元组 (是否成功, 设备ID, 消息)
+        """
         if connection_type == "usb":
             devices = self._get_android_devices()
             if device_id in devices:
@@ -155,7 +245,6 @@ class ConnectionManager:
         else:
             wireless_ip = config.get("wireless_ip", "")
             wireless_port = config.get("wireless_port", "5555")
-            # 检查wireless_ip是否已包含端口
             if ":" in wireless_ip:
                 device_addr = wireless_ip
             else:
@@ -180,8 +269,23 @@ class ConnectionManager:
             except Exception as e:
                 return False, "", f"连接失败: {str(e)}"
 
-    def _connect_harmony_device(self, device_id: str, connection_type: str, config: dict[str, str]) -> tuple[bool, str, str]:
-        """连接HarmonyOS设备 (HDC)"""
+    def _connect_harmony_device(
+        self,
+        device_id: str,
+        connection_type: str,
+        config: dict[str, str]
+    ) -> tuple[bool, str, str]:
+        """
+        连接 HarmonyOS 设备 (HDC)
+        
+        Args:
+            device_id: 设备 ID
+            connection_type: 连接类型 (usb/wireless)
+            config: 连接配置
+        
+        Returns:
+            元组 (是否成功, 设备ID, 消息)
+        """
         if connection_type == "usb":
             devices = self._get_harmony_devices()
             if device_id in devices:
@@ -214,7 +318,15 @@ class ConnectionManager:
                 return False, "", f"连接失败: {str(e)}"
 
     def adb_connect_windows(self, device_addr: str) -> tuple[bool, str]:
-        """Windows ADB连接（兼容旧代码）"""
+        """
+        Windows ADB 连接（兼容旧代码）
+        
+        Args:
+            device_addr: 设备地址 (IP:端口 或 设备ID)
+        
+        Returns:
+            元组 (是否成功, 消息)
+        """
         try:
             result = subprocess.run(
                 ["adb", "connect", device_addr],

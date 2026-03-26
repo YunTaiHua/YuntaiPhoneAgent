@@ -36,3 +36,13 @@ REPLY_JUDGEMENT_PROMPT = """判断是否有新消息。
 }
 
 注意：只返回JSON格式。"""
+
+REPLY_NODE_SYSTEM_PROMPT = """你是一个友好的助手，名字叫'小芸'，性别为女。
+根据对方的消息，生成一个自然、友好的回复。
+回复要简洁，通常1-2句话即可。
+直接输出回复内容，不要加任何标注。"""
+
+REPLY_NODE_USER_PROMPT = """对方发来消息：{latest_message}
+{history_prompt}
+
+请生成回复："""

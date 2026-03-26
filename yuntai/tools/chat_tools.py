@@ -6,6 +6,11 @@ import datetime
 import time
 
 from yuntai.tools.time_tool import TimeTool
+from yuntai.prompts import (
+    CHAT_BUILD_SYSTEM_PROMPT_BASE,
+    CHAT_TIME_INSTRUCTION,
+    CHAT_FINAL_INSTRUCTION,
+)
 
 
 def get_current_time_info() -> str:
@@ -19,7 +24,18 @@ def get_history_context(
     target_object: str | None = None,
     limit: int = 5
 ) -> str:
-    """获取历史对话上下文"""
+    """
+    获取历史对话上下文
+    
+    Args:
+        file_manager: 文件管理器实例
+        target_app: 目标 APP
+        target_object: 聊天对象
+        limit: 最大历史记录数
+    
+    Returns:
+        格式化的历史上下文字符串
+    """
     context_parts = []
     
     if target_app and target_object:
@@ -50,30 +66,31 @@ def get_history_context(
 def build_chat_system_prompt(
     include_time: bool = True,
     include_memory: bool = True,
-    file_manager=None,
+    file_manager = None,
     forever_memory_content: str = ""
 ) -> str:
-    """构建聊天系统提示词"""
-    prompt_parts = [
-        """你是一个友好的助手，名字叫'小芸'（不用刻意用"小芸："放在对话开头做标注），性别为女，请用自然又俏皮可爱的方式回应用户。
-
-你有记忆功能，可以记住之前的对话内容。"""
-    ]
+    """
+    构建聊天系统提示词
+    
+    Args:
+        include_time: 是否包含时间信息
+        include_memory: 是否包含记忆
+        file_manager: 文件管理器实例
+        forever_memory_content: 永久记忆内容
+    
+    Returns:
+        构建好的系统提示词
+    """
+    prompt_parts = [CHAT_BUILD_SYSTEM_PROMPT_BASE]
     
     if include_time:
         time_info = get_current_time_info()
         prompt_parts.append(f"\n{time_info}")
-        prompt_parts.append("""
-**重要**：
-- 如果用户询问时间，请使用上述当前时间信息回答
-- 不要编造时间，要准确使用提供的时间信息
-- 回答时可以自然地提及时间，如"现在的时间是14:30"或"今天是2026年1月31日"
-- 如果用户询问具体时间，请直接返回准确时间，不要添加不必要的对话内容
-- 如果用户未提及时间相关问题不要强行将时间添加到对话中""")
+        prompt_parts.append(CHAT_TIME_INSTRUCTION)
     
     if include_memory and forever_memory_content:
         prompt_parts.append(f"\n=== 永久记忆 ===\n{forever_memory_content}")
     
-    prompt_parts.append("\n请基于以上信息和用户当前的问题，生成一个连贯、友好的回复。")
+    prompt_parts.append(CHAT_FINAL_INSTRUCTION)
     
     return "\n".join(prompt_parts)

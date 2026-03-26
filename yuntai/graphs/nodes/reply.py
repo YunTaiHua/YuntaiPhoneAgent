@@ -5,6 +5,7 @@ from yuntai.graphs.state import ReplyState
 from yuntai.models import get_zhipu_client, get_chat_model
 from yuntai.core.config import ZHIPU_CHAT_MODEL
 from yuntai.callbacks import get_callback_manager, StreamingCallbackHandler
+from yuntai.prompts import REPLY_NODE_SYSTEM_PROMPT, REPLY_NODE_USER_PROMPT
 
 
 def generate_reply(
@@ -37,33 +38,24 @@ def generate_reply(
         for i, msg in enumerate(history_messages[-5:], 1):
             history_prompt += f"{i}. {msg[:50]}...\n"
     
-    system_prompt = """你是一个友好的助手，名字叫'小芸'，性别为女。
-根据对方的消息，生成一个自然、友好的回复。
-回复要简洁，通常1-2句话即可。
-直接输出回复内容，不要加任何标注。"""
-    
-    prompt = f"""对方发来消息：{latest_message}
-{history_prompt}
-
-请生成回复："""
+    prompt = REPLY_NODE_USER_PROMPT.format(
+        latest_message=latest_message,
+        history_prompt=history_prompt
+    )
     
     try:
-        # 准备回调处理器
         all_callbacks = _prepare_callbacks(callbacks)
         
-        # 使用 LangChain 模型（支持 callbacks）
         model = get_chat_model()
         
         from langchain_core.messages import SystemMessage, HumanMessage
         messages = [
-            SystemMessage(content=system_prompt),
+            SystemMessage(content=REPLY_NODE_SYSTEM_PROMPT),
             HumanMessage(content=prompt)
         ]
         
-        # 使用回调配置
         config = {"callbacks": all_callbacks} if all_callbacks else {}
         
-        # 调用模型
         response = model.invoke(messages, config=config)
         
         reply = response.content.strip()
@@ -101,12 +93,10 @@ def _prepare_callbacks(
     """
     all_callbacks = []
     
-    # 添加全局回调
     callback_manager = get_callback_manager()
     global_callbacks = callback_manager.get_callbacks(include_global=True)
     all_callbacks.extend(global_callbacks)
     
-    # 添加用户提供的回调
     if callbacks:
         all_callbacks.extend(callbacks)
     
