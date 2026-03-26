@@ -17,7 +17,8 @@ from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
 from yuntai.core.config import (
-    PROJECT_ROOT, SCRCPY_PATH, SHORTCUTS, CONVERSATION_HISTORY_FILE, TEMP_DIR
+    PROJECT_ROOT, SCRCPY_PATH, SHORTCUTS, CONVERSATION_HISTORY_FILE, TEMP_DIR,
+    APP_VERSION
 )
 from yuntai.services.task_manager import TaskManager, TTSManager
 from yuntai.chains import TaskChain, ReplyChain
@@ -432,7 +433,7 @@ class WebController:
                 "title": "系统检查",
                 "items": [
                     {"label": "API状态", "value": "正常"},
-                    {"label": "版本", "value": "v1.3.3"},
+                    {"label": "版本", "value": f"v{APP_VERSION}"},
                     {"label": "Python版本", "value": sys.version.split()[0]}
                 ]
             }
