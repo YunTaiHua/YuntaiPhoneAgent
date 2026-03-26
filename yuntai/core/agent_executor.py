@@ -6,12 +6,15 @@ Agent执行器模块
 import re
 import sys
 import os
+import logging
 import threading
 from phone_agent import PhoneAgent
 from phone_agent.model import ModelConfig
 from phone_agent.agent import AgentConfig
 from yuntai.core.config import DEVICE_TYPE_ANDROID
 from yuntai.prompts.agent_executor_prompt import CHAT_MESSAGE_PROMPT
+
+logger = logging.getLogger(__name__)
 
 
 class AgentExecutor:
@@ -55,14 +58,14 @@ class AgentExecutor:
             if cls._stdin_write is not None:
                 try:
                     os.close(cls._stdin_write)
-                except:
-                    pass
+                except OSError as e:
+                    logger.debug(f"关闭stdin写入端失败: {e}")
                 cls._stdin_write = None
             if cls._stdin_read is not None:
                 try:
                     os.close(cls._stdin_read)
-                except:
-                    pass
+                except OSError as e:
+                    logger.debug(f"关闭stdin读取端失败: {e}")
                 cls._stdin_read = None
             if cls._original_stdin is not None:
                 sys.stdin = cls._original_stdin
@@ -75,15 +78,15 @@ class AgentExecutor:
             if cls._stdin_write is not None:
                 try:
                     os.write(cls._stdin_write, b'\n')
-                    print("✅ 已发送确认信号到管道")
+                    logger.info("已发送确认信号到管道")
                     cls._user_confirmation_event.set()
                     cls._is_waiting_for_confirmation.clear()
                     return True
-                except Exception as e:
-                    print(f"\n⚠️  发送确认信号失败: {e}")
+                except OSError as e:
+                    logger.warning(f"发送确认信号失败: {e}")
                     return False
             else:
-                print("⚠️  stdin管道未初始化，无法发送确认信号")
+                logger.warning("stdin管道未初始化，无法发送确认信号")
                 cls._user_confirmation_event.set()
                 cls._is_waiting_for_confirmation.clear()
                 return False

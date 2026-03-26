@@ -227,8 +227,8 @@ class TTSManager:
                         segment_path = Path(segment_file)
                         if segment_path.exists() and segment_file != final_audio_path:
                             segment_path.unlink()
-                    except:
-                        pass
+                    except OSError as e:
+                        logger.debug(f"删除分段文件失败 {segment_file}: {e}")
 
                 return True, final_audio_path
             else:

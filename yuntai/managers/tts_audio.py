@@ -5,6 +5,7 @@ TTS音频播放器 - 负责音频播放、合并、以及PyAudio封装
 
 from __future__ import annotations
 
+import logging
 import threading
 import traceback
 import re
@@ -14,6 +15,8 @@ from typing import Any
 from pathlib import Path
 import pyaudio
 import wave
+
+logger = logging.getLogger(__name__)
 
 
 class TTSAudioPlayer:
@@ -196,12 +199,12 @@ class TTSAudioPlayer:
 
     def cleanup(self) -> None:
         """清理音频播放器资源"""
-        print("🧹 清理音频播放器资源...")
+        logger.info("清理音频播放器资源...")
 
         self.stop_current_audio_playback()
 
         if self.audio_player:
             try:
                 self.audio_player.terminate()
-            except:
-                pass
+            except OSError as e:
+                logger.debug(f"终止音频播放器失败: {e}")

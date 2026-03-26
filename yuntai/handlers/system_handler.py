@@ -3,6 +3,7 @@
   负责处理历史记录、系统设置和文件管理功能
 """
 
+import logging
 from pathlib import Path
 import threading
 
@@ -12,6 +13,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
 from PyQt6.QtGui import QFont
+
+logger = logging.getLogger(__name__)
 
 from yuntai.core.config import (
     CONVERSATION_HISTORY_FILE, RECORD_LOGS_DIR,
@@ -166,7 +169,7 @@ class SystemHandler(QObject):
         if refresh_btn:
             try:
                 refresh_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             refresh_btn.clicked.connect(self.load_history_data)
 
@@ -174,7 +177,7 @@ class SystemHandler(QObject):
         if clear_btn:
             try:
                 clear_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             clear_btn.clicked.connect(self.clear_history_data)
 
@@ -196,7 +199,7 @@ class SystemHandler(QObject):
             if btn:
                 try:
                     btn.clicked.disconnect()
-                except:
+                except TypeError:
                     pass
                 btn.clicked.connect(command)
 

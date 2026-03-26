@@ -6,8 +6,11 @@
 import sys
 import shutil
 import subprocess
+import logging
 import openai
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -23,8 +26,8 @@ class Utils:
                 import ctypes
                 kernel32 = ctypes.windll.kernel32
                 kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
-            except:
-                pass
+            except (OSError, AttributeError) as e:
+                logger.debug(f"设置Windows控制台颜色失败: {e}")
 
     def check_system_requirements(self) -> bool:
         all_passed = True

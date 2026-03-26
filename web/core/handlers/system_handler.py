@@ -7,10 +7,13 @@ import glob
 import asyncio
 import threading
 import datetime
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from yuntai.core.config import SHORTCUTS, TTS_OUTPUT_DIR
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from ..controller import WebController
@@ -39,8 +42,10 @@ async def handle_terminate(websocket, controller: "WebController"):
             try:
                 if controller.task_chain:
                     controller.task_chain.stop_continuous_reply()
-            except:
-                pass
+            except AttributeError as e:
+                logger.debug(f"task_chain不可用: {e}")
+            except Exception as e:
+                logger.warning(f"停止持续回复失败: {e}")
 
             # 等待任务真正结束（检查ReplyChain是否还在运行）
             import time
@@ -53,8 +58,8 @@ async def handle_terminate(websocket, controller: "WebController"):
                 if controller._current_reply_chain:
                     try:
                         is_still_running = controller._current_reply_chain.is_running()
-                    except:
-                        pass
+                    except AttributeError as e:
+                        logger.debug(f"ReplyChain不可用: {e}")
 
                 # 如果不再运行，退出等待
                 if not is_still_running and not controller.is_executing:
@@ -155,7 +160,12 @@ async def handle_system_check(websocket, controller: "WebController"):
                 else:
                     tool_result = controller.task_manager.utils.check_system_requirements()
                     tool_name = "ADB"
-            except:
+            except AttributeError as e:
+                logger.debug(f"设备检查工具不可用: {e}")
+                tool_result = False
+                tool_name = "ADB"
+            except Exception as e:
+                logger.warning(f"设备检查失败: {e}")
                 tool_result = False
                 tool_name = "ADB"
 
@@ -175,7 +185,11 @@ async def handle_system_check(websocket, controller: "WebController"):
                 api_result = controller.task_manager.utils.check_model_api(
                     ZHIPU_API_BASE_URL, ZHIPU_MODEL, ZHIPU_API_KEY
                 )
-            except:
+            except AttributeError as e:
+                logger.debug(f"API检查工具不可用: {e}")
+                api_result = False
+            except Exception as e:
+                logger.warning(f"API检查失败: {e}")
                 api_result = False
 
             result_text += "=" * 50 + "\n"
@@ -348,8 +362,8 @@ async def handle_delete_all_audio(websocket, controller: "WebController"):
             try:
                 filepath.unlink()
                 deleted_count += 1
-            except:
-                pass
+            except OSError as e:
+                logger.warning(f"删除文件失败 {filepath}: {e}")
 
         await controller.send_toast(f"已删除 {deleted_count} 个音频文件", "success")
         await controller.ws_manager.broadcast({

@@ -3,6 +3,7 @@
   负责处理设备连接、检测和投屏功能
 """
 
+import logging
 import os
 import subprocess
 import threading
@@ -14,6 +15,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
 from PyQt6.QtGui import QFont
+
+logger = logging.getLogger(__name__)
 
 from yuntai.gui.gui_view import GUIView
 from yuntai.gui.styles import (
@@ -256,7 +259,7 @@ class ConnectionHandler(QObject):
         if detect_btn:
             try:
                 detect_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             detect_btn.clicked.connect(self.detect_devices_gui)
 
@@ -265,7 +268,7 @@ class ConnectionHandler(QObject):
         if connect_btn:
             try:
                 connect_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             connect_btn.clicked.connect(self.connect_device_gui)
 
@@ -274,7 +277,7 @@ class ConnectionHandler(QObject):
         if disconnect_btn:
             try:
                 disconnect_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             disconnect_btn.clicked.connect(self.disconnect_device)
 
@@ -283,7 +286,7 @@ class ConnectionHandler(QObject):
         if conn_button_group:
             try:
                 conn_button_group.buttonClicked.disconnect()
-            except:
+            except TypeError:
                 pass
             conn_button_group.buttonClicked.connect(self._on_connection_type_changed)
 

@@ -1128,7 +1128,7 @@ class GUIView(QMainWindow):
                 if hasattr(component, key):
                     try:
                         setattr(component, key, value)
-                    except:
+                    except (AttributeError, TypeError):
                         # 对于某些属性需要使用特定方法
                         if hasattr(component, 'setText') and key == 'text':
                             component.setText(value)

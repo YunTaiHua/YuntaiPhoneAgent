@@ -287,7 +287,7 @@ class MediaGenerator:
                         "message": f"{error_msg}: {detail_msg}",
                         "response_text": response.text
                     }
-                except:
+                except json.JSONDecodeError:
                     return {
                         "success": False,
                         "message": error_msg,

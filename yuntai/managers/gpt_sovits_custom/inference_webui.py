@@ -60,6 +60,8 @@ logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 logging.getLogger("multipart.multipart").setLevel(logging.ERROR)
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
+logger = logging.getLogger(__name__)
+
 version = model_version = os.environ.get("version", "v2")
 
 from config import change_choices, get_weights_names, name2gpt_path, name2sovits_path
@@ -393,7 +395,7 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
     if "pretrained" not in sovits_path:
         try:
             del vq_model.enc_q
-        except:
+        except AttributeError:
             pass
     if is_half == True:
         vq_model = vq_model.half().to(device)
@@ -446,8 +448,10 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
 
 try:
     next(change_sovits_weights(sovits_path))
-except:
+except StopIteration:
     pass
+except Exception as e:
+    logger.debug(f"初始化SoVITS权重失败: {e}")
 
 
 def change_gpt_weights(gpt_path):
@@ -485,8 +489,8 @@ def clean_hifigan_model():
         hifigan_model = None
         try:
             torch.cuda.empty_cache()
-        except:
-            pass
+        except RuntimeError as e:
+            logger.debug(f"清理CUDA缓存失败: {e}")
 
 
 def clean_bigvgan_model():
@@ -496,8 +500,8 @@ def clean_bigvgan_model():
         bigvgan_model = None
         try:
             torch.cuda.empty_cache()
-        except:
-            pass
+        except RuntimeError as e:
+            logger.debug(f"清理CUDA缓存失败: {e}")
 
 
 def clean_sv_cn_model():
@@ -507,8 +511,8 @@ def clean_sv_cn_model():
         sv_cn_model = None
         try:
             torch.cuda.empty_cache()
-        except:
-            pass
+        except RuntimeError as e:
+            logger.debug(f"清理CUDA缓存失败: {e}")
 
 
 def init_bigvgan():
@@ -995,7 +999,8 @@ def get_tts_wav(
                         refers.append(refer)
                         if is_v2pro:
                             sv_emb.append(sv_cn_model.compute_embedding3(audio_tensor))
-                    except:
+                    except Exception as e:
+                        logger.warning(f"处理参考音频失败 {path}: {e}")
                         traceback.print_exc()
             if len(refers) == 0:
                 refers, audio_tensor = get_spepc(hps, ref_wav_path, dtype, device, is_v2pro)

@@ -3,11 +3,14 @@
   负责处理图像/视频生成功能
 """
 
+import logging
 import threading
 import time
 import traceback
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
+
+logger = logging.getLogger(__name__)
 
 from yuntai.processors.media_generator import MediaGenerator
 from yuntai.views.dynamic import ImagePreviewWindow
@@ -180,7 +183,7 @@ class DynamicHandler(QObject):
         if generate_image_btn:
             try:
                 generate_image_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             generate_image_btn.clicked.connect(self.generate_image)
 
@@ -188,7 +191,7 @@ class DynamicHandler(QObject):
         if preview_image_btn:
             try:
                 preview_image_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             preview_image_btn.clicked.connect(self.preview_latest_image)
 
@@ -196,7 +199,7 @@ class DynamicHandler(QObject):
         if generate_video_btn:
             try:
                 generate_video_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             generate_video_btn.clicked.connect(self.generate_video)
 
@@ -204,7 +207,7 @@ class DynamicHandler(QObject):
         if preview_video_btn:
             try:
                 preview_video_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             preview_video_btn.clicked.connect(self.preview_latest_video)
 
@@ -319,7 +322,7 @@ class DynamicHandler(QObject):
 
             try:
                 fps = int(components["video_fps_menu"].currentText())
-            except:
+            except (ValueError, TypeError):
                 fps = 30
 
             quality = components["video_quality_menu"].currentText()

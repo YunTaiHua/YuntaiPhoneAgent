@@ -6,12 +6,15 @@ routes.py - FastAPI路由定义
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any, Callable, Coroutine
 
 from fastapi import WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi import FastAPI
+
+logger = logging.getLogger(__name__)
 
 from yuntai.core.config import (
     PROJECT_ROOT, SHORTCUTS, CONVERSATION_HISTORY_FILE, TEMP_DIR,
@@ -253,8 +256,10 @@ def setup_routes(
                 elif msg_type == "tts_stop":
                     try:
                         controller.task_manager.tts_manager.stop_current_audio_playback()
-                    except:
-                        pass
+                    except AttributeError as e:
+                        logger.debug(f"TTS管理器不可用: {e}")
+                    except Exception as e:
+                        logger.warning(f"停止TTS播放失败: {e}")
                     await controller.send_toast("已停止播放", "info")
                 elif msg_type == "tts_load_models":
                     await handle_tts_load_models(websocket, controller)

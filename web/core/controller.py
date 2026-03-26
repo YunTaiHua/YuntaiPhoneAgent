@@ -169,8 +169,8 @@ class WebController:
         try:
             is_connected = self.task_manager.is_connected
             device_id = self.task_manager.device_id
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"获取设备状态失败: {e}")
 
         return {
             "is_executing": self.is_executing,

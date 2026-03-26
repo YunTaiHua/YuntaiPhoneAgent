@@ -5,6 +5,7 @@ GUIController - 事件处理和业务逻辑模块 (PyQt6 重构版)
 """
 
 import sys
+import logging
 import threading
 import queue
 import time
@@ -16,6 +17,8 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal, QObject
+
+logger = logging.getLogger(__name__)
 
 # 第三方库
 from zhipuai import ZhipuAI
@@ -246,7 +249,7 @@ class GUIController(QObject):
         if execute_btn:
             try:
                 execute_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             execute_btn.clicked.connect(self.execute_command)
 
@@ -254,7 +257,7 @@ class GUIController(QObject):
         if terminate_btn:
             try:
                 terminate_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             terminate_btn.clicked.connect(self.terminate_operation)
 
@@ -263,7 +266,7 @@ class GUIController(QObject):
         if tts_btn:
             try:
                 tts_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             tts_btn.clicked.connect(self.tts_handler.show_tts_settings_popup)
 
@@ -271,7 +274,7 @@ class GUIController(QObject):
         if clear_btn:
             try:
                 clear_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             clear_btn.clicked.connect(self.clear_output)
 
@@ -283,7 +286,7 @@ class GUIController(QObject):
         if scrcpy_btn:
             try:
                 scrcpy_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             scrcpy_btn.clicked.connect(self.connection_handler.show_scrcpy_popup)
 
@@ -291,7 +294,7 @@ class GUIController(QObject):
         if enter_btn:
             try:
                 enter_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             enter_btn.clicked.connect(self.simulate_enter)
 
@@ -300,7 +303,7 @@ class GUIController(QObject):
         if theme_toggle_btn:
             try:
                 theme_toggle_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             theme_toggle_btn.clicked.connect(self.toggle_theme)
 
@@ -309,7 +312,7 @@ class GUIController(QObject):
         if file_upload_btn:
             try:
                 file_upload_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             file_upload_btn.clicked.connect(self.show_file_upload)
 
@@ -319,7 +322,7 @@ class GUIController(QObject):
             if shortcut_btn:
                 try:
                     shortcut_btn.clicked.disconnect()
-                except:
+                except TypeError:
                     pass
                 shortcut_btn.clicked.connect(lambda checked, k=key: self.execute_shortcut(k))
 
@@ -713,8 +716,8 @@ class GUIController(QObject):
             while not self.message_queue.empty():
                 msg_type, msg_content = self.message_queue.get_nowait()
                 self.show_toast(msg_content, msg_type)
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"处理消息队列失败: {e}")
 
     def show_toast(self, message: str, msg_type: str = "info"):
         """显示提示消息 - 使用新的Toast组件"""

@@ -3,6 +3,7 @@
   负责处理TTS语音合成相关功能
 """
 
+import logging
 import threading
 import time
 import traceback
@@ -15,6 +16,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
 from PyQt6.QtGui import QFont, QKeySequence, QShortcut
+
+logger = logging.getLogger(__name__)
 
 from yuntai.gui.gui_view import GUIView
 from yuntai.gui.styles import (
@@ -138,7 +141,7 @@ class TTSHandler(QObject):
         if select_gpt_btn is not None:
             try:
                 select_gpt_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             select_gpt_btn.clicked.connect(self.tts_select_gpt_model)
 
@@ -146,7 +149,7 @@ class TTSHandler(QObject):
         if select_sovits_btn is not None:
             try:
                 select_sovits_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             select_sovits_btn.clicked.connect(self.tts_select_sovits_model)
 
@@ -154,7 +157,7 @@ class TTSHandler(QObject):
         if select_audio_btn is not None:
             try:
                 select_audio_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             select_audio_btn.clicked.connect(self.tts_select_ref_audio)
 
@@ -162,7 +165,7 @@ class TTSHandler(QObject):
         if select_text_btn is not None:
             try:
                 select_text_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             select_text_btn.clicked.connect(self.tts_select_ref_text)
 
@@ -171,7 +174,7 @@ class TTSHandler(QObject):
         if synth_btn is not None:
             try:
                 synth_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             synth_btn.clicked.connect(self.tts_start_synthesis)
 
@@ -179,7 +182,7 @@ class TTSHandler(QObject):
         if load_btn is not None:
             try:
                 load_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             load_btn.clicked.connect(self.tts_load_selected_models)
 
@@ -187,7 +190,7 @@ class TTSHandler(QObject):
         if stop_btn is not None:
             try:
                 stop_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             stop_btn.clicked.connect(self.tts_stop_audio_playback)
 
@@ -204,7 +207,7 @@ class TTSHandler(QObject):
         if audio_listbox is not None:
             try:
                 audio_listbox.itemDoubleClicked.disconnect()
-            except:
+            except TypeError:
                 pass
             audio_listbox.itemDoubleClicked.connect(self.tts_on_audio_double_click)
 
@@ -213,7 +216,7 @@ class TTSHandler(QObject):
         if play_btn is not None:
             try:
                 play_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             play_btn.clicked.connect(self.tts_play_selected_audio)
 
@@ -221,7 +224,7 @@ class TTSHandler(QObject):
         if refresh_btn is not None:
             try:
                 refresh_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             refresh_btn.clicked.connect(self.tts_update_synthesized_list)
 
@@ -229,7 +232,7 @@ class TTSHandler(QObject):
         if delete_btn is not None:
             try:
                 delete_btn.clicked.disconnect()
-            except:
+            except TypeError:
                 pass
             delete_btn.clicked.connect(self.tts_delete_audio_files)
 

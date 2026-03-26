@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 from yuntai.gui.gui_controller import GUIController
 
 # 使用新的统一配置
-from yuntai.core.config import PROJECT_ROOT, SCRCPY_PATH, validate_config, print_config_summary
+from yuntai.core.config import PROJECT_ROOT, SCRCPY_PATH, validate_config, print_config_summary, APP_VERSION
 
 
 
@@ -41,7 +41,7 @@ class MainApp:
         
         # 设置应用程序属性
         self.app.setApplicationName("Phone Agent")
-        self.app.setApplicationVersion("1.3.2")
+        self.app.setApplicationVersion(APP_VERSION)
 
         # 使用统一配置的路径
         self.project_root = PROJECT_ROOT
