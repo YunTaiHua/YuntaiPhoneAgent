@@ -1,4 +1,6 @@
 """手机操作 Agent，使用 ZHIPU_MODEL 执行手机操作"""
+from __future__ import annotations
+
 import re
 
 from phone_agent import PhoneAgent as ExternalPhoneAgent
@@ -10,6 +12,9 @@ from yuntai.core.config import (
     ZHIPU_API_BASE_URL,
     ZHIPU_MODEL,
     ZHIPU_CHAT_MODEL,
+    PHONE_AGENT_MAX_STEPS,
+    PHONE_AGENT_LANG,
+    PHONE_SUCCESS_KEYWORDS,
 )
 from yuntai.prompts import (
     PHONE_OPERATION_PROMPT,
@@ -29,7 +34,7 @@ from yuntai.prompts.agent_executor_prompt import CHAT_MESSAGE_PROMPT
 class PhoneAgentWrapper:
     """手机操作 Agent 包装器"""
 
-    def __init__(self, device_id: str, max_steps: int = 100) -> None:
+    def __init__(self, device_id: str, max_steps: int = PHONE_AGENT_MAX_STEPS) -> None:
         self.device_id = device_id
         self.max_steps = max_steps
         self._agent: ExternalPhoneAgent | None = None
@@ -40,13 +45,13 @@ class PhoneAgentWrapper:
             base_url=ZHIPU_API_BASE_URL,
             model_name=ZHIPU_MODEL,
             api_key=ZHIPU_API_KEY,
-            lang="cn",
+            lang=PHONE_AGENT_LANG,
         )
         agent_config = AgentConfig(
             max_steps=self.max_steps,
             device_id=self.device_id,
             verbose=False,
-            lang="cn",
+            lang=PHONE_AGENT_LANG,
         )
         return ExternalPhoneAgent(model_config=model_config, agent_config=agent_config)
     
@@ -171,7 +176,7 @@ class PhoneAgentWrapper:
             result = agent.run(task)
             self._reset_agent()
             
-            success_keywords = ["已成功发送消息", "消息已成功发送", "发送了消息", "发送成功", "发送了", "已发送", "点击了发送", "发送按钮", "点击发送按钮"]
+            success_keywords = PHONE_SUCCESS_KEYWORDS
             success = any(keyword in result for keyword in success_keywords)
             return success, result
         except Exception as e:

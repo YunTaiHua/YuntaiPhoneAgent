@@ -16,6 +16,10 @@ from yuntai.graphs import ReplyGraph
 from yuntai.tools.message_tools import parse_messages, generate_reply
 from yuntai.models import get_zhipu_client
 from yuntai.callbacks import get_callback_manager
+from yuntai.core.config import (
+    MIN_MESSAGE_LENGTH,
+    TTS_SPEAK_DELAY_REPLY,
+)
 
 if TYPE_CHECKING:
     from yuntai.services.file_manager import FileManager
@@ -103,7 +107,7 @@ class ReplyChain:
         my_messages: list[str] = []
         for msg in messages:
             content = msg.get("content", "").strip()
-            if len(content) < 2:
+            if len(content) < MIN_MESSAGE_LENGTH:
                 continue
             if msg.get("position") == "左侧有头像":
                 other_messages.append(content)
@@ -118,7 +122,7 @@ class ReplyChain:
 
         reply = generate_reply(latest_message, history_messages, client)
 
-        if not reply or len(reply) < 2:
+        if not reply or len(reply) < MIN_MESSAGE_LENGTH:
             return False, "未能生成有效回复"
 
         print(f"\n💬 生成回复: {reply[:50]}...")
@@ -140,7 +144,7 @@ class ReplyChain:
                 self.file_manager.save_conversation_history(session_data)
 
             if self.tts_manager and getattr(self.tts_manager, 'tts_enabled', False):
-                threading.Timer(0.5, lambda: self.tts_manager.speak_text_intelligently(reply)).start()
+                threading.Timer(TTS_SPEAK_DELAY_REPLY, lambda: self.tts_manager.speak_text_intelligently(reply)).start()
 
             return True, f"回复已发送: {reply[:50]}..."
         else:

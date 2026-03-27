@@ -2,6 +2,8 @@
 手机操作工具模块
 封装 PhoneAgent 的核心功能
 """
+from __future__ import annotations
+
 import json
 from collections.abc import Callable
 from langchain.tools import tool
@@ -14,6 +16,9 @@ from yuntai.core.config import (
     ZHIPU_API_KEY,
     ZHIPU_API_BASE_URL,
     ZHIPU_MODEL,
+    PHONE_AGENT_MAX_STEPS,
+    PHONE_AGENT_LANG,
+    PHONE_SUCCESS_KEYWORDS,
 )
 from yuntai.prompts import (
     PHONE_EXTRACT_TASK_PROMPT,
@@ -23,7 +28,7 @@ from yuntai.prompts import (
 )
 
 
-def _create_phone_agent(device_id: str, max_steps: int = 100, lang: str = "cn") -> PhoneAgent:
+def _create_phone_agent(device_id: str, max_steps: int = PHONE_AGENT_MAX_STEPS, lang: str = PHONE_AGENT_LANG) -> PhoneAgent:
     """创建 PhoneAgent 实例"""
     model_config = ModelConfig(
         base_url=ZHIPU_API_BASE_URL,
@@ -43,7 +48,7 @@ def _create_phone_agent(device_id: str, max_steps: int = 100, lang: str = "cn") 
 class PhoneToolManager:
     """手机操作工具管理器"""
     
-    def __init__(self, device_id: str, max_steps: int = 100) -> None:
+    def __init__(self, device_id: str, max_steps: int = PHONE_AGENT_MAX_STEPS) -> None:
         self.device_id = device_id
         self.max_steps = max_steps
         self._agent: PhoneAgent | None = None
@@ -155,7 +160,7 @@ class PhoneToolManager:
             result = agent.run(task)
             self._reset_agent()
             
-            success_keywords = ["已成功发送消息", "消息已成功发送", "发送了消息", "发送成功", "发送了", "已发送", "点击了发送", "发送按钮", "点击发送按钮"]
+            success_keywords = PHONE_SUCCESS_KEYWORDS
             success = any(keyword in result for keyword in success_keywords)
             return success, result
         except Exception as e:

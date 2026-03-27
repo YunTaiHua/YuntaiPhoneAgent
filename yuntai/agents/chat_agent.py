@@ -1,5 +1,8 @@
 """聊天 Agent，使用 ZHIPU_CHAT_MODEL 进行自由聊天，支持 LangChain Callbacks 实现流式输出"""
+from __future__ import annotations
+
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -9,6 +12,16 @@ from yuntai.models import get_chat_model, get_zhipu_client
 from yuntai.prompts import CHAT_SYSTEM_PROMPT, CHAT_WITH_CONTEXT_PROMPT
 from yuntai.tools import get_current_time_info
 from yuntai.callbacks import StreamingCallbackHandler, get_callback_manager
+from yuntai.core.config import (
+    RECENT_CHATS_LIMIT,
+    TTS_MIN_REPLY_LENGTH,
+    TTS_SPEAK_DELAY_REPLY,
+    HISTORY_CONTEXT_LIMIT,
+)
+
+if TYPE_CHECKING:
+    from yuntai.services.file_manager import FileManager
+    from yuntai.services.task_manager import TTSManager
 
 
 class ChatAgent:
@@ -17,8 +30,8 @@ class ChatAgent:
     def __init__(
         self,
         model: BaseChatModel | None = None,
-        file_manager: object = None,
-        tts_manager: object = None,
+        file_manager: FileManager | None = None,
+        tts_manager: TTSManager | None = None,
         enable_streaming: bool = True
     ) -> None:
         self.model = model or get_chat_model()
@@ -74,7 +87,7 @@ class ChatAgent:
             if forever_memory:
                 context_parts.append(f"=== 永久记忆 ===\n{forever_memory}")
             
-            chat_history = self.file_manager.get_recent_free_chats(limit=5)
+            chat_history = self.file_manager.get_recent_free_chats(limit=RECENT_CHATS_LIMIT)
             if chat_history:
                 history_text = "=== 最近对话 ===\n"
                 for i, chat in enumerate(chat_history):
@@ -120,9 +133,9 @@ class ChatAgent:
                 self.file_manager.save_conversation_history(session_data)
             
             # TTS 播报
-            if self.tts_manager and self.tts_manager.tts_enabled and len(reply) > 5:
+            if self.tts_manager and self.tts_manager.tts_enabled and len(reply) > TTS_MIN_REPLY_LENGTH:
                 import threading
-                threading.Timer(0.5, lambda: self.tts_manager.speak_text_intelligently(reply)).start()
+                threading.Timer(TTS_SPEAK_DELAY_REPLY, lambda: self.tts_manager.speak_text_intelligently(reply)).start()
             
             return reply
             
@@ -188,7 +201,7 @@ class ChatAgent:
         
         messages = [SystemMessage(content=self.system_prompt)]
         
-        for msg in history[-10:]:
+        for msg in history[-HISTORY_CONTEXT_LIMIT:]:
             if msg.get("role") == "user":
                 messages.append(HumanMessage(content=msg.get("content", "")))
             elif msg.get("role") == "assistant":
@@ -237,7 +250,7 @@ class ChatAgent:
             if forever_memory:
                 context_parts.append(f"=== 永久记忆 ===\n{forever_memory}")
             
-            chat_history = self.file_manager.get_recent_free_chats(limit=5)
+            chat_history = self.file_manager.get_recent_free_chats(limit=RECENT_CHATS_LIMIT)
             if chat_history:
                 history_text = "=== 最近对话 ===\n"
                 for i, chat in enumerate(chat_history):

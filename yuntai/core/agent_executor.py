@@ -3,11 +3,14 @@
 Agent执行器模块
 仅支持Android (PhoneAgent)
 """
+from __future__ import annotations
+
 import re
 import sys
 import os
 import logging
 import threading
+from typing import Any
 from phone_agent import PhoneAgent
 from phone_agent.model import ModelConfig
 from phone_agent.agent import AgentConfig
@@ -96,7 +99,7 @@ class AgentExecutor:
         """检查管道是否就绪"""
         return cls._stdin_write is not None
 
-    def phone_agent_exec(self, task: str, args, task_type: str, device_id: str) -> tuple[str, list[str]]:
+    def phone_agent_exec(self, task: str, args: Any, task_type: str, device_id: str) -> tuple[str, list[str]]:
         """phone_agent执行 - 仅支持Android设备"""
         AgentExecutor._user_confirmation_event.clear()
         AgentExecutor._is_waiting_for_confirmation.clear()
@@ -113,11 +116,12 @@ class AgentExecutor:
             return self._exec_android_agent(task, model_config, device_id, args)
 
         except Exception as e:
+            logger.error(f"任务执行失败: {e}")
             return f"任务执行失败：{str(e)}", [str(e)]
         finally:
             AgentExecutor._cleanup_stdin_pipe()
 
-    def _exec_android_agent(self, task: str, model_config: ModelConfig, device_id: str, args) -> tuple[str, list[str]]:
+    def _exec_android_agent(self, task: str, model_config: ModelConfig, device_id: str, args: Any) -> tuple[str, list[str]]:
         """执行Android Agent"""
         agent_config = AgentConfig(
             max_steps=args.max_steps,
@@ -128,7 +132,7 @@ class AgentExecutor:
         phone_agent = PhoneAgent(model_config=model_config, agent_config=agent_config)
         return self._execute_agent(task, phone_agent)
 
-    def _execute_agent(self, task: str, agent) -> tuple[str, list[str]]:
+    def _execute_agent(self, task: str, agent: PhoneAgent) -> tuple[str, list[str]]:
         """通用Agent执行逻辑"""
         task = task.strip()
         if not task:

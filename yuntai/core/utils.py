@@ -8,7 +8,15 @@ import shutil
 import subprocess
 import logging
 import openai
+import threading
 from pathlib import Path
+
+from yuntai.core.config import (
+    ADB_CHECK_TIMEOUT,
+    HDC_CHECK_TIMEOUT,
+    API_CHECK_TIMEOUT,
+    API_CHECK_MAX_TOKENS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +48,7 @@ class Utils:
                     ["adb", "version"],
                     capture_output=True,
                     text=True,
-                    timeout=10,
+                    timeout=ADB_CHECK_TIMEOUT,
                     encoding="utf-8",
                     errors="ignore"
                 )
@@ -49,6 +57,7 @@ class Utils:
                 else:
                     all_passed = False
             except Exception:
+                logger.debug("ADB 版本检查异常")
                 all_passed = False
 
         return all_passed
@@ -62,21 +71,22 @@ class Utils:
                 ["hdc", "-v"],
                 capture_output=True,
                 text=True,
-                timeout=5,
+                    timeout=HDC_CHECK_TIMEOUT,
                 encoding="utf-8",
                 errors="ignore"
             )
             return result.returncode == 0
         except Exception:
+            logger.debug("HDC 版本检查异常")
             return False
 
     def check_model_api(self, base_url: str, model_name: str, api_key: str = "EMPTY") -> bool:
         try:
-            client = openai.OpenAI(base_url=base_url, api_key=api_key, timeout=30.0)
+            client = openai.OpenAI(base_url=base_url, api_key=api_key, timeout=API_CHECK_TIMEOUT)
             response = client.chat.completions.create(
                 model=model_name,
                 messages=[{"role": "user", "content": "Hi"}],
-                max_tokens=5,
+                max_tokens=API_CHECK_MAX_TOKENS,
                 temperature=0.0,
                 stream=False,
             )
@@ -85,10 +95,9 @@ class Utils:
             else:
                 return False
         except Exception as e:
+            logger.debug(f"模型API检查异常: {e}")
             return False
 
-
-import threading
 
 tts_page_synthesizing = False
 

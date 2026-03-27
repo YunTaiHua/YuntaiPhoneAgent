@@ -20,7 +20,7 @@ from yuntai.prompts import (
     TASK_TYPE_CONTINUOUS_REPLY,
     TASK_TYPE_COMPLEX_OPERATION,
 )
-from yuntai.core.config import SHORTCUTS
+from yuntai.core.config import SHORTCUTS, TTS_SPEAK_DELAY_TASK
 from yuntai.callbacks import get_callback_manager
 
 if TYPE_CHECKING:
@@ -177,7 +177,7 @@ class TaskChain:
 
         if success:
             if self.tts_manager and getattr(self.tts_manager, 'tts_enabled', False) and result:
-                threading.Timer(0.3, lambda: self.tts_manager.speak_text_intelligently(result)).start()
+                threading.Timer(TTS_SPEAK_DELAY_TASK, lambda: self.tts_manager.speak_text_intelligently(result)).start()
             return "✅ 操作完成"
         else:
             return f"❌ 操作失败: {result}"
@@ -209,7 +209,7 @@ class TaskChain:
 
         if success:
             if self.tts_manager and getattr(self.tts_manager, 'tts_enabled', False) and result:
-                threading.Timer(0.3, lambda: self.tts_manager.speak_text_intelligently(result)).start()
+                threading.Timer(TTS_SPEAK_DELAY_TASK, lambda: self.tts_manager.speak_text_intelligently(result)).start()
             return "✅ 操作完成"
         else:
             return f"❌ 操作失败: {result}"

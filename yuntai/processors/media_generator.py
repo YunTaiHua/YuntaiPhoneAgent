@@ -19,19 +19,21 @@ from yuntai.core.config import (
     ZHIPU_API_KEY,
     ZHIPU_API_BASE_URL,
     ZHIPU_IMAGE_MODEL,
-    ZHIPU_VIDEO_MODEL
+    ZHIPU_VIDEO_MODEL,
+    MEDIA_CHUNK_SIZE,
+    MEDIA_TIMEOUT,
+    MAX_IMAGE_COUNT,
+    INITIAL_DELAY_TEXT,
+    INITIAL_DELAY_IMAGE,
+    MAX_ATTEMPTS,
+    CHECK_INTERVAL,
+    DOWNLOAD_TIMEOUT,
+    IMAGE_SIZES,
+    VIDEO_SIZES,
+    VIDEO_FPS,
 )
 
 logger = logging.getLogger(__name__)
-
-CHUNK_SIZE = 8192
-TIMEOUT = 30
-MAX_IMAGE_COUNT = 2
-INITIAL_DELAY_TEXT = 10
-INITIAL_DELAY_IMAGE = 30
-MAX_ATTEMPTS = 100
-CHECK_INTERVAL = 10
-DOWNLOAD_TIMEOUT = 30
 
 
 class MediaGenerator:
@@ -60,25 +62,11 @@ class MediaGenerator:
 
         self.executor = ThreadPoolExecutor(max_workers=2)
 
-        self.image_sizes = [
-            "1280x1280",
-            "1024x1024",
-            "1024x768",
-            "768x1024",
-            "1920x1080",
-            "1080x1920"
-        ]
+        self.image_sizes = IMAGE_SIZES
 
-        self.video_sizes = [
-            "1920x1080",
-            "1080x1920",
-            "1280x720",
-            "720x1280",
-            "1024x1024",
-            "3840x2160"
-        ]
+        self.video_sizes = VIDEO_SIZES
 
-        self.video_fps = [30, 60]
+        self.video_fps = VIDEO_FPS
 
     def generate_image(self, prompt: str, size: str = "1280x1280",
                        quality: str = "standard") -> dict[str, Any]:
@@ -405,14 +393,14 @@ class MediaGenerator:
             video_filename = f"{filename}.mp4"
             video_path = self.video_output_dir / video_filename
 
-            video_response = requests.get(video_url, stream=True, timeout=TIMEOUT)
+            video_response = requests.get(video_url, stream=True, timeout=MEDIA_TIMEOUT)
 
             if video_response.status_code == 200:
                 total_size = int(video_response.headers.get('content-length', 0))
 
                 with open(video_path, 'wb') as f:
                     downloaded = 0
-                    for chunk in video_response.iter_content(chunk_size=CHUNK_SIZE):
+                    for chunk in video_response.iter_content(chunk_size=MEDIA_CHUNK_SIZE):
                         if chunk:
                             f.write(chunk)
                             downloaded += len(chunk)
@@ -428,7 +416,7 @@ class MediaGenerator:
                         if cover_response.status_code == 200:
                             cover_path.write_bytes(cover_response.content)
                     except Exception as cover_error:
-                        pass
+                        logger.warning(f"下载视频封面失败: {cover_error}")
 
                 return {
                     "success": True,

@@ -2,8 +2,10 @@
 聊天工具模块
 提供时间信息和历史上下文
 """
+from __future__ import annotations
+
 import datetime
-import time
+from typing import TYPE_CHECKING
 
 from yuntai.tools.time_tool import TimeTool
 from yuntai.prompts import (
@@ -12,6 +14,9 @@ from yuntai.prompts import (
     CHAT_FINAL_INSTRUCTION,
 )
 
+if TYPE_CHECKING:
+    from yuntai.services.file_manager import FileManager
+
 
 def get_current_time_info() -> str:
     """获取当前时间信息"""
@@ -19,7 +24,7 @@ def get_current_time_info() -> str:
 
 
 def get_history_context(
-    file_manager,
+    file_manager: FileManager,
     target_app: str | None = None,
     target_object: str | None = None,
     limit: int = 5
@@ -66,7 +71,7 @@ def get_history_context(
 def build_chat_system_prompt(
     include_time: bool = True,
     include_memory: bool = True,
-    file_manager = None,
+    file_manager: FileManager | None = None,
     forever_memory_content: str = ""
 ) -> str:
     """

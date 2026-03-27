@@ -4,6 +4,7 @@ DynamicBuilder - 动态功能页面构建器（PyQt6 重构版）
 """
 
 from pathlib import Path
+import os
 import subprocess
 
 from PyQt6.QtWidgets import (
@@ -20,6 +21,7 @@ from yuntai.gui.styles import (
     DialogStyle, get_dialog_stylesheet, get_dialog_button_stylesheet,
     get_dialog_card_stylesheet
 )
+from yuntai.core.config import IMAGE_SIZES, VIDEO_SIZES, VIDEO_FPS
 
 
 # 动态页面布局常量 - 避免魔法数字
@@ -280,9 +282,7 @@ class DynamicBuilder:
         size_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
         size_layout.addWidget(size_label)
 
-        self.components["image_size_menu"] = self._create_combobox(
-            ["1280x1280", "1024x1024", "1024x768", "768x1024", "1920x1080", "1080x1920"]
-        )
+        self.components["image_size_menu"] = self._create_combobox(IMAGE_SIZES)
         size_layout.addWidget(self.components["image_size_menu"])
         size_layout.addStretch()
 
@@ -452,7 +452,7 @@ class DynamicBuilder:
         params_layout.addWidget(size_label)
 
         self.components["video_size_menu"] = self._create_combobox(
-            ["1920x1080", "1080x1920", "1280x720", "720x1280", "1024x1024"], 120, 34
+            [s for s in VIDEO_SIZES if s != "3840x2160"], 120, 34
         )
         params_layout.addWidget(self.components["video_size_menu"])
 
@@ -462,7 +462,7 @@ class DynamicBuilder:
         fps_label.setStyleSheet(f"color: {self.colors.TEXT_PRIMARY}; background: transparent; border: none;")
         params_layout.addWidget(fps_label)
 
-        self.components["video_fps_menu"] = self._create_combobox(["30", "60"], 80, 34)
+        self.components["video_fps_menu"] = self._create_combobox([str(f) for f in VIDEO_FPS], 80, 34)
         params_layout.addWidget(self.components["video_fps_menu"])
 
         # 质量选择
@@ -695,13 +695,14 @@ class ImagePreviewWindow(QDialog):  # pragma: no cover
         """打开文件所在文件夹"""
         try:
             import platform
+            resolved_path = str(Path(file_path).resolve())
 
             if platform.system() == "Windows":
-                subprocess.run(f'explorer /select,"{file_path}"')
+                subprocess.run(["explorer", "/select,", resolved_path])
             elif platform.system() == "Darwin":  # macOS
-                subprocess.run(["open", "-R", file_path])
+                subprocess.run(["open", "-R", resolved_path])
             elif platform.system() == "Linux":
-                subprocess.run(["xdg-open", str(Path(file_path).parent)])
+                subprocess.run(["xdg-open", str(Path(resolved_path).parent)])
         except Exception as e:
             QMessageBox.critical(self, "错误", f"无法打开文件夹: {str(e)}")
 
@@ -709,7 +710,7 @@ class ImagePreviewWindow(QDialog):  # pragma: no cover
 class VideoPreviewWindow(QDialog):  # pragma: no cover
     """视频预览窗口（PyQt6版本）"""
 
-    def __init__(self, parent, video_path: str, cover_path: str = None,
+    def __init__(self, parent, video_path: str, cover_path: str | None = None,
                  title: str = "视频预览"):
         """
         初始化视频预览窗口
@@ -889,12 +890,13 @@ class VideoPreviewWindow(QDialog):  # pragma: no cover
         """打开文件所在文件夹"""
         try:
             import platform
+            resolved_path = str(Path(file_path).resolve())
 
             if platform.system() == "Windows":
-                subprocess.run(f'explorer /select,"{file_path}"')
+                subprocess.run(["explorer", "/select,", resolved_path])
             elif platform.system() == "Darwin":  # macOS
-                subprocess.run(["open", "-R", file_path])
+                subprocess.run(["open", "-R", resolved_path])
             elif platform.system() == "Linux":
-                subprocess.run(["xdg-open", str(Path(file_path).parent)])
+                subprocess.run(["xdg-open", str(Path(resolved_path).parent)])
         except Exception as e:
             QMessageBox.critical(self, "错误", f"无法打开文件夹: {str(e)}")

@@ -2,13 +2,26 @@
 消息工具模块
 处理消息解析、归属判断、回复生成等
 """
+from __future__ import annotations
+
 import re
 import json
+import logging
 from difflib import SequenceMatcher
 
 from zhipuai import ZhipuAI
 
-from yuntai.core.config import ZHIPU_CHAT_MODEL
+from yuntai.core.config import (
+    ZHIPU_CHAT_MODEL,
+    SIMILARITY_THRESHOLD,
+    SIMILARITY_CHECK_NEW_THRESHOLD,
+    PARSE_MAX_TOKENS,
+    REPLY_MAX_TOKENS,
+    REPLY_TEMPERATURE,
+    REPLY_HISTORY_LIMIT,
+    MIN_MESSAGE_LENGTH,
+)
+
 from yuntai.prompts import (
     PARSE_MESSAGES_SYSTEM_PROMPT,
     PARSE_MESSAGES_PROMPT,
@@ -17,10 +30,7 @@ from yuntai.prompts import (
     REPLY_NODE_USER_PROMPT,
 )
 
-
-SIMILARITY_THRESHOLD = 0.6
-MAX_MESSAGE_LIST_LENGTH = 50
-
+logger = logging.getLogger(__name__)
 
 def parse_messages(record: str, zhipu_client: ZhipuAI) -> list[dict[str, str]]:
     """
@@ -48,7 +58,7 @@ def parse_messages(record: str, zhipu_client: ZhipuAI) -> list[dict[str, str]]:
             ],
             temperature=0.0,
             stream=True,
-            max_tokens=2000,
+            max_tokens=PARSE_MAX_TOKENS,
             response_format={"type": "json_object"}
         )
         
@@ -82,6 +92,7 @@ def parse_messages(record: str, zhipu_client: ZhipuAI) -> list[dict[str, str]]:
         return final_messages
     
     except Exception as e:
+        logger.warning(f"解析消息失败: {e}")
         print(f"解析消息失败: {e}")
         return _emergency_extract(record)
 
@@ -141,7 +152,7 @@ def is_message_similar(msg1: str, msg2: str, threshold: float = 0.6) -> bool:
     if not msg1 or not msg2:
         return False
     
-    def clean_text(text):
+    def clean_text(text: str) -> str:
         if not text:
             return ""
         text = re.sub(r'[^\w\u4e00-\u9fff]', '', text)
@@ -247,7 +258,7 @@ def generate_reply(
     history_prompt = ""
     if history_messages:
         history_prompt = "\n\n=== 历史对话（按时间顺序，从旧到新）===\n"
-        for i, msg in enumerate(history_messages[-5:], 1):
+        for i, msg in enumerate(history_messages[-REPLY_HISTORY_LIMIT:], 1):
             history_prompt += f"{i}. {msg[:50]}...\n"
     
     user_prompt = REPLY_NODE_USER_PROMPT.format(
@@ -262,9 +273,9 @@ def generate_reply(
                 {"role": "system", "content": system_prompt or REPLY_NODE_SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.7,
+            temperature=REPLY_TEMPERATURE,
             stream=True,
-            max_tokens=500
+            max_tokens=REPLY_MAX_TOKENS
         )
         
         reply = ""
@@ -280,6 +291,7 @@ def generate_reply(
         return reply
     
     except Exception as e:
+        logger.warning(f"生成回复失败: {e}")
         print(f"生成回复失败: {e}")
         return ""
 
@@ -306,13 +318,13 @@ def check_new_messages(
         is_new = True
         
         for existing_msg in previous_other_messages:
-            if is_message_similar(msg, existing_msg, threshold=0.5):
+            if is_message_similar(msg, existing_msg, threshold=SIMILARITY_CHECK_NEW_THRESHOLD):
                 is_new = False
                 break
         
         if is_new:
             for my_msg in my_messages_list:
-                if is_message_similar(msg, my_msg, threshold=0.5):
+                if is_message_similar(msg, my_msg, threshold=SIMILARITY_CHECK_NEW_THRESHOLD):
                     is_new = False
                     break
         
