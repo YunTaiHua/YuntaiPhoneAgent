@@ -314,8 +314,19 @@ class TTSManager:
         return self.database_manager.get_model_filename(model_type)
 
     def cleanup(self) -> None:
+        """
+        清理TTS资源
+        
+        关闭线程池、停止音频播放并清理相关资源。
+        建议在应用退出或TTS功能不再使用时调用。
+        """
         print("🧹 清理TTS资源...")
+        
         self.audio_player.cleanup()
+        
+        if hasattr(self.executor, 'shutdown'):
+            self.executor.shutdown(wait=False)
+            print("✅ TTS线程池已关闭")
 
 
 class TaskManager:

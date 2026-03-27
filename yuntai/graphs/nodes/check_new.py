@@ -1,17 +1,29 @@
 """
 检查新消息节点
+
+负责检测是否有新的对方消息，基于已读消息列表进行判断。
 """
-from difflib import SequenceMatcher
+
+from __future__ import annotations
 
 from yuntai.graphs.state import ReplyState
+from yuntai.tools import is_similar
 
 
-def check_new_message(state: ReplyState) -> dict:
+def check_new_message(state: ReplyState) -> dict[str, bool | str | list[str]]:
     """
     检查是否有新消息节点
     
+    根据已读消息列表判断是否有新的对方消息。
+    
     输入: current_other_messages, seen_other_messages
     输出: is_new_message, latest_message, seen_other_messages
+    
+    Args:
+        state: 回复状态字典
+    
+    Returns:
+        包含新消息检测结果的字典
     """
     other_messages = state["current_other_messages"]
     seen_messages = state.get("seen_other_messages", [])
@@ -23,7 +35,7 @@ def check_new_message(state: ReplyState) -> dict:
             "latest_message": "",
         }
     
-    truly_new = []
+    truly_new: list[str] = []
     for msg in other_messages:
         is_seen = any(is_similar(msg, seen, 0.7) for seen in seen_messages)
         if not is_seen:
@@ -44,21 +56,3 @@ def check_new_message(state: ReplyState) -> dict:
         "latest_message": latest_new,
         "seen_other_messages": updated_seen,
     }
-
-
-def is_similar(msg1: str, msg2: str, threshold: float) -> bool:
-    if not msg1 or not msg2:
-        return False
-    
-    import re
-    def clean(text):
-        return re.sub(r'[^\w\u4e00-\u9fff]', '', text).lower()
-    
-    c1, c2 = clean(msg1), clean(msg2)
-    if not c1 or not c2:
-        return msg1 == msg2
-    
-    if c1 == c2 or c1 in c2 or c2 in c1:
-        return True
-    
-    return SequenceMatcher(None, c1, c2).ratio() >= threshold

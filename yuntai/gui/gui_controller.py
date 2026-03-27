@@ -280,10 +280,6 @@ class GUIController(QObject):
 
         scrcpy_btn = self.view.get_component("scrcpy_button")
         if scrcpy_btn:
-            scrcpy_btn.clicked.connect(self.connection_handler.show_scrcpy_popup)
-
-        scrcpy_btn = self.view.get_component("scrcpy_button")
-        if scrcpy_btn:
             try:
                 scrcpy_btn.clicked.disconnect()
             except TypeError:

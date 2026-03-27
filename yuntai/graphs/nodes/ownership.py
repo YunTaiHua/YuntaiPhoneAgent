@@ -1,17 +1,30 @@
-"""消息归属判断节点"""
-from difflib import SequenceMatcher
+"""
+消息归属判断节点
+
+负责判断消息的归属（对方消息或我方消息），基于已知消息和界面特征进行判断。
+"""
+
+from __future__ import annotations
 
 from yuntai.graphs.state import ReplyState
+from yuntai.tools import is_similar, DEFAULT_SIMILARITY_THRESHOLD
+from yuntai.core.config import SIMILARITY_THRESHOLD
 
-SIMILARITY_THRESHOLD = 0.6
 
-
-def determine_ownership(state: ReplyState) -> dict:
+def determine_ownership(state: ReplyState) -> dict[str, list[str]]:
     """
     判断消息归属节点
     
+    根据已知消息列表和消息界面特征判断消息归属。
+    
     输入: parsed_messages, other_messages, my_messages
     输出: current_other_messages, current_my_messages
+    
+    Args:
+        state: 回复状态字典
+    
+    Returns:
+        包含归属判断结果的字典
     """
     messages = state["parsed_messages"]
     known_other = state["other_messages"]
@@ -23,8 +36,8 @@ def determine_ownership(state: ReplyState) -> dict:
             "current_my_messages": [],
         }
     
-    other_messages = []
-    my_messages = []
+    other_messages: list[str] = []
+    my_messages: list[str] = []
     
     for msg in messages:
         content = msg.get("content", "").strip()
@@ -66,21 +79,3 @@ def determine_ownership(state: ReplyState) -> dict:
         "current_other_messages": other_messages,
         "current_my_messages": my_messages,
     }
-
-
-def is_similar(msg1: str, msg2: str, threshold: float = 0.6) -> bool:
-    if not msg1 or not msg2:
-        return False
-    
-    import re
-    def clean(text):
-        return re.sub(r'[^\w\u4e00-\u9fff]', '', text).lower()
-    
-    c1, c2 = clean(msg1), clean(msg2)
-    if not c1 or not c2:
-        return msg1 == msg2
-    
-    if c1 == c2 or c1 in c2 or c2 in c1:
-        return True
-    
-    return SequenceMatcher(None, c1, c2).ratio() >= threshold

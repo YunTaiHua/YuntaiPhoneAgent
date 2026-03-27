@@ -84,6 +84,11 @@ from .config import (
     validate_config,
     print_config_summary,
     check_required_env_vars,
+    DEVICE_DETECT_TIMEOUT,
+    DEVICE_CONNECT_TIMEOUT,
+    MAX_DEVICE_ID_LENGTH,
+    DEFAULT_WIRELESS_PORT,
+    PHONE_AGENT_CACHE_MAX_SIZE,
 )
 from .utils import Utils, load_synthesized_files, get_current_tts_status, cleanup_tts_resources
 from .main_app import MainApp
@@ -181,4 +186,9 @@ __all__ = [
     'cleanup_tts_resources',
     'MainApp',
     'AgentExecutor',
+    'DEVICE_DETECT_TIMEOUT',
+    'DEVICE_CONNECT_TIMEOUT',
+    'MAX_DEVICE_ID_LENGTH',
+    'DEFAULT_WIRELESS_PORT',
+    'PHONE_AGENT_CACHE_MAX_SIZE',
 ]

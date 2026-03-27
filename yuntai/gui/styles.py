@@ -805,6 +805,25 @@ class DialogStyle:
     BUTTON_WIDTH = 120
     BUTTON_HEIGHT_SMALL = 36
     BUTTON_WIDTH_SMALL = 100
+    
+    # ==================== 连接处理器 GUI 常量 ====================
+    # 对话框内容区域边距（像素）
+    CONTENT_MARGIN: int = 15
+    
+    # 设备布局间距（像素）
+    DEVICE_LAYOUT_SPACING: int = 8
+    
+    # 文本框分隔线长度（字符数）
+    TEXT_SEPARATOR_LENGTH: int = 50
+    
+    # 按钮额外宽度偏移量（像素）
+    BUTTON_WIDTH_OFFSET: int = 20
+    
+    # 状态指示器内边距（CSS 格式）
+    STATUS_INDICATOR_PADDING: str = "4px 8px"
+    
+    # 连接状态标签字体大小（像素）
+    CONNECTION_STATUS_FONT_SIZE: int = 24
 
 
 def get_dialog_stylesheet(colors=ThemeColors):

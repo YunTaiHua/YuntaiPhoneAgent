@@ -1,26 +1,40 @@
-"""生成回复节点，支持 LangChain Callbacks 实现流式输出"""
+"""
+生成回复节点，支持 LangChain Callbacks 实现流式输出
+
+该模块负责根据聊天记录生成智能回复，支持流式输出和回调机制。
+"""
+
+from __future__ import annotations
+
 from langchain_core.callbacks import BaseCallbackHandler
+from langchain_core.messages import SystemMessage, HumanMessage
 
 from yuntai.graphs.state import ReplyState
 from yuntai.models import get_zhipu_client, get_chat_model
 from yuntai.core.config import ZHIPU_CHAT_MODEL
 from yuntai.callbacks import get_callback_manager, StreamingCallbackHandler
 from yuntai.prompts import REPLY_NODE_SYSTEM_PROMPT, REPLY_NODE_USER_PROMPT
+from yuntai.tools import is_similar, prepare_callbacks
 
 
 def generate_reply(
     state: ReplyState,
     callbacks: list[BaseCallbackHandler] | None = None
-) -> dict:
+) -> dict[str, str]:
     """
     生成回复节点（支持 Callbacks 流式输出）
+    
+    根据最新消息和历史对话生成智能回复。
     
     输入: latest_message, current_other_messages
     输出: generated_reply
     
     Args:
-        state: 回复状态
+        state: 回复状态字典
         callbacks: 自定义回调处理器列表
+    
+    Returns:
+        包含生成回复的字典
     """
     latest_message = state["latest_message"]
     other_messages = state["current_other_messages"]
@@ -44,11 +58,10 @@ def generate_reply(
     )
     
     try:
-        all_callbacks = _prepare_callbacks(callbacks)
+        all_callbacks = prepare_callbacks(callbacks)
         
         model = get_chat_model()
         
-        from langchain_core.messages import SystemMessage, HumanMessage
         messages = [
             SystemMessage(content=REPLY_NODE_SYSTEM_PROMPT),
             HumanMessage(content=prompt)
@@ -77,44 +90,3 @@ def generate_reply(
     except Exception as e:
         print(f"❌ 生成回复失败: {e}")
         return {"generated_reply": ""}
-
-
-def _prepare_callbacks(
-    callbacks: list[BaseCallbackHandler] | None = None
-) -> list[BaseCallbackHandler]:
-    """
-    准备回调处理器列表
-    
-    Args:
-        callbacks: 用户提供的回调列表
-    
-    Returns:
-        合并后的回调处理器列表
-    """
-    all_callbacks = []
-    
-    callback_manager = get_callback_manager()
-    global_callbacks = callback_manager.get_callbacks(include_global=True)
-    all_callbacks.extend(global_callbacks)
-    
-    if callbacks:
-        all_callbacks.extend(callbacks)
-    
-    return all_callbacks
-
-
-def is_similar(msg1: str, msg2: str, threshold: float) -> bool:
-    from difflib import SequenceMatcher
-    import re
-    
-    def clean(text):
-        return re.sub(r'[^\w\u4e00-\u9fff]', '', text).lower()
-    
-    c1, c2 = clean(msg1), clean(msg2)
-    if not c1 or not c2:
-        return False
-    
-    if c1 == c2 or c1 in c2 or c2 in c1:
-        return True
-    
-    return SequenceMatcher(None, c1, c2).ratio() >= threshold

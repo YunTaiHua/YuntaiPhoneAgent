@@ -3,8 +3,11 @@
   负责处理设备连接、检测和投屏功能
 """
 
+from __future__ import annotations
+
 import logging
 import os
+import re
 import subprocess
 import threading
 import pyperclip
@@ -25,7 +28,11 @@ from yuntai.gui.styles import (
     get_dialog_card_stylesheet, get_dialog_textedit_stylesheet,
     get_dialog_combobox_stylesheet, get_dialog_checkbox_stylesheet
 )
-from yuntai.core.config import DEVICE_TYPE_HARMONY
+from yuntai.core.config import (
+    DEVICE_TYPE_HARMONY,
+    DEFAULT_WIRELESS_PORT,
+)
+from yuntai.services.connection_manager import sanitize_device_id
 
 
 class DeviceDetectDialog(QDialog):
@@ -154,10 +161,10 @@ class DeviceDetectDialog(QDialog):
         result_text.setFont(ThemeFonts.CODE_SMALL)
         result_text.setReadOnly(True)
         result_text.setStyleSheet(get_dialog_textedit_stylesheet(self.colors))
-        text_content = "设备ID列表:\n" + "=" * 50 + "\n\n"
+        text_content = "设备ID列表:\n" + "=" * DialogStyle.TEXT_SEPARATOR_LENGTH + "\n\n"
         for i, device in enumerate(self.devices, 1):
             text_content += f"{i:2d}. {device}\n"
-        text_content += "\n" + "=" * 50 + "\n"
+        text_content += "\n" + "=" * DialogStyle.TEXT_SEPARATOR_LENGTH + "\n"
         text_content += "💡 使用说明:\n"
         text_content += "1. 选择文本进行复制\n"
         text_content += "2. 点击上方复制按钮可复制全部\n"
@@ -195,7 +202,7 @@ class DeviceDetectDialog(QDialog):
         copy_btn = QPushButton("📋 复制指南")
         copy_btn.setFont(ThemeFonts.BODY_XSMALL)
         copy_btn.setFixedHeight(DialogStyle.BUTTON_HEIGHT_SMALL)
-        copy_btn.setFixedWidth(DialogStyle.BUTTON_WIDTH_SMALL + 20)
+        copy_btn.setFixedWidth(DialogStyle.BUTTON_WIDTH_SMALL + DialogStyle.BUTTON_WIDTH_OFFSET)
         copy_btn.setStyleSheet(get_dialog_button_stylesheet("warning", self.colors))
         copy_btn.clicked.connect(copy_troubleshooting)
         toolbar.addWidget(copy_btn)
@@ -206,7 +213,7 @@ class DeviceDetectDialog(QDialog):
         result_text.setFont(ThemeFonts.BODY_SMALL)
         result_text.setReadOnly(True)
         result_text.setStyleSheet(get_dialog_textedit_stylesheet(self.colors))
-        text_content = "请检查以下项目：\n" + "=" * 50 + "\n\n"
+        text_content = "请检查以下项目：\n" + "=" * DialogStyle.TEXT_SEPARATOR_LENGTH + "\n\n"
         checks = [
             "1. 📱 手机是否已通过USB线连接电脑",
             "2. ⚙️ 手机是否已开启【开发者选项】和【USB调试】",
@@ -216,7 +223,7 @@ class DeviceDetectDialog(QDialog):
         ]
         for check in checks:
             text_content += f"{check}\n"
-        text_content += "\n" + "=" * 50 + "\n"
+        text_content += "\n" + "=" * DialogStyle.TEXT_SEPARATOR_LENGTH + "\n"
         text_content += "💡 解决方案:\n"
         text_content += "• 在手机设置中搜索【开发者选项】\n"
         text_content += "• 打开【USB调试】开关\n"
@@ -438,7 +445,7 @@ class ConnectionHandler(QObject):
                 connection_indicator.setStyleSheet(f"""
                     color: {ThemeColors.STATUS_ACTIVE}; 
                     background: transparent;
-                    padding: 4px 8px;
+                    padding: {DialogStyle.STATUS_INDICATOR_PADDING};
                     border-radius: 4px;
                     font-weight: 500;
                 """)
@@ -448,7 +455,7 @@ class ConnectionHandler(QObject):
                 connection_indicator.setStyleSheet(f"""
                     color: {ThemeColors.STATUS_INACTIVE}; 
                     background: transparent;
-                    padding: 4px 8px;
+                    padding: {DialogStyle.STATUS_INDICATOR_PADDING};
                     border-radius: 4px;
                 """)
 
@@ -457,10 +464,18 @@ class ConnectionHandler(QObject):
         if conn_status_label:
             if connected:
                 conn_status_label.setText("● 已连接")
-                conn_status_label.setStyleSheet(f"color: {ThemeColors.STATUS_ACTIVE}; font-size: 24px; font-weight: bold; background: transparent;")
+                conn_status_label.setStyleSheet(
+                    f"color: {ThemeColors.STATUS_ACTIVE}; "
+                    f"font-size: {DialogStyle.CONNECTION_STATUS_FONT_SIZE}px; "
+                    f"font-weight: bold; background: transparent;"
+                )
             else:
                 conn_status_label.setText("● 未连接")
-                conn_status_label.setStyleSheet(f"color: {ThemeColors.STATUS_INACTIVE}; font-size: 24px; font-weight: bold; background: transparent;")
+                conn_status_label.setStyleSheet(
+                    f"color: {ThemeColors.STATUS_INACTIVE}; "
+                    f"font-size: {DialogStyle.CONNECTION_STATUS_FONT_SIZE}px; "
+                    f"font-weight: bold; background: transparent;"
+                )
 
         # 清空第二行
         conn_info_label = self.view.get_component("connection_info_label")
@@ -495,8 +510,13 @@ class ConnectionHandler(QObject):
         device_frame = QFrame()
         device_frame.setStyleSheet(get_dialog_card_stylesheet())
         device_layout = QVBoxLayout(device_frame)
-        device_layout.setContentsMargins(15, 15, 15, 15)
-        device_layout.setSpacing(8)
+        device_layout.setContentsMargins(
+            DialogStyle.CONTENT_MARGIN, 
+            DialogStyle.CONTENT_MARGIN, 
+            DialogStyle.CONTENT_MARGIN, 
+            DialogStyle.CONTENT_MARGIN
+        )
+        device_layout.setSpacing(DialogStyle.DEVICE_LAYOUT_SPACING)
 
         device_label = QLabel("选择设备:")
         device_label.setFont(ThemeFonts.BODY_MEDIUM)
@@ -542,10 +562,15 @@ class ConnectionHandler(QObject):
                 self.controller.show_toast("请选择一个设备", "warning")
                 return
 
-            # 构建命令
-            cmd = [self.controller.scrcpy_path, "--stay-awake"]
+            try:
+                safe_device = sanitize_device_id(selected_device)
+            except ValueError as e:
+                self.controller.show_toast(f"设备ID无效: {str(e)}", "error")
+                return
+
+            cmd = [str(self.controller.scrcpy_path), "--stay-awake"]
             cmd.append("-s")
-            cmd.append(selected_device)
+            cmd.append(safe_device)
 
             if always_on_top_check.isChecked():
                 cmd.append("--always-on-top")
@@ -560,7 +585,7 @@ class ConnectionHandler(QObject):
                             creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
                         )
                         self.controller.active_subprocesses.append(process)
-                        self.controller.show_toast(f"手机投屏已启动 ({selected_device})", "success")
+                        self.controller.show_toast(f"手机投屏已启动 ({safe_device})", "success")
                         process.wait()
                         if process in self.controller.active_subprocesses:
                             self.controller.active_subprocesses.remove(process)

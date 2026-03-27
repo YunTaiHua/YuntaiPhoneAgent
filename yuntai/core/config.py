@@ -189,6 +189,22 @@ HDC_CHECK_TIMEOUT = 5
 API_CHECK_TIMEOUT = 30.0
 API_CHECK_MAX_TOKENS = 5
 
+# ==================== 连接管理配置 ====================
+# 设备检测和连接相关超时配置
+DEVICE_DETECT_TIMEOUT: int = 10
+DEVICE_CONNECT_TIMEOUT: int = 15
+
+# 设备ID安全限制
+MAX_DEVICE_ID_LENGTH: int = 100
+
+# 无线调试默认端口
+DEFAULT_WIRELESS_PORT: str = "5555"
+
+# ==================== PhoneAgent 缓存配置 ====================
+# PhoneAgent 实例缓存最大数量，用于优化聊天记录提取性能
+# 当缓存超过此限制时，自动清理最旧的条目
+PHONE_AGENT_CACHE_MAX_SIZE: int = 10
+
 # ==================== 媒体生成配置 ====================
 MEDIA_CHUNK_SIZE = 8192
 MEDIA_TIMEOUT = 30
@@ -218,10 +234,6 @@ VIDEO_SIZES = [
 ]
 
 VIDEO_FPS = [30, 60]
-
-# ==================== GUI 主题配置 ====================
-# 图形用户界面主题颜色配置
-# ThemeColors 将在文件末尾延迟导入，避免循环依赖
 
 # ==================== 快捷键配置 ====================
 # 快捷键映射配置，用于快速启动应用

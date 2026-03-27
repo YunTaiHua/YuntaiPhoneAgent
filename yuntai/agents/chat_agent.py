@@ -10,7 +10,7 @@ from langchain_core.callbacks import BaseCallbackHandler
 
 from yuntai.models import get_chat_model, get_zhipu_client
 from yuntai.prompts import CHAT_SYSTEM_PROMPT, CHAT_WITH_CONTEXT_PROMPT
-from yuntai.tools import get_current_time_info
+from yuntai.tools import get_current_time_info, prepare_callbacks
 from yuntai.callbacks import StreamingCallbackHandler, get_callback_manager
 from yuntai.core.config import (
     RECENT_CHATS_LIMIT,
@@ -110,10 +110,13 @@ class ChatAgent:
         ]
         
         try:
-            # 准备回调处理器
-            all_callbacks = self._prepare_callbacks(callbacks, use_streaming)
+            all_callbacks = prepare_callbacks(
+                callbacks=callbacks,
+                streaming_callback=self._streaming_callback,
+                complete_callback=self._complete_callback,
+                enable_streaming=use_streaming
+            )
             
-            # 使用回调配置
             config = {"callbacks": all_callbacks} if all_callbacks else {}
             
             # 调用模型
