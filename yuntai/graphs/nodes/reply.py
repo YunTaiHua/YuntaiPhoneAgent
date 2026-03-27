@@ -14,7 +14,8 @@ from yuntai.models import get_zhipu_client, get_chat_model
 from yuntai.core.config import ZHIPU_CHAT_MODEL
 from yuntai.callbacks import get_callback_manager, StreamingCallbackHandler
 from yuntai.prompts import REPLY_NODE_SYSTEM_PROMPT, REPLY_NODE_USER_PROMPT
-from yuntai.tools import is_similar, prepare_callbacks
+from yuntai.tools.similarity import is_similar
+from yuntai.tools.callback_utils import prepare_callbacks
 
 
 def generate_reply(

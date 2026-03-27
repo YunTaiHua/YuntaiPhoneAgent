@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from yuntai.graphs.state import ReplyState
-from yuntai.tools import is_similar, DEFAULT_SIMILARITY_THRESHOLD
+from yuntai.tools import is_similar
 from yuntai.core.config import SIMILARITY_THRESHOLD
 
 

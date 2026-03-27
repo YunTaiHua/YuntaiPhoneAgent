@@ -15,6 +15,7 @@ from langchain_core.callbacks import BaseCallbackHandler
 from yuntai.graphs import ReplyGraph
 from yuntai.tools.message_tools import parse_messages, generate_reply
 from yuntai.models import get_zhipu_client
+from yuntai.tools.callback_utils import prepare_callbacks_with_manager
 from yuntai.callbacks import get_callback_manager
 from yuntai.core.config import (
     MIN_MESSAGE_LENGTH,
@@ -85,7 +86,7 @@ class ReplyChain:
         print("🔄 启动单次回复流程")
         print(f"🎯 目标：{app_name} -> {chat_object}")
 
-        all_callbacks = self._prepare_callbacks(callbacks)
+        all_callbacks = prepare_callbacks_with_manager(self.callback_manager, callbacks=callbacks)
 
         from yuntai.agents.phone_agent import PhoneAgent
 
@@ -213,26 +214,3 @@ class ReplyChain:
         if self._reply_graph:
             return self._reply_graph.is_running()
         return False
-
-    def _prepare_callbacks(
-        self,
-        callbacks: list[BaseCallbackHandler] | None = None
-    ) -> list[BaseCallbackHandler]:
-        """
-        准备回调处理器列表
-
-        Args:
-            callbacks: 用户提供的回调列表
-
-        Returns:
-            合并后的回调处理器列表
-        """
-        all_callbacks: list[BaseCallbackHandler] = []
-
-        global_callbacks = self.callback_manager.get_callbacks(include_global=True)
-        all_callbacks.extend(global_callbacks)
-
-        if callbacks:
-            all_callbacks.extend(callbacks)
-
-        return all_callbacks

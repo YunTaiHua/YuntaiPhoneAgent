@@ -7,10 +7,10 @@ from __future__ import annotations
 import re
 import json
 import logging
-from difflib import SequenceMatcher
 
 from zhipuai import ZhipuAI
 
+from yuntai.tools.similarity import is_similar
 from yuntai.core.config import (
     ZHIPU_CHAT_MODEL,
     SIMILARITY_THRESHOLD,
@@ -147,33 +147,6 @@ def _emergency_extract(record: str) -> list[dict[str, str]]:
     return final_messages
 
 
-def is_message_similar(msg1: str, msg2: str, threshold: float = 0.6) -> bool:
-    """判断两条消息是否相似"""
-    if not msg1 or not msg2:
-        return False
-    
-    def clean_text(text: str) -> str:
-        if not text:
-            return ""
-        text = re.sub(r'[^\w\u4e00-\u9fff]', '', text)
-        return text.lower()
-    
-    clean_msg1 = clean_text(msg1)
-    clean_msg2 = clean_text(msg2)
-    
-    if not clean_msg1 or not clean_msg2:
-        return msg1 == msg2 or msg1 in msg2 or msg2 in msg1
-    
-    if clean_msg1 == clean_msg2:
-        return True
-    
-    if clean_msg1 in clean_msg2 or clean_msg2 in clean_msg1:
-        return True
-    
-    similarity = SequenceMatcher(None, clean_msg1, clean_msg2).ratio()
-    return similarity >= threshold
-
-
 def determine_message_ownership(
     messages: list[dict[str, str]],
     my_messages_list: list[str],
@@ -203,7 +176,7 @@ def determine_message_ownership(
         
         is_my_message = False
         for my_msg in my_messages_list:
-            if is_message_similar(content, my_msg, threshold=SIMILARITY_THRESHOLD):
+            if is_similar(content, my_msg, threshold=SIMILARITY_THRESHOLD):
                 is_my_message = True
                 my_messages.append(content)
                 break
@@ -213,7 +186,7 @@ def determine_message_ownership(
         
         is_other_message = False
         for other_msg in other_messages_list:
-            if is_message_similar(content, other_msg, threshold=SIMILARITY_THRESHOLD):
+            if is_similar(content, other_msg, threshold=SIMILARITY_THRESHOLD):
                 is_other_message = True
                 other_messages.append(content)
                 break
@@ -318,13 +291,13 @@ def check_new_messages(
         is_new = True
         
         for existing_msg in previous_other_messages:
-            if is_message_similar(msg, existing_msg, threshold=SIMILARITY_CHECK_NEW_THRESHOLD):
+            if is_similar(msg, existing_msg, threshold=SIMILARITY_CHECK_NEW_THRESHOLD):
                 is_new = False
                 break
         
         if is_new:
             for my_msg in my_messages_list:
-                if is_message_similar(msg, my_msg, threshold=SIMILARITY_CHECK_NEW_THRESHOLD):
+                if is_similar(msg, my_msg, threshold=SIMILARITY_CHECK_NEW_THRESHOLD):
                     is_new = False
                     break
         

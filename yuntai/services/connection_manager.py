@@ -264,7 +264,7 @@ class ConnectionManager:
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=DEFAULT_TIMEOUT,
+                timeout=DEVICE_DETECT_TIMEOUT,
                 encoding="utf-8",
                 errors="ignore"
             )
@@ -425,7 +425,7 @@ class ConnectionManager:
                     cmd,
                     capture_output=True,
                     text=True,
-                    timeout=CONNECT_TIMEOUT,
+                    timeout=DEVICE_CONNECT_TIMEOUT,
                     encoding="utf-8",
                     errors="ignore"
                 )
@@ -460,7 +460,7 @@ class ConnectionManager:
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=CONNECT_TIMEOUT,
+                timeout=DEVICE_CONNECT_TIMEOUT,
                 encoding="utf-8",
                 errors="ignore"
             )

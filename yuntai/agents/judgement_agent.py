@@ -15,6 +15,7 @@ from yuntai.prompts import (
     TASK_TYPE_CONTINUOUS_REPLY,
     TASK_TYPE_COMPLEX_OPERATION,
 )
+from yuntai.tools.callback_utils import prepare_callbacks_with_manager
 from yuntai.callbacks import get_callback_manager
 
 
@@ -80,7 +81,7 @@ class JudgementAgent:
         
         try:
             # 准备回调处理器
-            all_callbacks = self._prepare_callbacks(callbacks)
+            all_callbacks = prepare_callbacks_with_manager(self.callback_manager, callbacks=callbacks)
             
             # 使用回调配置
             config = {"callbacks": all_callbacks} if all_callbacks else {}
@@ -108,31 +109,6 @@ class JudgementAgent:
             print(f"任务判断失败: {e}")
         
         return self._fallback_judge(user_input)
-    
-    def _prepare_callbacks(
-        self,
-        callbacks: list[BaseCallbackHandler] | None = None
-    ) -> list[BaseCallbackHandler]:
-        """
-        准备回调处理器列表
-        
-        Args:
-            callbacks: 用户提供的回调列表
-        
-        Returns:
-            合并后的回调处理器列表
-        """
-        all_callbacks = []
-        
-        # 添加全局回调
-        global_callbacks = self.callback_manager.get_callbacks(include_global=True)
-        all_callbacks.extend(global_callbacks)
-        
-        # 添加用户提供的回调
-        if callbacks:
-            all_callbacks.extend(callbacks)
-        
-        return all_callbacks
     
     def _fallback_judge(self, user_input: str) -> TaskJudgementResult:
         """后备判断逻辑"""

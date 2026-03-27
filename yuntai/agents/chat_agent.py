@@ -10,8 +10,9 @@ from langchain_core.callbacks import BaseCallbackHandler
 
 from yuntai.models import get_chat_model, get_zhipu_client
 from yuntai.prompts import CHAT_SYSTEM_PROMPT, CHAT_WITH_CONTEXT_PROMPT
-from yuntai.tools import get_current_time_info, prepare_callbacks
-from yuntai.callbacks import StreamingCallbackHandler, get_callback_manager
+from yuntai.tools import get_current_time_info
+from yuntai.tools.callback_utils import prepare_callbacks_with_manager
+from yuntai.callbacks import get_callback_manager
 from yuntai.core.config import (
     RECENT_CHATS_LIMIT,
     TTS_MIN_REPLY_LENGTH,
@@ -110,7 +111,8 @@ class ChatAgent:
         ]
         
         try:
-            all_callbacks = prepare_callbacks(
+            all_callbacks = prepare_callbacks_with_manager(
+                self.callback_manager,
                 callbacks=callbacks,
                 streaming_callback=self._streaming_callback,
                 complete_callback=self._complete_callback,
@@ -144,41 +146,6 @@ class ChatAgent:
             
         except Exception as e:
             return f"聊天失败: {str(e)}"
-    
-    def _prepare_callbacks(
-        self,
-        callbacks: list[BaseCallbackHandler] | None = None,
-        enable_streaming: bool = True
-    ) -> list[BaseCallbackHandler]:
-        """
-        准备回调处理器列表
-        
-        Args:
-            callbacks: 用户提供的回调列表
-            enable_streaming: 是否启用流式输出
-        
-        Returns:
-            合并后的回调处理器列表
-        """
-        all_callbacks = []
-        
-        # 添加全局回调
-        global_callbacks = self.callback_manager.get_callbacks(include_global=True)
-        all_callbacks.extend(global_callbacks)
-        
-        # 添加流式输出回调
-        if enable_streaming and (self._streaming_callback or self._complete_callback):
-            streaming_handler = StreamingCallbackHandler(
-                output_callback=self._streaming_callback,
-                complete_callback=self._complete_callback
-            )
-            all_callbacks.append(streaming_handler)
-        
-        # 添加用户提供的回调
-        if callbacks:
-            all_callbacks.extend(callbacks)
-        
-        return all_callbacks
     
     def chat_with_history(
         self,
@@ -215,7 +182,13 @@ class ChatAgent:
         
         try:
             # 准备回调处理器
-            all_callbacks = self._prepare_callbacks(callbacks, use_streaming)
+            all_callbacks = prepare_callbacks_with_manager(
+                self.callback_manager,
+                callbacks=callbacks,
+                streaming_callback=self._streaming_callback,
+                complete_callback=self._complete_callback,
+                enable_streaming=use_streaming
+            )
             
             # 使用回调配置
             config = {"callbacks": all_callbacks} if all_callbacks else {}
@@ -277,7 +250,13 @@ class ChatAgent:
         
         try:
             # 准备回调处理器
-            all_callbacks = self._prepare_callbacks(callbacks, enable_streaming=True)
+            all_callbacks = prepare_callbacks_with_manager(
+                self.callback_manager,
+                callbacks=callbacks,
+                streaming_callback=self._streaming_callback,
+                complete_callback=self._complete_callback,
+                enable_streaming=True
+            )
             
             # 使用回调配置
             config = {"callbacks": all_callbacks} if all_callbacks else {}

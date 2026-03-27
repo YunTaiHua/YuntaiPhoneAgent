@@ -13,6 +13,7 @@ from langchain_core.callbacks import BaseCallbackHandler
 
 from yuntai.agents import JudgementAgent, ChatAgent, PhoneAgent
 from yuntai.chains.reply_chain import ReplyChain
+from yuntai.tools.callback_utils import prepare_callbacks_with_manager
 from yuntai.prompts import (
     TASK_TYPE_FREE_CHAT,
     TASK_TYPE_BASIC_OPERATION,
@@ -88,7 +89,7 @@ class TaskChain:
         if not user_input or not user_input.strip():
             return "输入为空", {}
 
-        all_callbacks = self._prepare_callbacks(callbacks)
+        all_callbacks = prepare_callbacks_with_manager(self.callback_manager, callbacks=callbacks)
 
         if len(user_input.strip()) == 1:
             letter = user_input.strip().lower()
@@ -138,29 +139,6 @@ class TaskChain:
             result = self._handle_free_chat(user_input, all_callbacks)
 
         return result, task_info
-
-    def _prepare_callbacks(
-        self,
-        callbacks: list[BaseCallbackHandler] | None = None
-    ) -> list[BaseCallbackHandler]:
-        """
-        准备回调处理器列表
-
-        Args:
-            callbacks: 用户提供的回调列表
-
-        Returns:
-            合并后的回调处理器列表
-        """
-        all_callbacks: list[BaseCallbackHandler] = []
-
-        global_callbacks = self.callback_manager.get_callbacks(include_global=True)
-        all_callbacks.extend(global_callbacks)
-
-        if callbacks:
-            all_callbacks.extend(callbacks)
-
-        return all_callbacks
 
     def _handle_free_chat(
         self,
