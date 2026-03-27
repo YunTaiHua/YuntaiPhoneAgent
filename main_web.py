@@ -38,11 +38,11 @@ app = FastAPI(
     version=APP_VERSION
 )
 
-# 添加CORS中间件
+# 添加CORS中间件 - 安全配置：禁用allow_credentials防止CSRF风险
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
