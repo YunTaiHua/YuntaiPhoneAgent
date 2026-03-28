@@ -1,24 +1,33 @@
-#!/usr/bin/env python3
 """
 连接管理模块
+============
 
-支持USB和无线调试两种方式，兼容 Android (ADB) 和 HarmonyOS (HDC) 设备。
+支持 USB 和无线调试两种方式，兼容 Android (ADB) 和 HarmonyOS (HDC) 设备。
 提供设备检测、连接管理和配置持久化功能。
 
-Example:
+主要功能:
+    - get_available_devices: 获取可用设备列表
+    - connect_to_device: 连接到设备
+    - load_connection_config: 加载连接配置
+    - save_connection_config: 保存连接配置
+
+安全特性:
+    - sanitize_device_id: 清理设备 ID，防止命令注入
+    - sanitize_ip_address: 验证 IP 地址格式
+    - build_safe_command: 构建安全的命令列表
+
+使用示例:
     >>> manager = ConnectionManager()
     >>> config = manager.load_connection_config()
     >>> success, device_id, message = manager.connect_to_device(config)
 """
-
 from __future__ import annotations
 
-import subprocess
 import json
+import logging
 import re
-import shlex
+import subprocess
 from pathlib import Path
-from typing import Any, Final
 
 from yuntai.core.config import (
     CONNECTION_CONFIG_FILE,
@@ -29,6 +38,8 @@ from yuntai.core.config import (
     MAX_DEVICE_ID_LENGTH,
     DEFAULT_WIRELESS_PORT,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def sanitize_device_id(device_id: str) -> str:

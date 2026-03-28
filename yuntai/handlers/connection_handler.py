@@ -1,6 +1,23 @@
 """
-  ConnectionHandler - 设备连接管理处理器 (PyQt6 重构版)
-  负责处理设备连接、检测和投屏功能
+ConnectionHandler - 设备连接管理处理器 (PyQt6 重构版)
+======================================================
+
+负责处理设备连接、检测和投屏功能。
+
+主要组件:
+    - DeviceDetectDialog: 设备检测对话框，显示检测结果
+    - ConnectionHandler: 设备连接管理处理器
+
+功能特性:
+    - 设备检测（ADB/HDC）
+    - USB/无线连接方式
+    - 设备连接状态管理
+    - 手机投屏功能（scrcpy）
+
+使用示例:
+    >>> handler = ConnectionHandler(controller)
+    >>> handler.show_panel()  # 显示设备管理页面
+    >>> handler.detect_devices_gui()  # 检测设备
 """
 
 from __future__ import annotations
@@ -36,11 +53,32 @@ from yuntai.services.connection_manager import sanitize_device_id
 
 
 class DeviceDetectDialog(QDialog):
-    """设备检测对话框 - 带信号支持"""
+    """
+    设备检测对话框 - 带信号支持
+    
+    显示设备检测结果，支持线程安全的UI更新。
+    当检测到设备时显示设备列表，未检测到时显示故障排除指南。
+    
+    Attributes:
+        task_manager: 任务管理器实例
+        controller: 控制器实例
+        devices: 检测到的设备列表
+        device_type: 设备类型（android/harmony）
+        device_type_display: 设备类型显示文本
+        colors: 当前主题颜色
+    """
     
     show_result_signal = pyqtSignal(list, str, str)  # devices, device_type, device_type_display
     
     def __init__(self, parent, task_manager, controller):
+        """
+        初始化设备检测对话框
+        
+        Args:
+            parent: 父窗口
+            task_manager: 任务管理器实例
+            controller: 控制器实例
+        """
         super().__init__(parent)
         self.task_manager = task_manager
         self.controller = controller
@@ -239,28 +277,55 @@ class DeviceDetectDialog(QDialog):
 
 
 class ConnectionHandler(QObject):
-    """设备连接管理处理器"""
+    """
+    设备连接管理处理器
+    
+    负责处理设备连接、检测和投屏功能。
+    通过信号槽机制实现线程安全的UI更新。
+    
+    Attributes:
+        controller: 控制器实例
+        view: 视图实例
+        task_manager: 任务管理器实例
+        update_status_signal: 连接状态更新信号
+    """
     
     # 定义信号用于跨线程UI更新
     update_status_signal = pyqtSignal(bool)  # connected
 
     def __init__(self, controller):
+        """
+        初始化连接处理器
+        
+        Args:
+            controller: 控制器实例
+        """
         super().__init__()
         self.controller = controller
         self.view = controller.view
         self.task_manager = controller.task_manager
+        logger.debug("ConnectionHandler初始化完成")
         
         # 连接信号
         self.update_status_signal.connect(self._do_update_connection_status)
 
     def show_panel(self):
-        """显示设备管理页面"""
+        """
+        显示设备管理页面
+        
+        创建设备管理页面并绑定事件处理。
+        """
         self.view.create_connection_page()
         self._bind_events()
         self._update_connection_status_gui(self.task_manager.is_connected)
+        logger.debug("设备管理页面已显示")
 
     def _bind_events(self):
-        """绑定连接页面事件"""
+        """
+        绑定连接页面事件
+        
+        为检测设备、连接设备、断开连接等按钮绑定事件处理函数。
+        """
         # 检测设备按钮
         detect_btn = self.view.get_component("detect_devices_btn")
         if detect_btn:
@@ -337,7 +402,12 @@ class ConnectionHandler(QObject):
         return "wireless"
 
     def connect_device_gui(self):
-        """GUI界面连接设备"""
+        """
+        GUI界面连接设备
+        
+        从UI获取连接配置，在后台线程中执行连接操作。
+        连接成功后更新UI状态显示。
+        """
         config = self._get_connection_config_from_ui()
         if not config:
             return
@@ -399,7 +469,12 @@ class ConnectionHandler(QObject):
         return config
 
     def detect_devices_gui(self):
-        """GUI界面检测设备 - 弹窗显示结果"""
+        """
+        GUI界面检测设备 - 弹窗显示结果
+        
+        创建设备检测对话框，在后台线程中执行设备检测，
+        检测完成后通过信号更新对话框显示。
+        """
         # 获取设备类型
         device_type = self._get_device_type()
         device_type_display = self._get_device_type_display()
@@ -426,10 +501,15 @@ class ConnectionHandler(QObject):
         dialog.exec()
 
     def disconnect_device(self):
-        """断开设备连接"""
+        """
+        断开设备连接
+        
+        断开当前设备连接并更新UI状态。
+        """
         self.task_manager.disconnect_device()
         self._update_connection_status_gui(False)
         self.controller.show_toast("设备已断开", "info")
+        logger.info("设备已断开连接")
 
     def _update_connection_status_gui(self, connected):
         """更新连接状态显示 - 线程安全"""

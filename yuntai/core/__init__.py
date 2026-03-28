@@ -1,3 +1,27 @@
+"""
+Core 核心模块
+=============
+
+本模块提供核心功能，包括配置管理、工具函数、应用主入口和 Agent 执行器。
+
+模块包含以下组件：
+    - config: 配置管理，定义所有配置常量和路径
+    - utils: 工具函数，提供系统检查和 TTS 状态管理
+    - main_app: 主应用程序，协调所有组件
+    - agent_executor: Agent 执行器，执行手机操作任务
+
+使用示例：
+    >>> from yuntai.core import config, Utils, MainApp
+    >>> 
+    >>> # 检查系统环境
+    >>> utils = Utils()
+    >>> utils.check_system_requirements()
+    >>> 
+    >>> # 运行主应用
+    >>> app = MainApp()
+    >>> app.run()
+"""
+
 from .config import (
     APP_VERSION,
     PROJECT_ROOT,
@@ -94,6 +118,7 @@ from .utils import Utils, load_synthesized_files, get_current_tts_status, cleanu
 from .main_app import MainApp
 from .agent_executor import AgentExecutor
 
+# 模块公开接口
 __all__ = [
     'APP_VERSION',
     'PROJECT_ROOT',

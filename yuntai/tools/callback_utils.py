@@ -1,12 +1,22 @@
 """
 回调处理器工具模块
+==================
 
-提供 LangChain Callbacks 的统一准备和管理功能。
-用于简化回调处理器的配置和合并操作。
+提供 LangChain Callbacks 的统一准备和管理功能，用于简化回调处理器的配置和合并操作。
+
+主要功能:
+    - prepare_callbacks: 准备回调处理器列表
+    - prepare_callbacks_with_manager: 使用指定回调管理器准备回调
+    - get_global_callbacks: 获取全局回调处理器列表
+
+使用示例:
+    >>> from yuntai.tools import prepare_callbacks
+    >>> def on_token(text: str): print(text, end='')
+    >>> callbacks = prepare_callbacks(streaming_callback=on_token)
 """
-
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from langchain_core.callbacks import BaseCallbackHandler
@@ -15,6 +25,8 @@ from yuntai.callbacks import get_callback_manager, StreamingCallbackHandler
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+logger = logging.getLogger(__name__)
 
 
 def prepare_callbacks(
@@ -61,6 +73,7 @@ def prepare_callbacks(
     if callbacks:
         all_callbacks.extend(callbacks)
     
+    logger.debug(f"准备回调处理器: 共 {len(all_callbacks)} 个")
     return all_callbacks
 
 
@@ -101,6 +114,7 @@ def prepare_callbacks_with_manager(
     if callbacks:
         all_callbacks.extend(callbacks)
     
+    logger.debug(f"使用自定义管理器准备回调处理器: 共 {len(all_callbacks)} 个")
     return all_callbacks
 
 
@@ -115,4 +129,6 @@ def get_global_callbacks() -> list[BaseCallbackHandler]:
         全局回调处理器列表
     """
     callback_manager = get_callback_manager()
-    return callback_manager.get_callbacks(include_global=True)
+    callbacks = callback_manager.get_callbacks(include_global=True)
+    logger.debug(f"获取全局回调处理器: 共 {len(callbacks)} 个")
+    return callbacks

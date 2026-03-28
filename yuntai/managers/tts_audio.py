@@ -1,18 +1,30 @@
 """
-TTS音频播放器 - 负责音频播放、合并、以及PyAudio封装
-使用 pathlib 进行跨平台路径处理
-"""
+TTS音频播放器模块
+=================
 
+负责音频播放、合并、以及 PyAudio 封装，使用 pathlib 进行跨平台路径处理。
+
+主要功能:
+    - play_audio_file: 播放指定的音频文件
+    - stop_current_audio_playback: 停止当前正在播放的音频
+    - merge_audio_segments: 合并多个音频文件
+    - cleanup: 清理音频播放器资源
+
+使用示例:
+    >>> from yuntai.managers import TTSAudioPlayer
+    >>> player = TTSAudioPlayer(default_tts_config)
+    >>> player.play_audio_file("output.wav")
+"""
 from __future__ import annotations
 
+import datetime
 import logging
+import re
 import threading
 import traceback
-import re
-import datetime
+from pathlib import Path
 from typing import Any
 
-from pathlib import Path
 import pyaudio
 import wave
 
@@ -20,14 +32,31 @@ logger = logging.getLogger(__name__)
 
 
 class TTSAudioPlayer:
-    """TTS音频播放器"""
+    """
+    TTS 音频播放器
+    
+    负责音频播放、合并以及 PyAudio 封装。
+    
+    Attributes:
+        default_tts_config: 默认 TTS 配置
+        audio_player: PyAudio 实例
+        audio_play_lock: 音频播放锁
+        is_playing_audio: 是否正在播放音频
+        is_playing_audio_lock: 播放状态锁
+        tts_segments: TTS 音频片段列表
+        tts_segments_lock: 音频片段锁
+        can_merge_audio: 是否支持音频合并
+        
+    Args:
+        default_tts_config: 默认 TTS 配置字典
+    """
 
     def __init__(self, default_tts_config: dict[str, Any]) -> None:
         """
         初始化音频播放器
 
         Args:
-            default_tts_config: 默认TTS配置
+            default_tts_config: 默认 TTS 配置
         """
         self.default_tts_config: dict[str, Any] = default_tts_config
 
@@ -43,15 +72,23 @@ class TTSAudioPlayer:
         self.can_merge_audio: bool = self._check_merge_dependencies()
 
         self._init_audio_player()
+        logger.debug("TTSAudioPlayer 初始化完成")
 
     def _check_merge_dependencies(self) -> bool:
-        """检查音频合并所需的依赖"""
+        """
+        检查音频合并所需的依赖
+        
+        Returns:
+            如果 numpy 和 soundfile 都已安装返回 True
+        """
         try:
             import numpy
             import soundfile
+            logger.debug("音频合并依赖检查通过")
             return True
         except ImportError:
             print("⚠️ 音频合并功能需要额外依赖: pip install numpy soundfile")
+            logger.warning("音频合并依赖缺失")
             return False
 
     def _init_audio_player(self) -> None:
@@ -59,30 +96,41 @@ class TTSAudioPlayer:
         try:
             self.audio_player = pyaudio.PyAudio()
             print("✅ 音频播放器初始化成功")
+            logger.debug("PyAudio 初始化成功")
         except Exception as e:
             print(f"❌ 初始化音频播放失败: {e}")
+            logger.error(f"PyAudio 初始化失败: {e}")
             self.audio_player = None
 
     def play_audio_file(self, audio_path: str) -> None:
-        """播放指定的音频文件"""
+        """
+        播放指定的音频文件
+        
+        Args:
+            audio_path: 音频文件路径
+        """
         if not self.audio_player:
             print("❌ 音频播放器未初始化")
+            logger.warning("音频播放器未初始化")
             return
 
         with self.is_playing_audio_lock:
             if self.is_playing_audio:
                 print("⚠️ 已有音频正在播放，跳过本次播放请求")
+                logger.debug("跳过播放请求：已有音频正在播放")
                 return
             self.is_playing_audio = True
 
         audio_file = Path(audio_path)
         if not audio_file.exists():
             print(f"❌ 音频文件不存在：{audio_path}")
+            logger.warning(f"音频文件不存在: {audio_path}")
             with self.is_playing_audio_lock:
                 self.is_playing_audio = False
             return
 
         try:
+            logger.debug(f"开始播放音频: {audio_path}")
             wf: wave.Wave_read = wave.open(str(audio_file), 'rb')
 
             stream = self.audio_player.open(
@@ -105,20 +153,28 @@ class TTSAudioPlayer:
             stream.stop_stream()
             stream.close()
             wf.close()
+            logger.debug(f"音频播放完成: {audio_path}")
 
         except Exception as e:
             print(f"❌ 播放失败：{e}")
+            logger.error(f"音频播放失败: {e}")
             traceback.print_exc()
         finally:
             with self.is_playing_audio_lock:
                 self.is_playing_audio = False
 
     def stop_current_audio_playback(self) -> bool:
-        """停止当前正在播放的音频"""
+        """
+        停止当前正在播放的音频
+        
+        Returns:
+            如果有音频正在播放并成功停止返回 True，否则返回 False
+        """
         with self.is_playing_audio_lock:
             if self.is_playing_audio:
                 self.is_playing_audio = False
                 print("⏹️ 正在停止音频播放...")
+                logger.debug("停止音频播放")
                 return True
             else:
                 return False
@@ -126,12 +182,12 @@ class TTSAudioPlayer:
     def merge_audio_segments(self, audio_files: list[str]) -> str | None:
         """
         合并多个音频文件
-
+        
         Args:
             audio_files: 音频文件路径列表
-
+            
         Returns:
-            合并后的音频文件路径，如果失败返回None
+            合并后的音频文件路径，如果失败返回 None
         """
         if not audio_files:
             return None
@@ -154,12 +210,14 @@ class TTSAudioPlayer:
                     all_sample_rates.append(samplerate)
                 else:
                     print(f"⚠️  文件不存在: {audio_file}")
+                    logger.warning(f"合并时文件不存在: {audio_file}")
 
             if not all_audio_data:
                 return None
 
             if len(set(all_sample_rates)) > 1:
                 print(f"⚠️  采样率不一致，使用第一个文件的采样率: {all_sample_rates[0]}")
+                logger.warning(f"采样率不一致: {all_sample_rates}")
 
             target_samplerate: int = all_sample_rates[0]
 
@@ -183,17 +241,19 @@ class TTSAudioPlayer:
             output_wav = output_path / f"{ref_audio_base}_merged_{timestamp}.wav"
 
             sf.write(str(output_wav), merged_data, target_samplerate)
+            logger.debug(f"音频合并完成: {output_wav}")
 
             return str(output_wav)
 
         except ImportError as e:
             print(f"❌ 音频合并需要soundfile和numpy库: {e}")
             print("💡 请安装: pip install soundfile numpy")
+            logger.error(f"音频合并依赖缺失: {e}")
             return audio_files[0]
 
         except Exception as e:
             print(f"❌ 音频合并失败: {e}")
-            import traceback
+            logger.error(f"音频合并失败: {e}")
             traceback.print_exc()
             return audio_files[0]
 

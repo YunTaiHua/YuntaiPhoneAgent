@@ -1,6 +1,29 @@
 """
 routes.py - FastAPI路由定义
-重构版本 - 按功能模块拆分处理器
+============================
+
+重构版本 - 按功能模块拆分处理器。
+
+负责定义所有HTTP和WebSocket路由，将请求分发到对应的处理器。
+
+主要功能:
+    - HTTP路由: 主页、状态查询、文件上传、历史记录等
+    - WebSocket路由: 实时通信、命令执行、TTS处理等
+
+路由分类:
+    - 页面路由: / (主页)
+    - 状态路由: /api/state, /api/version
+    - TTS路由: /api/tts/models, /api/tts/audio, /api/tts/audio_history
+    - 媒体路由: /api/images, /api/videos
+    - 设备路由: /api/devices, /api/connection_config
+    - 历史路由: /api/history
+    - 文件路由: /api/upload
+    - WebSocket: /ws
+
+使用示例:
+    >>> from fastapi import FastAPI
+    >>> app = FastAPI()
+    >>> setup_routes(app, controller, ws_manager)
 """
 
 from __future__ import annotations
@@ -43,8 +66,17 @@ def setup_routes(
     controller: WebController,
     ws_manager: ConnectionManager
 ) -> None:
-    """设置所有路由"""
-
+    """
+    设置所有路由
+    
+    为FastAPI应用注册所有HTTP路由和WebSocket路由。
+    
+    Args:
+        app: FastAPI应用实例
+        controller: Web控制器实例
+        ws_manager: WebSocket连接管理器实例
+    """
+    # 静态文件目录
     static_dir = WEB_DIR / "static"
     static_dir.mkdir(parents=True, exist_ok=True)
 

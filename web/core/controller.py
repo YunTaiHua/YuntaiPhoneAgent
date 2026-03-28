@@ -1,7 +1,26 @@
 """
 controller.py - Web控制器
-处理所有Web请求和业务逻辑
-重构版本 - 分离输出捕获类
+==========================
+
+处理所有Web请求和业务逻辑。
+
+重构版本 - 分离输出捕获类。
+
+主要组件:
+    - WebController: Web控制器核心类
+
+功能特性:
+    - 任务管理器初始化和管理
+    - WebSocket消息发送（输出、Toast、状态更新）
+    - TTS模块预加载和测试
+    - 历史记录管理
+    - 状态查询
+
+使用示例:
+    >>> from web.core.ws_manager import ConnectionManager
+    >>> ws_manager = ConnectionManager()
+    >>> controller = WebController(ws_manager)
+    >>> state = controller.get_state()
 """
 
 from __future__ import annotations
@@ -36,9 +55,37 @@ if TYPE_CHECKING:
 
 
 class WebController:
-    """Web控制器 - 处理所有Web请求和业务逻辑"""
+    """
+    Web控制器 - 处理所有Web请求和业务逻辑
+    
+    作为Web应用的核心控制器，协调任务管理器、TTS管理器、
+    WebSocket连接管理器等组件的工作。
+    
+    Attributes:
+        ws_manager: WebSocket连接管理器
+        project_root: 项目根目录路径
+        scrcpy_path: scrcpy工具路径
+        _task_manager: 任务管理器实例（延迟初始化）
+        _task_chain: 任务链实例（延迟初始化）
+        _judgement_agent: 判断Agent实例（延迟初始化）
+        is_executing: 是否正在执行任务
+        is_continuous_mode: 是否处于持续回复模式
+        terminate_flag: 终止标志
+        device_type: 设备类型（android/harmonyos）
+        attached_files: 附加文件列表
+        is_dark_theme: 是否使用深色主题
+        tts_enabled: TTS功能是否启用
+        output_capture: 输出捕获器
+        callback_manager: 回调管理器
+    """
 
     def __init__(self, ws_manager: ConnectionManager) -> None:
+        """
+        初始化Web控制器
+        
+        Args:
+            ws_manager: WebSocket连接管理器实例
+        """
         self.ws_manager: ConnectionManager = ws_manager
         self.project_root: str = PROJECT_ROOT
         self.scrcpy_path: str = SCRCPY_PATH

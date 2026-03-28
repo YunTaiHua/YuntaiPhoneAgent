@@ -1,18 +1,26 @@
-#!/usr/bin/env python3
 """
 文件管理模块
+============
 
 使用 pathlib 进行跨平台路径处理，管理对话历史、永久记忆、聊天记录等文件。
 
-Example:
+主要功能:
+    - init_file_system: 初始化文件系统
+    - read_forever_memory: 读取永久记忆
+    - save_conversation_history: 保存对话历史
+    - get_recent_conversation_history: 获取最近对话历史
+    - get_recent_free_chats: 获取最近自由聊天记录
+    - save_record_to_log: 保存聊天记录到日志
+
+使用示例:
     >>> file_manager = FileManager()
     >>> file_manager.init_file_system()
     >>> memory = file_manager.read_forever_memory()
 """
-
-import shutil
-import json
 import datetime
+import json
+import logging
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +32,8 @@ from yuntai.core.config import (
     CONNECTION_CONFIG_FILE,
     TEMP_DIR,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class FileManager:

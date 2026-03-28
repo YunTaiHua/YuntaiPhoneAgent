@@ -1,7 +1,30 @@
 """
 SettingsBuilder - 系统设置页面构建器（PyQt6 重构版）
-浅色米白色主题版本
+====================================================
+
+浅色米白色主题版本。
+
+负责构建系统设置页面的UI组件，包括系统检查、文件管理、
+日志管理和设置功能。
+
+主要组件:
+    - SettingsBuilder: 系统设置页面构建器
+
+功能特性:
+    - 系统环境检查（ADB/HDC、模型API、TTS、设备连接）
+    - 文件管理信息显示
+    - 日志文件打开
+    - 设置保存和加载
+
+使用示例:
+    >>> builder = SettingsBuilder(view)
+    >>> builder.create_page()  # 创建系统设置页面
 """
+
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING, Any
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
@@ -15,7 +38,19 @@ from yuntai.gui.styles import ThemeColors, ThemeFonts, ThemeCorner, ThemeSpacing
 
 # 设置页面布局常量 - 避免魔法数字
 class SettingsLayoutConstants:
-    """设置页面布局常量"""
+    """
+    设置页面布局常量
+    
+    定义设置页面中使用的各种布局参数，
+    避免在代码中使用魔法数字。
+    
+    Attributes:
+        CARD_MIN_HEIGHT: 卡片最小高度
+        CARD_MARGIN: 卡片内边距
+        CARD_SPACING: 卡片间距
+        CARD_ICON_SIZE: 图标字体大小
+        CARD_TITLE_SIZE: 标题字体大小
+    """
     # 卡片布局常量
     CARD_MIN_HEIGHT = 140          # 卡片最小高度
     CARD_MARGIN = 20               # 卡片内边距
@@ -26,13 +61,42 @@ class SettingsLayoutConstants:
     CARD_TITLE_SIZE = 20           # 标题字体大小
 
 
+# 初始化模块日志记录器
+logger = logging.getLogger(__name__)
+
+
 class HoverCard(QFrame):
-    """可悬浮变色的卡片"""
+    """
+    可悬浮变色的卡片
+    
+    鼠标悬浮时改变背景色，支持点击信号。
+    用于设置页面的功能卡片。
+    
+    Signals:
+        clicked: 点击信号，兼容QPushButton的clicked信号
+    
+    Attributes:
+        card_index: 卡片索引
+        hover_color: 悬浮颜色
+        normal_style: 正常状态样式
+        hover_style: 悬浮状态样式
+        _is_hoverable: 是否可悬浮
+        _title_label: 标题标签引用
+    """
     
     # 点击信号（无参数，兼容QPushButton的clicked信号）
     clicked = pyqtSignal()
     
     def __init__(self, card_index, hover_color, colors_getter, parent=None):
+        """
+        初始化悬浮卡片
+        
+        Args:
+            card_index: 卡片索引
+            hover_color: 悬浮颜色
+            colors_getter: 颜色获取函数
+            parent: 父组件
+        """
         super().__init__(parent)
         self.card_index = card_index
         self.hover_color = hover_color
@@ -85,11 +149,27 @@ class HoverCard(QFrame):
 
 
 class SettingsBuilder:
-    """系统设置页面构建器"""
+    """
+    系统设置页面构建器
+    
+    负责构建系统设置页面的UI组件，包括系统检查、文件管理、
+    日志管理和设置功能。
+    
+    Attributes:
+        view: GUIView实例
+        components: UI组件字典
+    """
 
     def __init__(self, view_instance):
+        """
+        初始化系统设置页面构建器
+        
+        Args:
+            view_instance: GUIView实例
+        """
         self.view = view_instance
         self.components = view_instance.components
+        logger.debug("SettingsBuilder初始化完成")
     
     @property
     def colors(self):

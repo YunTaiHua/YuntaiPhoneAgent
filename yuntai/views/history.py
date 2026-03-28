@@ -1,10 +1,27 @@
 """
 HistoryBuilder - 历史记录页面构建器（PyQt6 重构版）
-浅色米白色主题版本
+==================================================
+
+浅色米白色主题版本。
+
+负责构建历史记录页面的UI组件，包括历史记录显示和管理功能。
+
+主要组件:
+    - HistoryBuilder: 历史记录页面构建器
+
+功能特性:
+    - 历史记录显示
+    - 刷新历史记录
+    - 清空历史记录
+
+使用示例:
+    >>> builder = HistoryBuilder(view)
+    >>> builder.create_page()  # 创建历史记录页面
 """
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from PyQt6.QtWidgets import (
@@ -16,16 +33,34 @@ from PyQt6.QtGui import QCursor, QFont
 
 from yuntai.gui.styles import ThemeColors, ThemeFonts, ThemeCorner, ThemeSpacing
 
+# 初始化模块日志记录器
+logger = logging.getLogger(__name__)
+
 if TYPE_CHECKING:
     from yuntai.gui.gui_view import GUIView
 
 
 class HistoryBuilder:
-    """历史记录页面构建器"""
+    """
+    历史记录页面构建器
+    
+    负责构建历史记录页面的UI组件，包括历史记录显示和管理功能。
+    
+    Attributes:
+        view: GUIView实例
+        components: UI组件字典
+    """
 
     def __init__(self, view_instance: GUIView) -> None:
+        """
+        初始化历史记录页面构建器
+        
+        Args:
+            view_instance: GUIView实例
+        """
         self.view: GUIView = view_instance
         self.components: dict[str, Any] = view_instance.components
+        logger.debug("HistoryBuilder初始化完成")
     
     @property
     def colors(self) -> ThemeColors:

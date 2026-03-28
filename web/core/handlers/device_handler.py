@@ -1,5 +1,26 @@
 """
 device_handler.py - 设备管理处理
+=================================
+
+负责处理设备连接、断开和检测相关操作。
+
+主要功能:
+    - handle_connect_device: 处理设备连接
+    - handle_disconnect_device: 处理设备断开
+    - handle_refresh_devices: 刷新设备列表
+    - handle_detect_devices: 检测可用设备
+
+支持连接方式:
+    - USB连接: 通过设备ID直接连接
+    - 无线连接: 通过IP和端口连接
+
+使用示例:
+    >>> await handle_connect_device(websocket, {
+    ...     "device_type": "android",
+    ...     "connection_type": "wireless",
+    ...     "ip": "192.168.1.100",
+    ...     "port": "5555"
+    ... }, controller)
 """
 
 import asyncio

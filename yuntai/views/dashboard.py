@@ -1,8 +1,29 @@
-﻿"""
+"""
 DashboardBuilder - 控制中心页面构建器（PyQt6 重构版）
-浅色米白色主题版本
+======================================================
+
+浅色米白色主题版本。
+
+负责构建控制中心页面的UI组件，包括执行输出显示、命令输入、
+快捷键按钮和文件管理功能。
+
+主要组件:
+    - CommandTextEdit: 自定义命令输入框，支持回车发送和Ctrl+回车换行
+    - DashboardBuilder: 控制中心页面构建器
+
+功能特性:
+    - 执行输出显示区域
+    - 命令输入框（支持多行、自适应高度）
+    - 快捷键按钮（微信、QQ、抖音等）
+    - 文件上传和管理
+    - 手机投屏功能
+
+使用示例:
+    >>> builder = DashboardBuilder(view)
+    >>> builder.create_page()  # 创建控制中心页面
 """
 
+import logging
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QFrame, QTextEdit, QScrollArea,
@@ -13,14 +34,30 @@ from PyQt6.QtGui import QFont, QTextCursor, QCursor, QKeyEvent
 
 from yuntai.gui.styles import ThemeColors, ThemeFonts, ThemeCorner, ThemeSpacing
 
+# 初始化模块日志记录器
+logger = logging.getLogger(__name__)
+
 
 class CommandTextEdit(QTextEdit):
-    """自定义命令输入框，支持回车发送和Ctrl+回车换行"""
+    """
+    自定义命令输入框 - 支持回车发送和Ctrl+回车换行
+    
+    扩展QTextEdit，添加回车键发送命令功能。
+    普通回车发送命令，Ctrl+回车换行。
+    
+    Signals:
+        enter_pressed: 回车键按下信号，用于触发命令执行
+    """
     
     enter_pressed = pyqtSignal()  # 回车键按下信号
     
     def keyPressEvent(self, event: QKeyEvent):
-        """处理键盘事件"""
+        """
+        处理键盘事件
+        
+        Args:
+            event: 键盘事件对象
+        """
         # 回车键
         if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
             # Ctrl+回车：换行
@@ -39,12 +76,30 @@ class CommandTextEdit(QTextEdit):
 
 
 class DashboardBuilder:
-    """控制中心页面构建器"""
+    """
+    控制中心页面构建器
+    
+    负责构建控制中心页面的UI组件，包括执行输出显示、命令输入、
+    快捷键按钮和文件管理功能。
+    
+    Attributes:
+        view: GUIView实例
+        components: UI组件字典
+        _last_line_count: 上一次输入框行数（用于自适应高度）
+        shortcuts: 快捷键配置字典
+    """
 
     def __init__(self, view_instance):
+        """
+        初始化控制中心页面构建器
+        
+        Args:
+            view_instance: GUIView实例
+        """
         self.view = view_instance
         self.components = view_instance.components
         self._last_line_count = 1  # 跟踪上一次行数
+        logger.debug("DashboardBuilder初始化完成")
 
         # 快捷键配置
         self.shortcuts = {

@@ -1,6 +1,23 @@
 """
-  TTSHandler - TTS语音合成处理器 (PyQt6 重构版)
-  负责处理TTS语音合成相关功能
+TTSHandler - TTS语音合成处理器 (PyQt6 重构版)
+=============================================
+
+负责处理TTS语音合成相关功能。
+
+主要组件:
+    - TTSHandler: TTS语音合成处理器
+
+功能特性:
+    - TTS模型选择（GPT、SoVITS）
+    - 参考音频和文本选择
+    - 语音合成和播放
+    - 历史音频管理（播放、删除）
+    - TTS设置弹窗
+
+使用示例:
+    >>> handler = TTSHandler(controller)
+    >>> handler.show_panel()  # 显示TTS页面
+    >>> handler.tts_start_synthesis()  # 开始语音合成
 """
 
 import logging
@@ -31,7 +48,23 @@ from yuntai.core.config import ThemeColors
 
 
 class TTSHandler(QObject):
-    """TTS语音合成处理器"""
+    """
+    TTS语音合成处理器
+    
+    负责处理TTS语音合成相关功能，包括模型选择、语音合成、音频播放等。
+    通过信号槽机制实现线程安全的UI更新。
+    
+    Attributes:
+        controller: 控制器实例
+        view: 视图实例
+        task_manager: 任务管理器实例
+        _events_bound: 事件是否已绑定标志
+        _events_bound_success: 事件绑定是否成功标志
+        update_audio_list_signal: 更新音频列表信号
+        add_log_signal: 添加日志信号
+        retry_bind_events_signal: 重试绑定事件信号
+        update_audio_list_delayed_signal: 延迟更新音频列表信号
+    """
 
     # 定义信号用于跨线程UI更新
     update_audio_list_signal = pyqtSignal(list)  # files list
@@ -41,10 +74,17 @@ class TTSHandler(QObject):
     update_audio_list_delayed_signal = pyqtSignal()  # 延迟更新音频列表
 
     def __init__(self, controller):
+        """
+        初始化TTS处理器
+        
+        Args:
+            controller: 控制器实例
+        """
         super().__init__()
         self.controller = controller
         self.view = controller.view
         self.task_manager = controller.task_manager
+        logger.debug("TTSHandler初始化完成")
 
         # 标记事件是否已绑定
         self._events_bound = False

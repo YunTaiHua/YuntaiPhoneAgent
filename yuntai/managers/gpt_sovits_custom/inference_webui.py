@@ -1,33 +1,67 @@
 """
-按中英混合识别
-按日英混合识别
-多语种启动切分识别语种
-全部按中文识别
-全部按英文识别
-全部按日文识别
+GPT-SoVITS 推理 WebUI 模块
+==========================
+
+本模块提供 GPT-SoVITS 语音合成系统的完整推理功能。
+
+主要功能:
+    - get_tts_wav: 文本转语音合成主函数
+    - change_gpt_weights: 切换 GPT 模型权重
+    - change_sovits_weights: 切换 SoVITS 模型权重
+    - I18nAuto: 国际化自动翻译工具
+
+支持的语种:
+    - 中文、英文、日文、粤语、韩文
+    - 中英混合、日英混合、粤英混合、韩英混合
+    - 多语种混合识别
+
+模型版本:
+    - v1: 基础版本
+    - v2: 改进版本
+    - v3: BigVGAN 声码器版本
+    - v4: HiFi-GAN 声码器版本
+    - v2Pro/v2ProPlus: 带说话人嵌入的增强版本
+
+使用示例:
+    >>> from yuntai.managers.gpt_sovits_custom import get_tts_wav
+    >>> # 切换模型
+    >>> change_gpt_weights("path/to/gpt.ckpt")
+    >>> change_sovits_weights("path/to/sovits.pth")
+    >>> # 合成语音
+    >>> for sr, audio in get_tts_wav(
+    ...     ref_wav_path="reference.wav",
+    ...     prompt_text="参考文本",
+    ...     prompt_language="中文",
+    ...     text="要合成的文本",
+    ...     text_language="中文"
+    ... ):
+    ...     pass  # 处理音频数据
+
+注意事项:
+    - 需要配置 GPT_SOVITS_ROOT 环境变量
+    - 参考音频建议 3-10 秒
+    - v3/v4 版本不支持无参考文本模式
 """
 import os
 from pathlib import Path
-# 禁用tqdm进度条（必须在导入其他模块前设置）
+
 os.environ['TQDM_DISABLE'] = '1'
 
-# 使用 try-except 导入 psutil
 try:
     import psutil
 
     def set_high_priority():
         """把当前 Python 进程设为 HIGH_PRIORITY_CLASS"""
         if os.name != "nt":
-            return # 仅 Windows 有效
+            return
         p = psutil.Process(os.getpid())
         try:
             p.nice(psutil.HIGH_PRIORITY_CLASS)
-            # print("已将进程优先级设为 High")  # 已移除
         except psutil.AccessDenied:
-            pass  # print("权限不足，无法修改优先级（请用管理员运行）")  # 已移除
+            pass
     set_high_priority()
 except ImportError:
-    pass  # psutil 导入失败，跳过优先级设置
+    pass
 
 import json
 import logging
@@ -37,14 +71,14 @@ import sys
 import traceback
 import warnings
 
-# 使用 try-except 导入 torch 和 torchaudio
+
 try:
     import torch
     import torchaudio
 except ImportError as e:
     raise ImportError(f"torch 或 torchaudio 导入失败: {e}")
 
-# 使用 try-except 导入 LangSegmenter
+
 try:
     from text.LangSegmenter import LangSegmenter
 except ImportError:
@@ -88,15 +122,6 @@ if isinstance(gpt_path, list):
 if isinstance(sovits_path, list):
     sovits_path = sovits_path[0]
 
-# print(2333333)
-# print(os.environ["gpt_path"])
-# print(gpt_path)
-# print(GPT_names)
-# print(weight_data)
-# print(weight_data.get("GPT", {}))
-# print(version)###GPT version里没有s2的v2pro
-# print(weight_data.get("GPT", {}).get(version, GPT_names[-1]))
-
 gpt_sovits_root = os.environ.get("GPT_SOVITS_ROOT")
 if not gpt_sovits_root:
     raise EnvironmentError("环境变量 GPT_SOVITS_ROOT 未设置，请在.env文件中配置")
@@ -110,9 +135,8 @@ is_share = eval(is_share)
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
 is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
-# is_half=False
 punctuation = set(["!", "?", "…", ",", ".", "-", " "])
-# 使用 try-except 导入 gradio, librosa, numpy
+
 try:
     import gradio as gr
 except ImportError:
@@ -125,13 +149,13 @@ except ImportError:
 
 import numpy as np
 
-# 使用 try-except 导入 feature_extractor
+
 try:
     from feature_extractor import cnhubert
 except ImportError:
     cnhubert = None
 
-# 使用 try-except 导入 transformers
+
 try:
     from transformers import AutoModelForMaskedLM, AutoTokenizer
 except ImportError:
@@ -142,7 +166,7 @@ cnhubert.cnhubert_base_path = cnhubert_base_path
 
 import random
 
-# 使用 try-except 导入 GPT_SoVITS 模块
+
 try:
     from GPT_SoVITS.module.models import Generator, SynthesizerTrn, SynthesizerTrnV3
 except ImportError:
@@ -151,7 +175,15 @@ except ImportError:
     SynthesizerTrnV3 = None
 
 
-def set_seed(seed):
+def set_seed(seed: int) -> None:
+    """
+    设置随机种子
+    
+    用于确保推理结果的可复现性。
+    
+    Args:
+        seed: 随机种子值，-1 表示使用随机种子
+    """
     if seed == -1:
         seed = random.randint(0, 1000000)
     seed = int(seed)
@@ -162,24 +194,22 @@ def set_seed(seed):
     torch.cuda.manual_seed(seed)
 
 
-# set_seed(42)
-
 from time import time as ttime
 
-# 使用自定义的t2s_lightning_module（已移除tqdm进度条）
+
 try:
     from .t2s_lightning_module import Text2SemanticLightningModule
 except ImportError:
     Text2SemanticLightningModule = None
 
-# 使用 try-except 导入 peft
+
 try:
     from peft import LoraConfig, get_peft_model
 except ImportError:
     LoraConfig = None
     get_peft_model = None
 
-# 使用 try-except 导入 text 模块
+
 try:
     from text import cleaned_text_to_sequence
 except ImportError:
@@ -190,7 +220,7 @@ try:
 except ImportError:
     clean_text = None
 
-# 使用 try-except 导入 tools 模块
+
 try:
     from tools.assets import css, js, top_html
 except ImportError:
@@ -208,33 +238,32 @@ language = os.environ.get("language", "Auto")
 language = sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
 i18n = I18nAuto(language=language)
 
-# os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # 确保直接启动推理UI时也能够设置。
-
 if torch.cuda.is_available():
     device = "cuda"
 else:
     device = "cpu"
 
+
 dict_language_v1 = {
-    i18n("中文"): "all_zh",  # 全部按中文识别
-    i18n("英文"): "en",  # 全部按英文识别（不变）
-    i18n("日文"): "all_ja",  # 全部按日文识别
-    i18n("中英混合"): "zh",  # 按中英混合识别（不变）
-    i18n("日英混合"): "ja",  # 按日英混合识别（不变）
-    i18n("多语种混合"): "auto",  # 多语种启动切分识别语种
+    i18n("中文"): "all_zh",
+    i18n("英文"): "en",
+    i18n("日文"): "all_ja",
+    i18n("中英混合"): "zh",
+    i18n("日英混合"): "ja",
+    i18n("多语种混合"): "auto",
 }
 dict_language_v2 = {
-    i18n("中文"): "all_zh",  # 全部按中文识别
-    i18n("英文"): "en",  # 全部按英文识别（不变）
-    i18n("日文"): "all_ja",  # 全部按日文识别
-    i18n("粤语"): "all_yue",  # 全部按中文识别
-    i18n("韩文"): "all_ko",  # 全部按韩文识别
-    i18n("中英混合"): "zh",  # 按中英混合识别（不变）
-    i18n("日英混合"): "ja",  # 按日英混合识别（不变）
-    i18n("粤英混合"): "yue",  # 按粤英混合识别（不变）
-    i18n("韩英混合"): "ko",  # 按韩英混合识别（不变）
-    i18n("多语种混合"): "auto",  # 多语种启动切分识别语种
-    i18n("多语种混合(粤语)"): "auto_yue",  # 多语种启动切分识别语种
+    i18n("中文"): "all_zh",
+    i18n("英文"): "en",
+    i18n("日文"): "all_ja",
+    i18n("粤语"): "all_yue",
+    i18n("韩文"): "all_ko",
+    i18n("中英混合"): "zh",
+    i18n("日英混合"): "ja",
+    i18n("粤英混合"): "yue",
+    i18n("韩英混合"): "ko",
+    i18n("多语种混合"): "auto",
+    i18n("多语种混合(粤语)"): "auto_yue",
 }
 dict_language = dict_language_v1 if version == "v1" else dict_language_v2
 
@@ -246,7 +275,19 @@ else:
     bert_model = bert_model.to(device)
 
 
-def get_bert_feature(text, word2ph):
+def get_bert_feature(text: str, word2ph: list) -> torch.Tensor:
+    """
+    获取 BERT 特征
+    
+    使用预训练的 BERT 模型提取文本特征。
+    
+    Args:
+        text: 输入文本
+        word2ph: 每个词对应的音素数量列表
+        
+    Returns:
+        BERT 特征张量
+    """
     with torch.no_grad():
         inputs = tokenizer(text, return_tensors="pt")
         for i in inputs:
@@ -263,7 +304,19 @@ def get_bert_feature(text, word2ph):
 
 
 class DictToAttrRecursive(dict):
-    def __init__(self, input_dict):
+    """
+    递归字典转属性类
+    
+    将字典递归转换为支持属性访问的对象。
+    """
+    
+    def __init__(self, input_dict: dict):
+        """
+        初始化
+        
+        Args:
+            input_dict: 输入字典
+        """
         super().__init__(input_dict)
         for key, value in input_dict.items():
             if isinstance(value, dict):
@@ -297,9 +350,6 @@ else:
     ssl_model = ssl_model.to(device)
 
 
-###todo:put them to process_ckpt and modify my_save func (save sovits weights), gpt save weights use my_save in process_ckpt
-# symbol_version-model_version-if_lora_v3
-# 使用 try-except 导入 process_ckpt
 try:
     from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
 except ImportError:
@@ -309,12 +359,24 @@ except ImportError:
 v3v4set = {"v3", "v4"}
 
 
-def change_sovits_weights(sovits_path, prompt_language=None, text_language=None):
+def change_sovits_weights(sovits_path: str, prompt_language: str | None = None, text_language: str | None = None):
+    """
+    切换 SoVITS 模型权重
+    
+    加载指定的 SoVITS 模型并更新全局配置。
+    
+    Args:
+        sovits_path: SoVITS 模型文件路径
+        prompt_language: 提示词语种，可选
+        text_language: 目标文本语种，可选
+        
+    Yields:
+        Gradio 更新字典
+    """
     if "！" in sovits_path or "!" in sovits_path:
         sovits_path = name2sovits_path[sovits_path]
     global vq_model, hps, version, model_version, dict_language, if_lora_v3
     version, model_version, if_lora_v3 = get_sovits_version_from_path_fast(sovits_path)
-    # print(sovits_path, version, model_version, if_lora_v3)  # 已移除
     is_exist = is_exist_s2gv3 if model_version == "v3" else is_exist_s2gv4
     path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
     if if_lora_v3 == True and is_exist == False:
@@ -366,13 +428,12 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
     hps = DictToAttrRecursive(hps)
     hps.model.semantic_frame_rate = "25hz"
     if "enc_p.text_embedding.weight" not in dict_s2["weight"]:
-        hps.model.version = "v2"  # v3model,v2sybomls
+        hps.model.version = "v2"
     elif dict_s2["weight"]["enc_p.text_embedding.weight"].shape[0] == 322:
         hps.model.version = "v1"
     else:
         hps.model.version = "v2"
     version = hps.model.version
-    # print("sovits版本:",hps.model.version)
     if model_version not in v3v4set:
         if "Pro" not in model_version:
             model_version = version
@@ -403,11 +464,10 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
         vq_model = vq_model.to(device)
     vq_model.eval()
     if if_lora_v3 == False:
-        # print("loading sovits_%s" % model_version, vq_model.load_state_dict(dict_s2["weight"], strict=False))  # 已移除
         vq_model.load_state_dict(dict_s2["weight"], strict=False)
+        logger.debug(f"加载 SoVITS 权重: {sovits_path}")
     else:
         path_sovits = path_sovits_v3 if model_version == "v3" else path_sovits_v4
-        # print("loading sovits_%spretrained_G" % model_version, vq_model.load_state_dict(load_sovits_new(path_sovits)["weight"], strict=False))  # 已移除
         vq_model.load_state_dict(load_sovits_new(path_sovits)["weight"], strict=False)
         lora_rank = dict_s2["lora_rank"]
         lora_config = LoraConfig(
@@ -417,11 +477,10 @@ def change_sovits_weights(sovits_path, prompt_language=None, text_language=None)
             init_lora_weights=True,
         )
         vq_model.cfm = get_peft_model(vq_model.cfm, lora_config)
-        # print("loading sovits_%s_lora%s" % (model_version, lora_rank))  # 已移除
         vq_model.load_state_dict(dict_s2["weight"], strict=False)
         vq_model.cfm = vq_model.cfm.merge_and_unload()
-        # torch.save(vq_model.state_dict(),"merge_win.pth")
         vq_model.eval()
+        logger.debug(f"加载 SoVITS LoRA 权重: {sovits_path}, rank: {lora_rank}")
 
     yield (
         {"__type__": "update", "choices": list(dict_language.keys())},
@@ -454,7 +513,15 @@ except Exception as e:
     logger.debug(f"初始化SoVITS权重失败: {e}")
 
 
-def change_gpt_weights(gpt_path):
+def change_gpt_weights(gpt_path: str) -> None:
+    """
+    切换 GPT 模型权重
+    
+    加载指定的 GPT 模型并更新全局配置。
+    
+    Args:
+        gpt_path: GPT 模型文件路径
+    """
     if "！" in gpt_path or "!" in gpt_path:
         gpt_path = name2gpt_path[gpt_path]
     global hz, max_sec, t2s_model, config
@@ -468,11 +535,10 @@ def change_gpt_weights(gpt_path):
         t2s_model = t2s_model.half()
     t2s_model = t2s_model.to(device)
     t2s_model.eval()
-    # total = sum([param.nelement() for param in t2s_model.parameters()])
-    # print("Number of parameter: %.2fM" % (total / 1e6))
     data = json.loads(weight_json_path.read_text(encoding="utf-8"))
     data["GPT"][version] = gpt_path
     weight_json_path.write_text(json.dumps(data), encoding="utf-8")
+    logger.debug(f"加载 GPT 权重: {gpt_path}")
 
 
 change_gpt_weights(gpt_path)
@@ -482,7 +548,8 @@ import torch
 now_dir = Path.cwd()
 
 
-def clean_hifigan_model():
+def clean_hifigan_model() -> None:
+    """清理 HiFi-GAN 模型，释放显存"""
     global hifigan_model
     if hifigan_model:
         hifigan_model = hifigan_model.cpu()
@@ -493,7 +560,8 @@ def clean_hifigan_model():
             logger.debug(f"清理CUDA缓存失败: {e}")
 
 
-def clean_bigvgan_model():
+def clean_bigvgan_model() -> None:
+    """清理 BigVGAN 模型，释放显存"""
     global bigvgan_model
     if bigvgan_model:
         bigvgan_model = bigvgan_model.cpu()
@@ -504,7 +572,8 @@ def clean_bigvgan_model():
             logger.debug(f"清理CUDA缓存失败: {e}")
 
 
-def clean_sv_cn_model():
+def clean_sv_cn_model() -> None:
+    """清理说话人验证模型，释放显存"""
     global sv_cn_model
     if sv_cn_model:
         sv_cn_model.embedding_model = sv_cn_model.embedding_model.cpu()
@@ -515,7 +584,8 @@ def clean_sv_cn_model():
             logger.debug(f"清理CUDA缓存失败: {e}")
 
 
-def init_bigvgan():
+def init_bigvgan() -> None:
+    """初始化 BigVGAN 声码器（用于 v3 模型）"""
     global bigvgan_model, hifigan_model, sv_cn_model
     from BigVGAN import bigvgan
 
@@ -523,8 +593,7 @@ def init_bigvgan():
     bigvgan_model = bigvgan.BigVGAN.from_pretrained(
         str(bigvgan_path),
         use_cuda_kernel=False,
-    )  # if True, RuntimeError: Ninja is required to load C++ extensions
-    # remove weight norm in the model and set to eval mode
+    )
     bigvgan_model.remove_weight_norm()
     bigvgan_model = bigvgan_model.eval()
     clean_hifigan_model()
@@ -533,9 +602,11 @@ def init_bigvgan():
         bigvgan_model = bigvgan_model.half().to(device)
     else:
         bigvgan_model = bigvgan_model.to(device)
+    logger.debug("BigVGAN 声码器初始化完成")
 
 
-def init_hifigan():
+def init_hifigan() -> None:
+    """初始化 HiFi-GAN 声码器（用于 v4 模型）"""
     global hifigan_model, bigvgan_model, sv_cn_model
     hifigan_model = Generator(
         initial_channel=100,
@@ -556,7 +627,6 @@ def init_hifigan():
         map_location="cpu",
         weights_only=False,
     )
-    # print("loading vocoder", hifigan_model.load_state_dict(state_dict_g))  # 已移除
     hifigan_model.load_state_dict(state_dict_g)
     clean_bigvgan_model()
     clean_sv_cn_model()
@@ -564,20 +634,22 @@ def init_hifigan():
         hifigan_model = hifigan_model.half().to(device)
     else:
         hifigan_model = hifigan_model.to(device)
+    logger.debug("HiFi-GAN 声码器初始化完成")
 
 
-# 使用 try-except 导入 sv
 try:
     from sv import SV
 except ImportError:
     SV = None
 
 
-def init_sv_cn():
+def init_sv_cn() -> None:
+    """初始化说话人验证模型（用于 v2Pro/v2ProPlus 模型）"""
     global hifigan_model, bigvgan_model, sv_cn_model
     sv_cn_model = SV(device, is_half)
     clean_bigvgan_model()
     clean_hifigan_model()
+    logger.debug("说话人验证模型初始化完成")
 
 
 bigvgan_model = hifigan_model = sv_cn_model = None
@@ -591,7 +663,21 @@ if model_version in {"v2Pro", "v2ProPlus"}:
 resample_transform_dict = {}
 
 
-def resample(audio_tensor, sr0, sr1, device):
+def resample(audio_tensor: torch.Tensor, sr0: int, sr1: int, device: str) -> torch.Tensor:
+    """
+    音频重采样
+    
+    将音频从 sr0 采样率转换为 sr1 采样率。
+    
+    Args:
+        audio_tensor: 音频张量
+        sr0: 原始采样率
+        sr1: 目标采样率
+        device: 计算设备
+        
+    Returns:
+        重采样后的音频张量
+    """
     global resample_transform_dict
     key = "%s-%s-%s" % (sr0, sr1, str(device))
     if key not in resample_transform_dict:
@@ -599,12 +685,22 @@ def resample(audio_tensor, sr0, sr1, device):
     return resample_transform_dict[key](audio_tensor)
 
 
-def get_spepc(hps, filename, dtype, device, is_v2pro=False):
-    # audio = load_audio(filename, int(hps.data.sampling_rate))
-
-    # audio, sampling_rate = librosa.load(filename, sr=int(hps.data.sampling_rate))
-    # audio = torch.FloatTensor(audio)
-
+def get_spepc(hps, filename: str, dtype, device: str, is_v2pro: bool = False) -> tuple:
+    """
+    获取音频频谱特征
+    
+    从音频文件中提取频谱特征。
+    
+    Args:
+        hps: 超参数配置
+        filename: 音频文件路径
+        dtype: 数据类型
+        device: 计算设备
+        is_v2pro: 是否为 v2Pro 模型
+        
+    Returns:
+        元组 (频谱特征, 音频张量)
+    """
     sr1 = int(hps.data.sampling_rate)
     audio, sr0 = torchaudio.load(filename)
     if sr0 != sr1:
@@ -634,7 +730,20 @@ def get_spepc(hps, filename, dtype, device, is_v2pro=False):
     return spec, audio
 
 
-def clean_text_inf(text, language, version):
+def clean_text_inf(text: str, language: str, version: str) -> tuple:
+    """
+    文本清洗和音素转换
+    
+    将文本转换为音素序列。
+    
+    Args:
+        text: 输入文本
+        language: 语言代码
+        version: 模型版本
+        
+    Returns:
+        元组 (音素列表, 词到音素映射, 归一化文本)
+    """
     language = language.replace("all_", "")
     phones, word2ph, norm_text = clean_text(text, language, version)
     phones = cleaned_text_to_sequence(phones, version)
@@ -644,10 +753,24 @@ def clean_text_inf(text, language, version):
 dtype = torch.float16 if is_half == True else torch.float32
 
 
-def get_bert_inf(phones, word2ph, norm_text, language):
+def get_bert_inf(phones: list, word2ph: list, norm_text: str, language: str) -> torch.Tensor:
+    """
+    获取 BERT 推理特征
+    
+    根据音素序列获取 BERT 特征。
+    
+    Args:
+        phones: 音素列表
+        word2ph: 词到音素映射
+        norm_text: 归一化文本
+        language: 语言代码
+        
+    Returns:
+        BERT 特征张量
+    """
     language = language.replace("all_", "")
     if language == "zh":
-        bert = get_bert_feature(norm_text, word2ph).to(device)  # .to(dtype)
+        bert = get_bert_feature(norm_text, word2ph).to(device)
     else:
         bert = torch.zeros(
             (1024, len(phones)),
@@ -674,20 +797,44 @@ splits = {
 }
 
 
-def get_first(text):
+def get_first(text: str) -> str:
+    """
+    获取第一个句子
+    
+    提取文本中第一个完整句子。
+    
+    Args:
+        text: 输入文本
+        
+    Returns:
+        第一个句子
+    """
     pattern = "[" + "".join(re.escape(sep) for sep in splits) + "]"
     text = re.split(pattern, text)[0].strip()
     return text
 
 
-# 使用 try-except 导入 text.chinese
 try:
     from text import chinese
 except ImportError:
     chinese = None
 
 
-def get_phones_and_bert(text, language, version, final=False):
+def get_phones_and_bert(text: str, language: str, version: str, final: bool = False) -> tuple:
+    """
+    获取音素和 BERT 特征
+    
+    处理文本，提取音素序列和对应的 BERT 特征。
+    
+    Args:
+        text: 输入文本
+        language: 语言代码
+        version: 模型版本
+        final: 是否为最终处理
+        
+    Returns:
+        元组 (音素列表, BERT 特征, 归一化文本)
+    """
     text = re.sub(r' {2,}', ' ', text)
     textlist = []
     langlist = []
@@ -731,11 +878,8 @@ def get_phones_and_bert(text, language, version, final=False):
             if tmp["lang"] == "en":
                 langlist.append(tmp["lang"])
             else:
-                # 因无法区别中日韩文汉字,以用户输入为准
                 langlist.append(language)
             textlist.append(tmp["text"])
-    # print(textlist)  # 已移除
-    # print(langlist)  # 已移除
     phones_list = []
     bert_list = []
     norm_text_list = []
@@ -756,7 +900,6 @@ def get_phones_and_bert(text, language, version, final=False):
     return phones, bert.to(dtype), norm_text
 
 
-# 使用 try-except 导入 module.mel_processing
 try:
     from module.mel_processing import mel_spectrogram_torch, spectrogram_torch
 except ImportError:
@@ -767,11 +910,13 @@ spec_min = -12
 spec_max = 2
 
 
-def norm_spec(x):
+def norm_spec(x: torch.Tensor) -> torch.Tensor:
+    """归一化频谱"""
     return (x - spec_min) / (spec_max - spec_min) * 2 - 1
 
 
-def denorm_spec(x):
+def denorm_spec(x: torch.Tensor) -> torch.Tensor:
+    """反归一化频谱"""
     return (x + 1) / 2 * (spec_max - spec_min) + spec_min
 
 
@@ -803,7 +948,19 @@ mel_fn_v4 = lambda x: mel_spectrogram_torch(
 )
 
 
-def merge_short_text_in_array(texts, threshold):
+def merge_short_text_in_array(texts: list, threshold: int) -> list:
+    """
+    合并短文本
+    
+    将短于阈值的文本合并到前一个文本中。
+    
+    Args:
+        texts: 文本列表
+        threshold: 长度阈值
+        
+    Returns:
+        合并后的文本列表
+    """
     if (len(texts)) < 2:
         return texts
     result = []
@@ -824,7 +981,19 @@ def merge_short_text_in_array(texts, threshold):
 sr_model = None
 
 
-def audio_sr(audio, sr):
+def audio_sr(audio: torch.Tensor, sr: int) -> tuple:
+    """
+    音频超分辨率
+    
+    使用超分辨率模型提升音频质量。
+    
+    Args:
+        audio: 音频张量
+        sr: 采样率
+        
+    Returns:
+        元组 (超分后的音频, 采样率)
+    """
     global sr_model
     if sr_model == None:
         from tools.audio_sr import AP_BWE
@@ -837,29 +1006,53 @@ def audio_sr(audio, sr):
     return sr_model(audio, sr)
 
 
-##ref_wav_path+prompt_text+prompt_language+text(单个)+text_language+top_k+top_p+temperature
-# cache_tokens={}#暂未实现清理机制
 cache = {}
 
 
 def get_tts_wav(
-    ref_wav_path,
-    prompt_text,
-    prompt_language,
-    text,
-    text_language,
-    how_to_cut=i18n("不切"),
-    top_k=20,
-    top_p=0.6,
-    temperature=0.6,
-    ref_free=False,
-    speed=1,
-    if_freeze=False,
-    inp_refs=None,
-    sample_steps=8,
-    if_sr=False,
-    pause_second=0.3,
+    ref_wav_path: str,
+    prompt_text: str,
+    prompt_language: str,
+    text: str,
+    text_language: str,
+    how_to_cut: str = i18n("不切"),
+    top_k: int = 20,
+    top_p: float = 0.6,
+    temperature: float = 0.6,
+    ref_free: bool = False,
+    speed: float = 1,
+    if_freeze: bool = False,
+    inp_refs = None,
+    sample_steps: int = 8,
+    if_sr: bool = False,
+    pause_second: float = 0.3,
 ):
+    """
+    文本转语音合成主函数
+    
+    使用 GPT-SoVITS 模型将文本转换为语音。
+    
+    Args:
+        ref_wav_path: 参考音频路径
+        prompt_text: 参考音频对应的文本
+        prompt_language: 参考文本语种
+        text: 要合成的文本
+        text_language: 目标文本语种
+        how_to_cut: 文本切分方式
+        top_k: Top-K 采样参数
+        top_p: Top-P 采样参数
+        temperature: 温度参数
+        ref_free: 是否启用无参考文本模式
+        speed: 语速
+        if_freeze: 是否冻结上次合成结果
+        inp_refs: 额外参考音频列表
+        sample_steps: 采样步数（v3/v4）
+        if_sr: 是否启用超分辨率
+        pause_second: 句间停顿秒数
+        
+    Yields:
+        元组 (采样率, 音频数据)
+    """
     global cache
     if ref_wav_path:
         pass
@@ -873,7 +1066,7 @@ def get_tts_wav(
     if prompt_text is None or len(prompt_text) == 0:
         ref_free = True
     if model_version in v3v4set:
-        ref_free = False  # s2v3暂不支持ref_free
+        ref_free = False
     else:
         if_sr = False
     if model_version not in {"v3", "v4", "v2Pro", "v2ProPlus"}:
@@ -888,11 +1081,8 @@ def get_tts_wav(
         prompt_text = prompt_text.strip("\n")
         if prompt_text[-1] not in splits:
             prompt_text += "。" if prompt_language != "en" else "."
-        # print(i18n("实际输入的参考文本:"), prompt_text)  # 已移除
     text = text.strip("\n")
-    # if (text[0] not in splits and len(get_first(text)) < 4): text = "。" + text if text_language != "en" else "." + text
 
-    # print(i18n("实际输入的目标文本:"), text)  # 已移除
     zero_wav = np.zeros(
         int(hps.data.sampling_rate * pause_second),
         dtype=np.float16 if is_half == True else np.float32,
@@ -914,7 +1104,7 @@ def get_tts_wav(
             else:
                 wav16k = wav16k.to(device)
             wav16k = torch.cat([wav16k, zero_wav_torch])
-            ssl_content = ssl_model.model(wav16k.unsqueeze(0))["last_hidden_state"].transpose(1, 2)  # .float()
+            ssl_content = ssl_model.model(wav16k.unsqueeze(0))["last_hidden_state"].transpose(1, 2)
             codes = vq_model.extract_latent(ssl_content)
             prompt_semantic = codes[0, 0]
             prompt = prompt_semantic.unsqueeze(0).to(device)
@@ -934,24 +1124,19 @@ def get_tts_wav(
         text = cut5(text)
     while "\n\n" in text:
         text = text.replace("\n\n", "\n")
-    # print(i18n("实际输入的目标文本(切句后):"), text)  # 已移除
     texts = text.split("\n")
     texts = process_text(texts)
     texts = merge_short_text_in_array(texts, 5)
     audio_opt = []
-    ###s2v3暂不支持ref_free
     if not ref_free:
         phones1, bert1, norm_text1 = get_phones_and_bert(prompt_text, prompt_language, version)
 
     for i_text, text in enumerate(texts):
-        # 解决输入目标文本的空行导致报错的问题
         if len(text.strip()) == 0:
             continue
         if text[-1] not in splits:
             text += "。" if text_language != "en" else "."
-        # print(i18n("实际输入的目标文本(每句):"), text)  # 已移除
         phones2, bert2, norm_text2 = get_phones_and_bert(text, text_language, version)
-        # print(i18n("前端处理后的文本(每句):"), norm_text2)  # 已移除
         if not ref_free:
             bert = torch.cat([bert1, bert2], 1)
             all_phoneme_ids = torch.LongTensor(phones1 + phones2).to(device).unsqueeze(0)
@@ -963,8 +1148,6 @@ def get_tts_wav(
         all_phoneme_len = torch.tensor([all_phoneme_ids.shape[-1]]).to(device)
 
         t2 = ttime()
-        # cache_key="%s-%s-%s-%s-%s-%s-%s-%s"%(ref_wav_path,prompt_text,prompt_language,text,text_language,top_k,top_p,temperature)
-        # print(cache.keys(),if_freeze)
         if i_text in cache and if_freeze == True:
             pred_semantic = cache[i_text]
         else:
@@ -974,7 +1157,6 @@ def get_tts_wav(
                     all_phoneme_len,
                     None if ref_free else prompt,
                     bert,
-                    # prompt_phone_len=ph_offset,
                     top_k=top_k,
                     top_p=top_p,
                     temperature=temperature,
@@ -984,8 +1166,6 @@ def get_tts_wav(
                 cache[i_text] = pred_semantic
         t3 = ttime()
         is_v2pro = model_version in {"v2Pro", "v2ProPlus"}
-        # print(23333,is_v2pro,model_version)
-        ###v3不存在以下逻辑和inp_refs
         if model_version not in v3v4set:
             refers = []
             if is_v2pro:
@@ -994,7 +1174,7 @@ def get_tts_wav(
                     init_sv_cn()
             if inp_refs:
                 for path in inp_refs:
-                    try:  # 这里加上提取 sv 的逻辑，要么一堆 sv 一堆 refer，要么单个 sv 单个 refer
+                    try:
                         refer, audio_tensor = get_spepc(hps, path.name, dtype, device, is_v2pro)
                         refers.append(refer)
                         if is_v2pro:
@@ -1027,7 +1207,6 @@ def get_tts_wav(
             tgt_sr = 24000 if model_version == "v3" else 32000
             if sr != tgt_sr:
                 ref_audio = resample(ref_audio, sr, tgt_sr, device)
-            # print("ref_audio",ref_audio.abs().mean())
             mel2 = mel_fn(ref_audio) if model_version == "v3" else mel_fn_v4(ref_audio)
             mel2 = norm_spec(mel2)
             T_min = min(mel2.shape[2], fea_ref.shape[2])
@@ -1062,31 +1241,29 @@ def get_tts_wav(
             if model_version == "v3":
                 if bigvgan_model == None:
                     init_bigvgan()
-            else:  # v4
+            else:
                 if hifigan_model == None:
                     init_hifigan()
             vocoder_model = bigvgan_model if model_version == "v3" else hifigan_model
             with torch.inference_mode():
                 wav_gen = vocoder_model(cfm_res)
-                audio = wav_gen[0][0]  # .cpu().detach().numpy()
-        max_audio = torch.abs(audio).max()  # 简单防止16bit爆音
+                audio = wav_gen[0][0]
+        max_audio = torch.abs(audio).max()
         if max_audio > 1:
             audio = audio / max_audio
         audio_opt.append(audio)
-        audio_opt.append(zero_wav_torch)  # zero_wav
+        audio_opt.append(zero_wav_torch)
         t4 = ttime()
         t.extend([t2 - t1, t3 - t2, t4 - t3])
         t1 = ttime()
-    # print("%.3f\t%.3f\t%.3f\t%.3f" % (t[0], sum(t[1::3]), sum(t[2::3]), sum(t[3::3])))  # 已移除
-    audio_opt = torch.cat(audio_opt, 0)  # np.concatenate
+    audio_opt = torch.cat(audio_opt, 0)
     if model_version in {"v1", "v2", "v2Pro", "v2ProPlus"}:
         opt_sr = 32000
     elif model_version == "v3":
         opt_sr = 24000
     else:
-        opt_sr = 48000  # v4
+        opt_sr = 48000
     if if_sr == True and opt_sr == 24000:
-        # print(i18n("音频超分中"))  # 已移除
         audio_opt, opt_sr = audio_sr(audio_opt.unsqueeze(0), opt_sr)
         max_audio = np.abs(audio_opt).max()
         if max_audio > 1:
@@ -1096,7 +1273,16 @@ def get_tts_wav(
     yield opt_sr, (audio_opt * 32767).astype(np.int16)
 
 
-def split(todo_text):
+def split(todo_text: str) -> list:
+    """
+    按标点分割文本
+    
+    Args:
+        todo_text: 输入文本
+        
+    Returns:
+        分割后的文本片段列表
+    """
     todo_text = todo_text.replace("……", "。").replace("——", "，")
     if todo_text[-1] not in splits:
         todo_text += "。"
@@ -1105,7 +1291,7 @@ def split(todo_text):
     todo_texts = []
     while 1:
         if i_split_head >= len_text:
-            break  # 结尾一定有标点，所以直接跳出即可，最后一段在上次已加入
+            break
         if todo_text[i_split_head] in splits:
             i_split_head += 1
             todo_texts.append(todo_text[i_split_tail:i_split_head])
@@ -1115,7 +1301,18 @@ def split(todo_text):
     return todo_texts
 
 
-def cut1(inp):
+def cut1(inp: str) -> str:
+    """
+    凑四句一切
+    
+    按四个句子一组切分文本。
+    
+    Args:
+        inp: 输入文本
+        
+    Returns:
+        切分后的文本
+    """
     inp = inp.strip("\n")
     inps = split(inp)
     split_idx = list(range(0, len(inps), 4))
@@ -1130,7 +1327,18 @@ def cut1(inp):
     return "\n".join(opts)
 
 
-def cut2(inp):
+def cut2(inp: str) -> str:
+    """
+    凑50字一切
+    
+    按每段约50字切分文本。
+    
+    Args:
+        inp: 输入文本
+        
+    Returns:
+        切分后的文本
+    """
     inp = inp.strip("\n")
     inps = split(inp)
     if len(inps) < 2:
@@ -1147,30 +1355,61 @@ def cut2(inp):
             tmp_str = ""
     if tmp_str != "":
         opts.append(tmp_str)
-    # print(opts)
-    if len(opts) > 1 and len(opts[-1]) < 50:  ##如果最后一个太短了，和前一个合一起
+    if len(opts) > 1 and len(opts[-1]) < 50:
         opts[-2] = opts[-2] + opts[-1]
         opts = opts[:-1]
     opts = [item for item in opts if not set(item).issubset(punctuation)]
     return "\n".join(opts)
 
 
-def cut3(inp):
+def cut3(inp: str) -> str:
+    """
+    按中文句号切
+    
+    按中文句号切分文本。
+    
+    Args:
+        inp: 输入文本
+        
+    Returns:
+        切分后的文本
+    """
     inp = inp.strip("\n")
     opts = ["%s" % item for item in inp.strip("。").split("。")]
     opts = [item for item in opts if not set(item).issubset(punctuation)]
     return "\n".join(opts)
 
 
-def cut4(inp):
+def cut4(inp: str) -> str:
+    """
+    按英文句号切
+    
+    按英文句号切分文本。
+    
+    Args:
+        inp: 输入文本
+        
+    Returns:
+        切分后的文本
+    """
     inp = inp.strip("\n")
     opts = re.split(r"(?<!\d)\.(?!\d)", inp.strip("."))
     opts = [item for item in opts if not set(item).issubset(punctuation)]
     return "\n".join(opts)
 
 
-# contributed by https://github.com/AI-Hobbyist/GPT-SoVITS/blob/main/GPT_SoVITS/inference_webui.py
-def cut5(inp):
+def cut5(inp: str) -> str:
+    """
+    按标点符号切
+    
+    按任意标点符号切分文本。
+    
+    Args:
+        inp: 输入文本
+        
+    Returns:
+        切分后的文本
+    """
     inp = inp.strip("\n")
     punds = {",", ".", ";", "?", "!", "、", "，", "。", "？", "！", ";", "：", "…"}
     mergeitems = []
@@ -1194,15 +1433,35 @@ def cut5(inp):
     return "\n".join(opt)
 
 
-def custom_sort_key(s):
-    # 使用正则表达式提取字符串中的数字部分和非数字部分
+def custom_sort_key(s: str) -> list:
+    """
+    自定义排序键
+    
+    用于按数字顺序排序字符串。
+    
+    Args:
+        s: 输入字符串
+        
+    Returns:
+        排序键列表
+    """
     parts = re.split("(\d+)", s)
-    # 将数字部分转换为整数，非数字部分保持不变
     parts = [int(part) if part.isdigit() else part for part in parts]
     return parts
 
 
-def process_text(texts):
+def process_text(texts: list) -> list:
+    """
+    处理文本列表
+    
+    过滤空文本。
+    
+    Args:
+        texts: 文本列表
+        
+    Returns:
+        处理后的文本列表
+    """
     _text = []
     if all(text in [None, " ", "\n", ""] for text in texts):
         raise ValueError(i18n("请输入有效文本"))
@@ -1214,13 +1473,33 @@ def process_text(texts):
     return _text
 
 
-def html_center(text, label="p"):
+def html_center(text: str, label: str = "p") -> str:
+    """
+    生成居中 HTML
+    
+    Args:
+        text: 文本内容
+        label: HTML 标签
+        
+    Returns:
+        HTML 字符串
+    """
     return f"""<div style="text-align: center; margin: 100; padding: 50;">
                 <{label} style="margin: 0; padding: 0;">{text}</{label}>
                 </div>"""
 
 
-def html_left(text, label="p"):
+def html_left(text: str, label: str = "p") -> str:
+    """
+    生成左对齐 HTML
+    
+    Args:
+        text: 文本内容
+        label: HTML 标签
+        
+    Returns:
+        HTML 字符串
+    """
     return f"""<div style="text-align: left; margin: 0; padding: 0;">
                 <{label} style="margin: 0; padding: 0;">{text}</{label}>
                 </div>"""
@@ -1373,10 +1652,6 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                 temperature = gr.Slider(
                     minimum=0, maximum=1, step=0.05, label=i18n("temperature"), value=1, interactive=True, scale=1
                 )
-            # with gr.Column():
-            #     gr.Markdown(value=i18n("手工调整音素。当音素框不为空时使用手工音素输入推理，无视目标文本框。"))
-            #     phoneme=gr.Textbox(label=i18n("音素框"), value="")
-            #     get_phoneme_button = gr.Button(i18n("目标文本转音素"), variant="primary")
         with gr.Row():
             inference_button = gr.Button(value=i18n("合成语音"), variant="primary", size="lg", scale=25)
             output = gr.Audio(label=i18n("输出的语音"), scale=14)
@@ -1422,27 +1697,10 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
         )
         GPT_dropdown.change(change_gpt_weights, [GPT_dropdown], [])
 
-        # gr.Markdown(value=i18n("文本切分工具。太长的文本合成出来效果不一定好，所以太长建议先切。合成会根据文本的换行分开合成再拼起来。"))
-        # with gr.Row():
-        #     text_inp = gr.Textbox(label=i18n("需要合成的切分前文本"), value="")
-        #     button1 = gr.Button(i18n("凑四句一切"), variant="primary")
-        #     button2 = gr.Button(i18n("凑50字一切"), variant="primary")
-        #     button3 = gr.Button(i18n("按中文句号。切"), variant="primary")
-        #     button4 = gr.Button(i18n("按英文句号.切"), variant="primary")
-        #     button5 = gr.Button(i18n("按标点符号切"), variant="primary")
-        #     text_opt = gr.Textbox(label=i18n("切分后文本"), value="")
-        #     button1.click(cut1, [text_inp], [text_opt])
-        #     button2.click(cut2, [text_inp], [text_opt])
-        #     button3.click(cut3, [text_inp], [text_opt])
-        #     button4.click(cut4, [text_inp], [text_opt])
-        #     button5.click(cut5, [text_inp], [text_opt])
-        # gr.Markdown(html_center(i18n("后续将支持转音素、手工修改音素、语音合成分步执行。")))
-
 if __name__ == "__main__":
-    app.queue().launch(  # concurrency_count=511, max_size=1022
+    app.queue().launch(
         server_name="0.0.0.0",
         inbrowser=True,
         share=is_share,
         server_port=infer_ttswebui,
-        # quiet=True,
     )

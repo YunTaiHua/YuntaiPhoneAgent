@@ -1,51 +1,82 @@
-# modified from https://github.com/yangdongchao/SoundStorm/blob/master/soundstorm/s1/AR/models/t2s_lightning_module.py
-# reference: https://github.com/lifeiteng/vall-e
+"""
+T2S Lightning 模块
+==================
+
+本模块提供基于 PyTorch Lightning 的文本转语义(Text-to-Semantic)训练框架。
+
+主要组件:
+    - Text2SemanticLightningModule: Lightning 模块，封装训练、验证逻辑
+
+参考来源:
+    - https://github.com/yangdongchao/SoundStorm
+    - https://github.com/lifeiteng/vall-e
+"""
+import logging
 import sys
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 now_dir = Path.cwd()
 sys.path.append(str(now_dir))
 
 
-# 使用 try-except 导入 torch
 try:
     import torch
 except ImportError as e:
     raise ImportError(f"torch 导入失败: {e}")
 
-# 使用 try-except 导入 pytorch_lightning
+
 try:
     from pytorch_lightning import LightningModule
 except ImportError:
-    LightningModule = object  # 如果导入失败，使用 object 作为基类
+    LightningModule = object
 
-# 使用自定义的t2s_model（已移除tqdm进度条）
+
 try:
     from .t2s_model import Text2SemanticDecoder
 except ImportError:
     Text2SemanticDecoder = None
+    logger.warning("Text2SemanticDecoder 导入失败")
 
-# 使用 try-except 导入 AR 模块
+
 try:
     from AR.modules.lr_schedulers import WarmupCosineLRSchedule
 except ImportError:
     WarmupCosineLRSchedule = None
+    logger.debug("WarmupCosineLRSchedule 导入失败")
 
 try:
     from AR.modules.optim import ScaledAdam
 except ImportError:
     ScaledAdam = None
+    logger.debug("ScaledAdam 导入失败")
 
 
 class Text2SemanticLightningModule(LightningModule):
-    def __init__(self, config, output_dir, is_train=True) -> None:
+    """
+    文本转语义 Lightning 模块
+    
+    基于 PyTorch Lightning 框架实现的文本到语义 token 的转换模型训练器。
+    
+    Attributes:
+        config: 模型配置字典
+        top_k: Top-K 采样参数
+        model: Text2SemanticDecoder 模型实例
+        
+    Args:
+        config: 模型配置字典，包含模型结构和训练参数
+        output_dir: 输出目录路径
+        is_train: 是否为训练模式，默认为 True
+    """
+    
+    def __init__(self, config: dict, output_dir: Path, is_train: bool = True) -> None:
         super().__init__()
         self.config = config
         self.top_k = 3
         self.model = Text2SemanticDecoder(config=config, top_k=self.top_k)
         pretrained_s1 = config.get("pretrained_s1")
         if pretrained_s1 and is_train:
-            # print(self.load_state_dict(torch.load(pretrained_s1,map_location="cpu")["state_dict"]))
             print(
                 self.load_state_dict(
                     torch.load(
@@ -55,13 +86,24 @@ class Text2SemanticLightningModule(LightningModule):
                     )["weight"],
                 )
             )
+            logger.info(f"加载预训练权重: {pretrained_s1}")
         if is_train:
             self.automatic_optimization = False
             self.save_hyperparameters()
             self.eval_dir = output_dir / "eval"
             self.eval_dir.mkdir(parents=True, exist_ok=True)
+            logger.debug(f"创建评估目录: {self.eval_dir}")
 
     def training_step(self, batch: dict, batch_idx: int) -> None:
+        """
+        训练步骤
+        
+        执行单个训练批次的前向传播、反向传播和参数更新。
+        
+        Args:
+            batch: 训练批次数据，包含 phoneme_ids, semantic_ids, bert_feature 等
+            batch_idx: 批次索引
+        """
         opt = self.optimizers()
         scheduler = self.lr_schedulers()
         forward = self.model.forward if self.config["train"].get("if_dpo", False) == True else self.model.forward_old
@@ -103,43 +145,24 @@ class Text2SemanticLightningModule(LightningModule):
         )
 
     def validation_step(self, batch: dict, batch_idx: int) -> None:
+        """
+        验证步骤
+        
+        当前版本暂未实现验证逻辑。
+        
+        Args:
+            batch: 验证批次数据
+            batch_idx: 批次索引
+        """
         return
 
-    # # get loss
-    # loss, acc = self.model.forward(
-    #     batch['phoneme_ids'], batch['phoneme_ids_len'],
-    #     batch['semantic_ids'], batch['semantic_ids_len'],
-    #     batch['bert_feature']
-    # )
-    #
-    # self.log(
-    #     "val_total_loss",
-    #     loss,
-    #     on_step=True,
-    #     on_epoch=True,
-    #     prog_bar=True,
-    #     sync_dist=True)
-    # self.log(
-    #     f"val_top_{self.top_k}_acc",
-    #     acc,
-    #     on_step=True,
-    #     on_epoch=True,
-    #     prog_bar=True,
-    #     sync_dist=True)
-    #
-    # # get infer output
-    # semantic_len = batch['semantic_ids'].size(1)
-    # prompt_len = min(int(semantic_len * 0.5), 150)
-    # prompt = batch['semantic_ids'][:, :prompt_len]
-    # pred_semantic = self.model.infer(batch['phoneme_ids'],
-    #                                  batch['phoneme_ids_len'], prompt,
-    #                                  batch['bert_feature']
-    #                                  )
-    # save_name = f'semantic_toks_{batch_idx}.pt'
-    # save_path = os.path.join(self.eval_dir, save_name)
-    # torch.save(pred_semantic.detach().cpu(), save_path)
-
     def configure_optimizers(self) -> dict:
+        """
+        配置优化器和学习率调度器
+        
+        Returns:
+            包含优化器和学习率调度器配置的字典
+        """
         model_parameters = self.model.parameters()
         parameters_names = []
         parameters_names.append([name_param_pair[0] for name_param_pair in self.model.named_parameters()])

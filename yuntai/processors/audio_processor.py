@@ -1,15 +1,25 @@
 """
 音频处理器模块
-使用 FFmpeg 和 Whisper 处理音频
-支持从视频中提取音频和单独处理音频文件
-支持繁简中文转换
-使用 pathlib 进行跨平台路径处理
-"""
+==============
 
+使用 FFmpeg 和 Whisper 处理音频，支持从视频中提取音频和单独处理音频文件。
+支持繁简中文转换，使用 pathlib 进行跨平台路径处理。
+
+主要功能:
+    - 从视频中提取音频
+    - 使用 Whisper 进行语音转文字
+    - 支持繁体中文转简体中文
+    - 临时文件清理
+
+使用示例:
+    >>> from yuntai.processors import AudioProcessor
+    >>> processor = AudioProcessor()
+    >>> success, text = processor.transcribe_audio("audio.wav")
+"""
+import logging
 import subprocess
 import tempfile
 import threading
-import time
 from pathlib import Path
 
 from yuntai.core.config import (
@@ -20,9 +30,26 @@ from yuntai.core.config import (
     WHISPER_CONVERT_TO_SIMPLIFIED
 )
 
+logger = logging.getLogger(__name__)
+
 
 class AudioProcessor:
-    """音频处理器类"""
+    """
+    音频处理器类
+    
+    使用 FFmpeg 和 Whisper 处理音频文件，支持语音转文字功能。
+    
+    Attributes:
+        ffmpeg_path: FFmpeg 可执行文件路径
+        whisper_model: Whisper 模型实例
+        whisper_lock: 线程锁，保证模型加载线程安全
+        model_loaded: 模型是否已加载
+        temp_dir: 临时文件目录
+        text_converter: 文本转换器（繁简转换）
+        
+    Args:
+        ffmpeg_path: FFmpeg 可执行文件路径，可选
+    """
 
     def __init__(self, ffmpeg_path: str | None = None) -> None:
         """
@@ -39,6 +66,7 @@ class AudioProcessor:
         self.temp_dir = Path(tempfile.gettempdir())
 
         self.text_converter = None
+        logger.debug(f"AudioProcessor 初始化完成, ffmpeg_path={self.ffmpeg_path}")
 
     def _convert_to_simplified_chinese(self, text: str) -> str:
         """
@@ -60,14 +88,14 @@ class AudioProcessor:
                     self.text_converter = opencc.OpenCC('t2s.json')
                     return self.text_converter.convert(text)
                 except ImportError:
-                    print("\n⚠️  OpenCC 未安装，尝试使用 zhconv")
+                    logger.debug("OpenCC 未安装，尝试使用 zhconv")
 
                 try:
                     from zhconv import convert
                     self.text_converter = convert
                     return self.text_converter(text, 'zh-cn')
                 except ImportError:
-                    print("\n⚠️  zhconv 未安装，跳过繁简转换")
+                    logger.warning("zhconv 未安装，跳过繁简转换")
                     self.text_converter = lambda x: x
 
             if hasattr(self.text_converter, 'convert'):
@@ -76,7 +104,7 @@ class AudioProcessor:
                 return self.text_converter(text, 'zh-cn')
 
         except Exception as e:
-            print(f"⚠️  繁简转换失败: {e}")
+            logger.warning(f"繁简转换失败: {e}")
             return text
 
     def check_ffmpeg(self) -> tuple[bool, str]:
@@ -84,7 +112,7 @@ class AudioProcessor:
         检查 FFmpeg 是否可用
 
         Returns:
-            (是否可用, 错误信息)
+            元组 (是否可用, 错误信息)
         """
         try:
             if not self.ffmpeg_path or not self.ffmpeg_path.exists():
@@ -114,7 +142,7 @@ class AudioProcessor:
             output_path: 输出音频路径（可选）
 
         Returns:
-            (是否成功, 音频文件路径或错误信息)
+            元组 (是否成功, 音频文件路径或错误信息)
         """
         try:
             ffmpeg_ok, error_msg = self.check_ffmpeg()
@@ -134,6 +162,7 @@ class AudioProcessor:
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
             print(f"🎵 正在从视频中提取音频: {video_file.name}")
+            logger.info(f"从视频中提取音频: {video_file} -> {output_path}")
 
             cmd = [
                 str(self.ffmpeg_path),
@@ -154,6 +183,7 @@ class AudioProcessor:
 
             if result.returncode == 0:
                 print(f"✅ 音频提取成功: {output_path}")
+                logger.debug(f"音频提取成功: {output_path}")
                 return True, str(output_path)
             else:
                 error_msg = result.stderr.decode('utf-8', errors='ignore')
@@ -162,6 +192,7 @@ class AudioProcessor:
         except subprocess.TimeoutExpired:
             return False, "音频提取超时（超过5分钟）"
         except Exception as e:
+            logger.error(f"音频提取异常: {e}")
             return False, f"音频提取异常: {str(e)}"
 
     def load_whisper_model(self, model_size: str = "small", device: str = "cpu") -> tuple[bool, str]:
@@ -173,7 +204,7 @@ class AudioProcessor:
             device: 运行设备 (cpu, cuda)
 
         Returns:
-            (是否成功, 错误信息)
+            元组 (是否成功, 错误信息)
         """
         try:
             with self.whisper_lock:
@@ -185,6 +216,7 @@ class AudioProcessor:
                 self.whisper_model = whisper.load_model(model_size, device=device)
 
                 self.model_loaded = True
+                logger.info(f"Whisper 模型加载成功: {model_size}, device={device}")
 
                 return True, ""
 
@@ -202,7 +234,7 @@ class AudioProcessor:
             language: 语言代码（如 "zh", "en"），None 表示自动检测
 
         Returns:
-            (是否成功, 转录文本或错误信息)
+            元组 (是否成功, 转录文本或错误信息)
         """
         try:
             audio_file = Path(audio_path)
@@ -215,6 +247,7 @@ class AudioProcessor:
                     return False, error_msg
 
             print(f"🎙️正在转录音频: {audio_file.name}")
+            logger.info(f"转录音频: {audio_path}")
 
             result = self.whisper_model.transcribe(
                 audio_path,
@@ -227,11 +260,13 @@ class AudioProcessor:
             transcription_text = self._convert_to_simplified_chinese(transcription_text)
 
             if transcription_text:
+                logger.debug(f"转录成功: {transcription_text[:50]}...")
                 return True, transcription_text
             else:
                 return False, "音频转录结果为空"
 
         except Exception as e:
+            logger.error(f"音频转录失败: {e}")
             return False, f"音频转录失败: {str(e)}"
 
     def process_video_with_audio(self, video_path: str, prompt: str | None = None,
@@ -245,7 +280,7 @@ class AudioProcessor:
             language: 音频语言代码
 
         Returns:
-            (是否成功, 包含视频和音频信息的字典)
+            元组 (是否成功, 包含视频和音频信息的字典)
         """
         try:
             video_file = Path(video_path)
@@ -270,10 +305,12 @@ class AudioProcessor:
             }
 
             print(f"✅ 视频+音频处理完成")
+            logger.info(f"视频+音频处理完成: {video_path}")
 
             return True, result
 
         except Exception as e:
+            logger.error(f"视频+音频处理失败: {e}")
             return False, {"error": f"视频+音频处理失败: {str(e)}"}
 
     def process_audio_only(self, audio_path: str, prompt: str | None = None,
@@ -287,7 +324,7 @@ class AudioProcessor:
             language: 音频语言代码
 
         Returns:
-            (是否成功, 包含音频信息的字典)
+            元组 (是否成功, 包含音频信息的字典)
         """
         try:
             audio_file = Path(audio_path)
@@ -306,10 +343,12 @@ class AudioProcessor:
             }
 
             print(f"✅ 音频处理完成")
+            logger.info(f"音频处理完成: {audio_path}")
 
             return True, result
 
         except Exception as e:
+            logger.error(f"音频处理失败: {e}")
             return False, {"error": f"音频处理失败: {str(e)}"}
 
     def cleanup_temp_files(self, older_than_hours: int = 24) -> None:
@@ -337,12 +376,13 @@ class AudioProcessor:
                     try:
                         filepath.unlink()
                         deleted_count += 1
-                        print(f"🗑️清理临时文件: {filepath.name}")
+                        logger.debug(f"清理临时文件: {filepath.name}")
                     except Exception as e:
-                        print(f"⚠️清理失败 {filepath.name}: {e}")
+                        logger.warning(f"清理失败 {filepath.name}: {e}")
 
             if deleted_count > 0:
                 print(f"✅清理了 {deleted_count} 个临时音频文件")
+                logger.info(f"清理了 {deleted_count} 个临时音频文件")
 
         except Exception as e:
-            print(f"⚠️ 清理临时文件失败: {e}")
+            logger.warning(f"清理临时文件失败: {e}")

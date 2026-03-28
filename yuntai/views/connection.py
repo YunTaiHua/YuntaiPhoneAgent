@@ -1,10 +1,29 @@
-﻿"""
+"""
 ConnectionBuilder - 设备管理页面构建器（PyQt6 重构版）
-浅色米白色主题版本
+======================================================
+
+浅色米白色主题版本。
+
+负责构建设备管理页面的UI组件，包括设备类型选择、连接方式选择、
+连接状态显示等功能。
+
+主要组件:
+    - ConnectionBuilder: 设备管理页面构建器
+
+功能特性:
+    - 设备类型选择（Android/HarmonyOS）
+    - 连接方式选择（USB/无线）
+    - 设备连接状态显示
+    - 设备检测、连接、断开按钮
+
+使用示例:
+    >>> builder = ConnectionBuilder(view)
+    >>> builder.create_page()  # 创建设备管理页面
 """
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from PyQt6.QtWidgets import (
@@ -17,30 +36,62 @@ from PyQt6.QtGui import QCursor, QFont
 
 from yuntai.gui.styles import ThemeColors, ThemeFonts, ThemeCorner, ThemeSpacing
 
+# 初始化模块日志记录器
+logger = logging.getLogger(__name__)
+
 if TYPE_CHECKING:
     from yuntai.gui.gui_view import GUIView
 
 
 class ConnectionBuilder:
-    """设备管理页面构建器"""
+    """
+    设备管理页面构建器
+    
+    负责构建设备管理页面的UI组件，包括设备类型选择、连接方式配置、
+    连接状态显示和操作按钮。
+    
+    Attributes:
+        view: GUIView实例
+        components: UI组件字典
+    """
 
     def __init__(self, view_instance: GUIView) -> None:
+        """
+        初始化设备管理页面构建器
+        
+        Args:
+            view_instance: GUIView实例
+        """
         self.view: GUIView = view_instance
         self.components: dict[str, Any] = view_instance.components
+        logger.debug("ConnectionBuilder初始化完成")
     
     @property
     def colors(self) -> ThemeColors:
-        """动态获取当前主题颜色"""
+        """
+        动态获取当前主题颜色
+        
+        Returns:
+            当前主题颜色对象
+        """
         return self.view.colors
 
     def create_page(self) -> None:
-        """创建设备管理页面（只执行一次）"""
+        """
+        创建设备管理页面（只执行一次）
+        
+        构建完整的设备管理页面，包括标题、状态显示和连接表单。
+        如果页面已存在则直接返回。
+        """
         self.view._highlight_nav_button(1)
 
         page = self.view.content_pages[1]
         
+        # 检查页面是否已创建
         if page.layout() is not None:
             return
+        
+        logger.debug("开始创建设备管理页面")
         
         page_layout = QVBoxLayout(page)
         page_layout.setContentsMargins(30, 30, 30, 30)

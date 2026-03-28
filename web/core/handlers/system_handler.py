@@ -1,5 +1,28 @@
 """
 system_handler.py - 系统相关处理
+=================================
+
+负责处理系统检查、投屏、文件管理等系统级操作。
+
+主要功能:
+    - handle_terminate: 处理任务终止操作
+    - handle_start_scrcpy: 启动手机投屏
+    - handle_system_check: 系统环境检查
+    - handle_file_management: 文件管理信息
+    - handle_get_page_data: 获取页面数据
+    - handle_delete_audio: 删除单个音频
+    - handle_delete_all_audio: 删除所有音频
+    - handle_shortcut: 处理快捷键操作
+
+系统检查内容:
+    - ADB/HDC环境检查
+    - 模型API检查
+    - TTS功能检查
+    - 设备连接状态检查
+
+使用示例:
+    >>> await handle_system_check(websocket, controller)
+    >>> await handle_start_scrcpy(websocket, {"always_on_top": True}, controller)
 """
 
 import os

@@ -1,6 +1,23 @@
 """
-  SystemHandler - 系统管理处理器 (PyQt6 重构版)
-  负责处理历史记录、系统设置和文件管理功能
+SystemHandler - 系统管理处理器 (PyQt6 重构版)
+=============================================
+
+负责处理历史记录、系统设置和文件管理功能。
+
+主要组件:
+    - SystemCheckDialog: 系统检查对话框
+    - SystemHandler: 系统管理处理器
+
+功能特性:
+    - 历史记录管理（加载、清空）
+    - 系统设置页面
+    - 系统环境检查（ADB/HDC、模型API、TTS、设备连接）
+    - 文件管理信息显示
+
+使用示例:
+    >>> handler = SystemHandler(controller)
+    >>> handler.show_history_panel()  # 显示历史记录页面
+    >>> handler.check_system_gui()  # 执行系统检查
 """
 
 import logging
@@ -32,7 +49,19 @@ from yuntai.gui.styles import (
 
 
 class SystemCheckDialog(QDialog):
-    """系统检查对话框 - 带信号支持"""
+    """
+    系统检查对话框 - 带信号支持
+    
+    显示系统环境检查结果，包括ADB/HDC环境、模型API、TTS功能和设备连接状态。
+    支持线程安全的UI更新。
+    
+    Attributes:
+        is_harmony: 是否为HarmonyOS设备
+        task_manager: 任务管理器实例
+        tool_result: 工具检查结果
+        api_result: API检查结果
+        colors: 当前主题颜色
+    """
     
     # 定义信号
     append_text_signal = pyqtSignal(str)
@@ -143,16 +172,34 @@ class SystemCheckDialog(QDialog):
 
 
 class SystemHandler(QObject):
-    """系统管理处理器 (历史/设置/文件)"""
+    """
+    系统管理处理器 - 负责历史/设置/文件管理
+    
+    处理历史记录、系统设置和文件管理功能。
+    通过信号槽机制实现线程安全的UI更新。
+    
+    Attributes:
+        controller: 控制器实例
+        view: 视图实例
+        task_manager: 任务管理器实例
+        start_check_thread_signal: 启动检查线程信号
+    """
 
     # 定义信号用于替代QTimer.singleShot
     start_check_thread_signal = pyqtSignal()
 
     def __init__(self, controller):
+        """
+        初始化系统处理器
+        
+        Args:
+            controller: 控制器实例
+        """
         super().__init__()
         self.controller = controller
         self.view = controller.view
         self.task_manager = controller.task_manager
+        logger.debug("SystemHandler初始化完成")
 
         # 连接信号
         self.start_check_thread_signal.connect(self._on_start_check_thread)

@@ -1,5 +1,22 @@
 """
 command_handler.py - 命令执行处理
+==================================
+
+负责处理用户命令执行的核心模块。
+
+主要功能:
+    - handle_command: 处理普通命令执行
+    - handle_multimodal_chat: 处理多模态聊天（文本+文件）
+
+处理流程:
+    1. 接收命令和附件文件
+    2. 启动输出捕获
+    3. 执行任务链处理
+    4. 支持持续回复模式
+    5. 保存历史记录
+
+使用示例:
+    >>> await handle_command(websocket, {"command": "打开微信"}, controller)
 """
 
 import asyncio
@@ -14,7 +31,17 @@ if TYPE_CHECKING:
 
 
 async def handle_command(websocket, data: dict, controller: "WebController"):
-    """处理命令执行"""
+    """
+    处理命令执行
+    
+    接收用户命令，通过任务链处理并返回结果。
+    支持多模态输入（文本+附件文件）和持续回复模式。
+    
+    Args:
+        websocket: WebSocket连接
+        data: 请求数据，包含command字段
+        controller: Web控制器实例
+    """
     if controller.is_executing:
         await controller.send_toast("请等待当前任务完成", "warning")
         return
@@ -138,7 +165,20 @@ async def handle_command(websocket, data: dict, controller: "WebController"):
 
 
 def handle_multimodal_chat(text: str, file_paths: list, controller: "WebController", loop) -> str:
-    """处理多模态聊天"""
+    """
+    处理多模态聊天
+    
+    处理包含文件的聊天请求，支持图片、文档等多种文件类型。
+    
+    Args:
+        text: 用户输入的文本
+        file_paths: 附加文件路径列表
+        controller: Web控制器实例
+        loop: 事件循环
+    
+    Returns:
+        str: 处理结果文本
+    """
     try:
         valid_files = [f for f in file_paths if Path(f).exists()]
         if not valid_files:

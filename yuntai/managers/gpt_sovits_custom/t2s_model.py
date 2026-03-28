@@ -1,8 +1,30 @@
-# modified from https://github.com/yangdongchao/SoundStorm/blob/master/soundstorm/s1/AR/models/t2s_model.py
-# reference: https://github.com/lifeiteng/vall-e
+"""
+T2S 模型模块
+============
+
+本模块实现文本转语义(Text-to-Semantic)的神经网络模型架构。
+
+主要组件:
+    - Text2SemanticDecoder: 文本到语义 token 的解码器模型
+    - T2STransformer: Transformer 编码器架构
+    - T2SBlock: Transformer 块
+    - T2SMLP: 多层感知机
+
+模型特点:
+    - 基于 Transformer 的自回归生成
+    - 支持 KV Cache 优化推理
+    - 支持流式输出模式
+
+参考来源:
+    - https://github.com/yangdongchao/SoundStorm
+    - https://github.com/lifeiteng/vall-e
+"""
+import logging
 import math
 
-# 使用 try-except 导入 torch
+logger = logging.getLogger(__name__)
+
+
 try:
     import torch
     from torch import nn
@@ -10,14 +32,14 @@ try:
 except ImportError as e:
     raise ImportError(f"torch 导入失败: {e}")
 
-# 使用 try-except 导入 torchmetrics
+
 try:
     from torchmetrics.classification import MulticlassAccuracy
 except ImportError:
     MulticlassAccuracy = None
-# from tqdm import tqdm  # 已移除，不再显示进度条
+    logger.debug("torchmetrics.classification 导入失败")
 
-# 使用 try-except 导入 AR 模块
+
 try:
     from AR.models.utils import (
         dpo_loss,
@@ -36,12 +58,14 @@ except ImportError:
     make_reject_y = None
     sample = None
     topk_sampling = None
+    logger.debug("AR.models.utils 导入失败")
 
 try:
     from AR.modules.embedding import SinePositionalEmbedding, TokenEmbedding
 except ImportError:
     SinePositionalEmbedding = None
     TokenEmbedding = None
+    logger.debug("AR.modules.embedding 导入失败")
 
 try:
     from AR.modules.transformer import LayerNorm, TransformerEncoder, TransformerEncoderLayer
@@ -49,6 +73,8 @@ except ImportError:
     LayerNorm = None
     TransformerEncoder = None
     TransformerEncoderLayer = None
+    logger.debug("AR.modules.transformer 导入失败")
+
 
 default_config = {
     "embedding_dim": 512,
@@ -63,8 +89,6 @@ default_config = {
 }
 
 
-# @torch.jit.script ## 使用的话首次推理会非常慢，而且推理速度不稳定
-# Efficient implementation equivalent to the following:
 def scaled_dot_product_attention(
     query: torch.Tensor,
     key: torch.Tensor,
@@ -72,6 +96,21 @@ def scaled_dot_product_attention(
     attn_mask: torch.Tensor | None = None,
     scale: torch.Tensor | None = None,
 ) -> torch.Tensor:
+    """
+    缩放点积注意力计算
+    
+    实现 Scaled Dot-Product Attention，支持注意力掩码。
+    
+    Args:
+        query: 查询张量，形状为 (B, H, L, D)
+        key: 键张量，形状为 (B, H, S, D)
+        value: 值张量，形状为 (B, H, S, D)
+        attn_mask: 注意力掩码，可选
+        scale: 缩放因子，可选
+        
+    Returns:
+        注意力输出张量，形状为 (B, H, L, D)
+    """
     B, H, L, S = query.size(0), query.size(1), query.size(-2), key.size(-2)
     if scale is None:
         scale_factor = torch.tensor(1 / math.sqrt(query.size(-1)))
@@ -101,6 +140,18 @@ def scaled_dot_product_attention(
 
 @torch.jit.script
 class T2SMLP:
+    """
+    T2S 多层感知机
+    
+    简单的两层全连接网络，用于 Transformer 块中的前馈层。
+    
+    Attributes:
+        w1: 第一层权重
+        b1: 第一层偏置
+        w2: 第二层权重
+        b2: 第二层偏置
+    """
+    
     def __init__(self, w1, b1, w2, b2):
         self.w1 = w1
         self.b1 = b1
@@ -108,6 +159,15 @@ class T2SMLP:
         self.b2 = b2
 
     def forward(self, x):
+        """
+        前向传播
+        
+        Args:
+            x: 输入张量
+            
+        Returns:
+            输出张量
+        """
         x = F.relu(F.linear(x, self.w1, self.b1))
         x = F.linear(x, self.w2, self.b2)
         return x
@@ -115,6 +175,28 @@ class T2SMLP:
 
 @torch.jit.script
 class T2SBlock:
+    """
+    T2S Transformer 块
+    
+    单个 Transformer 编码器块，包含自注意力和前馈网络。
+    支持 KV Cache 用于高效推理。
+    
+    Attributes:
+        num_heads: 注意力头数
+        mlp: 多层感知机
+        hidden_dim: 隐藏层维度
+        qkv_w: QKV 投影权重
+        qkv_b: QKV 投影偏置
+        out_w: 输出投影权重
+        out_b: 输出投影偏置
+        norm_w1: 第一个 LayerNorm 权重
+        norm_b1: 第一个 LayerNorm 偏置
+        norm_eps1: 第一个 LayerNorm epsilon
+        norm_w2: 第二个 LayerNorm 权重
+        norm_b2: 第二个 LayerNorm 偏置
+        norm_eps2: 第二个 LayerNorm epsilon
+    """
+    
     def __init__(
         self,
         num_heads,
@@ -153,6 +235,16 @@ class T2SBlock:
         x: torch.Tensor,
         padding_mask: torch.Tensor | None,
     ) -> torch.Tensor:
+        """
+        应用填充掩码
+        
+        Args:
+            x: 输入张量
+            padding_mask: 填充掩码
+            
+        Returns:
+            掩码后的张量
+        """
         if padding_mask is None:
             return x
 
@@ -168,6 +260,20 @@ class T2SBlock:
         padding_mask: torch.Tensor | None = None,
         torch_sdpa: bool = True,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        处理提示词阶段
+        
+        处理完整的提示词序列，初始化 KV Cache。
+        
+        Args:
+            x: 输入张量
+            attn_mask: 注意力掩码
+            padding_mask: 填充掩码，可选
+            torch_sdpa: 是否使用 PyTorch 内置 SDPA，默认为 True
+            
+        Returns:
+            元组 (输出张量, K Cache, V Cache)
+        """
         q, k, v = F.linear(self.to_mask(x, padding_mask), self.qkv_w, self.qkv_b).chunk(3, dim=-1)
 
         batch_size = q.shape[0]
@@ -210,6 +316,21 @@ class T2SBlock:
         attn_mask: torch.Tensor | None = None,
         torch_sdpa: bool = True,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        解码下一个 token
+        
+        使用 KV Cache 高效解码下一个 token。
+        
+        Args:
+            x: 当前 token 的输入张量
+            k_cache: K Cache
+            v_cache: V Cache
+            attn_mask: 注意力掩码，可选
+            torch_sdpa: 是否使用 PyTorch 内置 SDPA，默认为 True
+            
+        Returns:
+            元组 (输出张量, 更新后的 K Cache, 更新后的 V Cache)
+        """
         q, k, v = F.linear(x, self.qkv_w, self.qkv_b).chunk(3, dim=-1)
 
         k_cache = torch.cat([k_cache, k], dim=1)
@@ -252,6 +373,17 @@ class T2SBlock:
 
 @torch.jit.script
 class T2STransformer:
+    """
+    T2S Transformer 编码器
+    
+    由多个 T2SBlock 组成的 Transformer 编码器，
+    支持提示词处理和增量解码。
+    
+    Attributes:
+        num_blocks: Transformer 块数量
+        blocks: Transformer 块列表
+    """
+    
     def __init__(self, num_blocks: int, blocks: list[T2SBlock]):
         self.num_blocks: int = num_blocks
         self.blocks = blocks
@@ -263,6 +395,18 @@ class T2STransformer:
         padding_mask: torch.Tensor | None = None,
         torch_sdpa: bool = True,
     ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:
+        """
+        处理提示词阶段
+        
+        Args:
+            x: 输入张量
+            attn_mask: 注意力掩码
+            padding_mask: 填充掩码，可选
+            torch_sdpa: 是否使用 PyTorch 内置 SDPA
+            
+        Returns:
+            元组 (输出张量, K Cache 列表, V Cache 列表)
+        """
         k_cache: list[torch.Tensor] = []
         v_cache: list[torch.Tensor] = []
         for i in range(self.num_blocks):
@@ -279,6 +423,19 @@ class T2STransformer:
         attn_mask: torch.Tensor | None = None,
         torch_sdpa: bool = True,
     ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:
+        """
+        解码下一个 token
+        
+        Args:
+            x: 当前 token 的输入张量
+            k_cache: K Cache 列表
+            v_cache: V Cache 列表
+            attn_mask: 注意力掩码，可选
+            torch_sdpa: 是否使用 PyTorch 内置 SDPA
+            
+        Returns:
+            元组 (输出张量, 更新后的 K Cache 列表, 更新后的 V Cache 列表)
+        """
         for i in range(self.num_blocks):
             x, k_cache[i], v_cache[i] = self.blocks[i].decode_next_token(
                 x, k_cache[i], v_cache[i], attn_mask, torch_sdpa
@@ -287,7 +444,43 @@ class T2STransformer:
 
 
 class Text2SemanticDecoder(nn.Module):
-    def __init__(self, config, norm_first=False, top_k=3):
+    """
+    文本转语义解码器
+    
+    将文本音素序列转换为语义 token 序列的自回归模型。
+    支持 DPO 训练和多种推理模式。
+    
+    Attributes:
+        model_dim: 模型维度
+        embedding_dim: 嵌入维度
+        num_head: 注意力头数
+        num_layers: Transformer 层数
+        norm_first: 是否前置归一化
+        vocab_size: 词汇表大小
+        phoneme_vocab_size: 音素词汇表大小
+        p_dropout: Dropout 概率
+        EOS: 结束符 ID
+        bert_proj: BERT 特征投影层
+        ar_text_embedding: 文本嵌入层
+        ar_text_position: 文本位置编码
+        ar_audio_embedding: 音频嵌入层
+        ar_audio_position: 音频位置编码
+        h: Transformer 编码器
+        ar_predict_layer: 预测层
+        loss_fct: 损失函数
+        ar_accuracy_metric: 准确率度量
+        t2s_transformer: T2S Transformer
+    """
+    
+    def __init__(self, config, norm_first: bool = False, top_k: int = 3):
+        """
+        初始化解码器
+        
+        Args:
+            config: 模型配置字典
+            norm_first: 是否使用前置归一化，默认为 False
+            top_k: Top-K 准确率计算的 K 值，默认为 3
+        """
         super(Text2SemanticDecoder, self).__init__()
         self.model_dim = config["model"]["hidden_dim"]
         self.embedding_dim = config["model"]["embedding_dim"]
@@ -300,8 +493,7 @@ class Text2SemanticDecoder(nn.Module):
         self.EOS = config["model"]["EOS"]
         self.norm_first = norm_first
         assert self.EOS == self.vocab_size - 1
-        # should be same as num of kmeans bin
-        # assert self.EOS == 1024
+        
         self.bert_proj = nn.Linear(1024, self.embedding_dim)
         self.ar_text_embedding = TokenEmbedding(
             self.embedding_dim,
@@ -382,6 +574,21 @@ class Text2SemanticDecoder(nn.Module):
         self.t2s_transformer = T2STransformer(self.num_layers, blocks)
 
     def make_input_data(self, x, x_lens, y, y_lens, bert_feature):
+        """
+        构建输入数据
+        
+        将音素和语义序列组合成模型输入格式。
+        
+        Args:
+            x: 音素 ID 序列
+            x_lens: 音素序列长度
+            y: 语义 ID 序列
+            y_lens: 语义序列长度
+            bert_feature: BERT 特征
+            
+        Returns:
+            元组 (位置编码后的输入, 注意力掩码, 目标序列)
+        """
         x = self.ar_text_embedding(x)
         x = x + self.bert_proj(bert_feature.transpose(1, 2))
         x = self.ar_text_position(x)
@@ -391,8 +598,6 @@ class Text2SemanticDecoder(nn.Module):
         y_mask_int = y_mask.type(torch.int64)
         codes = y.type(torch.int64) * (1 - y_mask_int)
 
-        # Training
-        # AR Decoder
         y, targets = self.pad_y_eos(codes, y_mask_int, eos_id=self.EOS)
         x_len = x_lens.max()
         y_len = y_lens.max()
@@ -408,7 +613,6 @@ class Text2SemanticDecoder(nn.Module):
             (0, y_len),
             value=True,
         )
-        # x_attn_mask[:, x_len]=False
         y_attn_mask = F.pad(
             torch.triu(
                 torch.ones(y_len, y_len, dtype=torch.bool, device=x.device),
@@ -429,17 +633,26 @@ class Text2SemanticDecoder(nn.Module):
         new_attn_mask = torch.zeros_like(xy_attn_mask, dtype=x.dtype)
         new_attn_mask.masked_fill_(xy_attn_mask, float("-inf"))
         xy_attn_mask = new_attn_mask
-        # x 和完整的 y 一次性输入模型
         xy_pos = torch.concat([x, y_pos], dim=1)
 
         return xy_pos, xy_attn_mask, targets
 
     def forward(self, x, x_lens, y, y_lens, bert_feature):
         """
-        x: phoneme_ids
-        y: semantic_ids
+        前向传播（带 DPO）
+        
+        执行带 DPO（Direct Preference Optimization）损失的前向传播。
+        
+        Args:
+            x: 音素 ID 序列
+            x_lens: 音素序列长度
+            y: 语义 ID 序列
+            y_lens: 语义序列长度
+            bert_feature: BERT 特征
+            
+        Returns:
+            元组 (总损失, 准确率)
         """
-
         reject_y, reject_y_lens = make_reject_y(y, y_lens)
 
         xy_pos, xy_attn_mask, targets = self.make_input_data(x, x_lens, y, y_lens, bert_feature)
@@ -451,7 +664,6 @@ class Text2SemanticDecoder(nn.Module):
         x_len = x_lens.max()
         logits = self.ar_predict_layer(xy_dec[:, x_len-1:])
 
-        # DPO
         reject_xy_pos, reject_xy_attn_mask, reject_targets = self.make_input_data(
             x, x_lens, reject_y, reject_y_lens, bert_feature
         )
@@ -462,9 +674,6 @@ class Text2SemanticDecoder(nn.Module):
         )
         x_len = x_lens.max()
         reject_logits = self.ar_predict_layer(reject_xy_dec[:, x_len-1:])
-
-        # loss
-        # from feiteng: 每次 duration 越多, 梯度更新也应该更多, 所以用 sum
 
         loss_1 = F.cross_entropy(logits.permute(0, 2, 1), targets, reduction="sum")
         acc = self.ar_accuracy_metric(logits.permute(0, 2, 1).detach(), targets).item()
@@ -478,8 +687,19 @@ class Text2SemanticDecoder(nn.Module):
 
     def forward_old(self, x, x_lens, y, y_lens, bert_feature):
         """
-        x: phoneme_ids
-        y: semantic_ids
+        前向传播（旧版）
+        
+        执行不带 DPO 损失的标准前向传播。
+        
+        Args:
+            x: 音素 ID 序列
+            x_lens: 音素序列长度
+            y: 语义 ID 序列
+            y_lens: 语义序列长度
+            bert_feature: BERT 特征
+            
+        Returns:
+            元组 (损失, 准确率)
         """
         x = self.ar_text_embedding(x)
         x = x + self.bert_proj(bert_feature.transpose(1, 2))
@@ -490,8 +710,6 @@ class Text2SemanticDecoder(nn.Module):
         y_mask_int = y_mask.type(torch.int64)
         codes = y.type(torch.int64) * (1 - y_mask_int)
 
-        # Training
-        # AR Decoder
         y, targets = self.pad_y_eos(codes, y_mask_int, eos_id=self.EOS)
         x_len = x_lens.max()
         y_len = y_lens.max()
@@ -525,20 +743,16 @@ class Text2SemanticDecoder(nn.Module):
         new_attn_mask = torch.zeros_like(xy_attn_mask, dtype=x.dtype)
         new_attn_mask.masked_fill_(xy_attn_mask, float("-inf"))
         xy_attn_mask = new_attn_mask
-        # x 和完整的 y 一次性输入模型
         xy_pos = torch.concat([x, y_pos], dim=1)
         xy_dec, _ = self.h(
             (xy_pos, None),
             mask=xy_attn_mask,
         )
         logits = self.ar_predict_layer(xy_dec[:, x_len-1:]).permute(0, 2, 1)
-        # loss
-        # from feiteng: 每次 duration 越多, 梯度更新也应该更多, 所以用 sum
         loss = F.cross_entropy(logits, targets, reduction="sum")
         acc = self.ar_accuracy_metric(logits.detach(), targets).item()
         return loss, acc
 
-    # 需要看下这个函数和 forward 的区别以及没有 semantic 的时候 prompts 输入什么
     def infer(
         self,
         x,
@@ -549,20 +763,35 @@ class Text2SemanticDecoder(nn.Module):
         early_stop_num: int = -1,
         temperature: float = 1.0,
     ):
+        """
+        推理生成
+        
+        自回归生成语义 token 序列。
+        
+        Args:
+            x: 音素 ID 序列
+            x_lens: 音素序列长度
+            prompts: 提示词语义 token
+            bert_feature: BERT 特征
+            top_k: Top-K 采样参数
+            early_stop_num: 提前停止的 token 数量
+            temperature: 温度参数
+            
+        Returns:
+            生成的语义 token 序列
+        """
         x = self.ar_text_embedding(x)
         x = x + self.bert_proj(bert_feature.transpose(1, 2))
         x = self.ar_text_position(x)
 
-        # AR Decoder
         y = prompts
         prefix_len = y.shape[1]
         x_len = x.shape[1]
         x_attn_mask = torch.zeros((x_len, x_len), dtype=torch.bool)
         stop = False
-        for _ in range(1500):  # 已移除tqdm
+        for _ in range(1500):
             y_emb = self.ar_audio_embedding(y)
             y_pos = self.ar_audio_position(y_emb)
-            # x 和逐渐增长的 y 一起输入给模型
             xy_pos = torch.concat([x, y_pos], dim=1)
             y_len = y.shape[1]
             x_attn_mask_pad = F.pad(
@@ -589,7 +818,6 @@ class Text2SemanticDecoder(nn.Module):
                 stop = True
 
             if torch.argmax(logits, dim=-1)[0] == self.EOS or samples[0, 0] == self.EOS:
-                # print(torch.argmax(logits, dim=-1)[0] == self.EOS, samples[0, 0] == self.EOS)
                 stop = True
             if stop:
                 if prompts.shape[1] == y.shape[1]:
@@ -597,23 +825,29 @@ class Text2SemanticDecoder(nn.Module):
                     print("bad zero prediction")
                 print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
                 break
-            # 本次生成的 semantic_ids 和之前的 y 构成新的 y
-            # print(samples.shape)#[1,1]#第一个1是bs
-            # import os
-            # os._exit(2333)
             y = torch.concat([y, samples], dim=1)
         return y
 
     def pad_y_eos(self, y, y_mask_int, eos_id):
+        """
+        填充并添加 EOS token
+        
+        Args:
+            y: 输入序列
+            y_mask_int: 掩码
+            eos_id: EOS token ID
+            
+        Returns:
+            元组 (填充后的输入, 目标序列)
+        """
         targets = F.pad(y, (0, 1), value=0) + eos_id * F.pad(y_mask_int, (0, 1), value=1)
-        # 错位
         return targets[:, :-1], targets
 
     def infer_panel_batch_infer(
         self,
-        x: list[torch.LongTensor],  # 全部文本token
+        x: list[torch.LongTensor],
         x_lens: torch.LongTensor,
-        prompts: torch.LongTensor,  # 参考音频token
+        prompts: torch.LongTensor,
         bert_feature: list[torch.LongTensor],
         top_k: int = -100,
         top_p: int = 100,
@@ -622,6 +856,25 @@ class Text2SemanticDecoder(nn.Module):
         repetition_penalty: float = 1.35,
         **kwargs,
     ) -> tuple[list[torch.LongTensor], list[int]]:
+        """
+        批量推理生成
+        
+        对多个文本序列进行批量推理生成。
+        
+        Args:
+            x: 文本 token 列表
+            x_lens: 文本长度张量
+            prompts: 参考音频 token
+            bert_feature: BERT 特征列表
+            top_k: Top-K 采样参数
+            top_p: Top-P 采样参数
+            early_stop_num: 提前停止的 token 数量
+            temperature: 温度参数
+            repetition_penalty: 重复惩罚系数
+            
+        Returns:
+            元组 (生成的语义 token 列表, 索引列表)
+        """
         if prompts is None:
             print("Warning: Prompt free is not supported batch_infer! switch to naive_infer")
             return self.infer_panel_naive_batched(
@@ -639,18 +892,15 @@ class Text2SemanticDecoder(nn.Module):
         max_len = kwargs.get("max_len", x_lens.max())
         x_list = []
         for x_item, bert_item in zip(x, bert_feature):
-            # max_len = max(max_len, x_item.shape[0], bert_item.shape[1])
             x_item = self.ar_text_embedding(x_item.unsqueeze(0))
             x_item = x_item + self.bert_proj(bert_item.transpose(0, 1).unsqueeze(0))
             x_item = self.ar_text_position(x_item).squeeze(0)
-            # x_item = F.pad(x_item,(0,0,0,max_len-x_item.shape[0]),value=0) if x_item.shape[0]<max_len else x_item  ### padding right
             x_item = (
                 F.pad(x_item, (0, 0, max_len - x_item.shape[0], 0), value=0) if x_item.shape[0] < max_len else x_item
-            )  ### padding left
+            )
             x_list.append(x_item)
         x: torch.Tensor = torch.stack(x_list, dim=0)
 
-        # AR Decoder
         y = prompts
 
         x_len = x.shape[1]
@@ -658,7 +908,6 @@ class Text2SemanticDecoder(nn.Module):
 
         k_cache = None
         v_cache = None
-        # 第一步
         assert y is not None, "Error: Prompt free is not supported batch_infer!"
         ref_free = False
 
@@ -669,13 +918,11 @@ class Text2SemanticDecoder(nn.Module):
         y_pos = self.ar_audio_position(y_emb)
         xy_pos = torch.concat([x, y_pos], dim=1)
 
-        # 创建掩码
         bsz = x.shape[0]
         src_len = x_len + y_len
         y_paddind_mask = make_pad_mask_left(y_lens, y_len)
         x_paddind_mask = make_pad_mask_left(x_lens, max_len)
 
-        # (bsz, x_len + y_len)
         padding_mask = torch.concat([x_paddind_mask, y_paddind_mask], dim=1)
 
         x_mask = F.pad(
@@ -684,50 +931,23 @@ class Text2SemanticDecoder(nn.Module):
             value=True,
         )
 
-        y_mask = F.pad(  ###yy的右上1扩展到左边xy的0,(y,x+y)
+        y_mask = F.pad(
             torch.triu(torch.ones(y_len, y_len, dtype=torch.bool, device=x.device), diagonal=1),
             (x_len, 0),
             value=False,
         )
 
         causal_mask = torch.concat([x_mask, y_mask], dim=0).view(1, src_len, src_len).repeat(bsz, 1, 1).to(x.device)
-        # padding_mask = padding_mask.unsqueeze(1) * padding_mask.unsqueeze(2) ### [b, x+y, x+y]
-        ### 上面是错误的，会导致padding的token被"看见"
-
-        # 正确的padding_mask应该是：
-        # |   pad_len   |  x_len  |  y_len  |
-        # [[PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],
-        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],
-        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],  前3行按理说也应该被mask掉，但是为了防止计算attention时不出现nan，还是保留了，不影响结果
-        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],
-        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],
-        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],
-        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],
-        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6],
-        # [PAD, PAD, PAD, 1, 2, 3, 4, 5, 6]]
 
         padding_mask = padding_mask.view(bsz, 1, src_len).repeat(1, src_len, 1)
 
         attn_mask: torch.Tensor = causal_mask.logical_or(padding_mask)
         attn_mask = attn_mask.unsqueeze(1).expand(-1, self.num_head, -1, -1).bool()
 
-        # 正确的attn_mask应该是这样的：
-        # |   pad_len   |  x_len  |  y_len  |
-        # [[PAD, PAD, PAD, 1, 2, 3, EOS, EOS, EOS],
-        # [PAD, PAD, PAD, 1, 2, 3, EOS, EOS, EOS],
-        # [PAD, PAD, PAD, 1, 2, 3, EOS, EOS, EOS],  前3行按理说也应该被mask掉，但是为了防止计算attention时不出现nan，还是保留了，不影响结果
-        # [PAD, PAD, PAD, 1, 2, 3, EOS, EOS, EOS],
-        # [PAD, PAD, PAD, 1, 2, 3, EOS, EOS, EOS],
-        # [PAD, PAD, PAD, 1, 2, 3, EOS, EOS, EOS],
-        # [PAD, PAD, PAD, 1, 2, 3,   4, EOS, EOS],
-        # [PAD, PAD, PAD, 1, 2, 3,   4,   5, EOS],
-        # [PAD, PAD, PAD, 1, 2, 3,   4,   5,   6]]
-
-        # 解码
         y_list = [None] * y.shape[0]
         batch_idx_map = list(range(y.shape[0]))
         idx_list = [None] * y.shape[0]
-        for idx in range(1500):  # 已移除tqdm
+        for idx in range(1500):
             if idx == 0:
                 xy_dec, k_cache, v_cache = self.t2s_transformer.process_prompt(xy_pos, attn_mask, None)
             else:
@@ -739,7 +959,7 @@ class Text2SemanticDecoder(nn.Module):
             else:
                 attn_mask = F.pad(attn_mask, (0, 1), value=False)
 
-            if idx < 11:  ###至少预测出10个token不然不给停止（0.4s）
+            if idx < 11:
                 logits = logits[:, :-1] 
 
             samples = sample(
@@ -748,16 +968,14 @@ class Text2SemanticDecoder(nn.Module):
 
             y = torch.concat([y, samples], dim=1)
 
-            # 移除 batch 中已经生成完毕的序列，进一步优化计算量
             tokens = torch.argmax(logits, dim=-1)
             reserved_idx_of_batch_for_y = None
-            if (self.EOS in samples[:, 0]) or (self.EOS in tokens):  ###如果生成到EOS，则停止
+            if (self.EOS in samples[:, 0]) or (self.EOS in tokens):
                 l1 = samples[:, 0] == self.EOS
                 l2 = tokens == self.EOS
                 l = l1.logical_or(l2)
                 removed_idx_of_batch_for_y = torch.where(l == True)[0].tolist()
                 reserved_idx_of_batch_for_y = torch.where(l == False)[0]
-                # batch_indexs = torch.tensor(batch_idx_map, device=y.device)[removed_idx_of_batch_for_y]
                 for i in removed_idx_of_batch_for_y:
                     batch_index = batch_idx_map[i]
                     idx_list[batch_index] = idx
@@ -765,9 +983,7 @@ class Text2SemanticDecoder(nn.Module):
 
                 batch_idx_map = [batch_idx_map[i] for i in reserved_idx_of_batch_for_y.tolist()]
 
-            # 只保留batch中未生成完毕的序列
             if reserved_idx_of_batch_for_y is not None:
-                # index = torch.LongTensor(batch_idx_map).to(y.device)
                 y = torch.index_select(y, dim=0, index=reserved_idx_of_batch_for_y)
                 attn_mask = torch.index_select(attn_mask, dim=0, index=reserved_idx_of_batch_for_y)
                 if k_cache is not None:
@@ -793,7 +1009,6 @@ class Text2SemanticDecoder(nn.Module):
                 print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
                 break
 
-            # 更新下一步
             y_emb = self.ar_audio_embedding(y[:, -1:])
             xy_pos = y_emb * self.ar_audio_position.x_scale + self.ar_audio_position.alpha * self.ar_audio_position.pe[
                 :, y_len + idx
@@ -802,18 +1017,17 @@ class Text2SemanticDecoder(nn.Module):
         if None in idx_list:
             for i in range(x.shape[0]):
                 if idx_list[i] is None:
-                    idx_list[i] = 1500 - 1  ###如果没有生成到EOS，就用最大长度代替
+                    idx_list[i] = 1500 - 1
 
         if ref_free:
             return y_list, [0] * x.shape[0]
-        # print(idx_list)
         return y_list, idx_list
 
     def infer_panel_naive_batched(
         self,
-        x: list[torch.LongTensor],  # 全部文本token
+        x: list[torch.LongTensor],
         x_lens: torch.LongTensor,
-        prompts: torch.LongTensor,  # 参考音频token
+        prompts: torch.LongTensor,
         bert_feature: list[torch.LongTensor],
         top_k: int = -100,
         top_p: int = 100,
@@ -822,6 +1036,25 @@ class Text2SemanticDecoder(nn.Module):
         repetition_penalty: float = 1.35,
         **kwargs,
     ) -> tuple[list[torch.LongTensor], list[int]]:
+        """
+        朴素批量推理
+        
+        逐个序列进行推理，而非真正的批量并行。
+        
+        Args:
+            x: 文本 token 列表
+            x_lens: 文本长度张量
+            prompts: 参考音频 token
+            bert_feature: BERT 特征列表
+            top_k: Top-K 采样参数
+            top_p: Top-P 采样参数
+            early_stop_num: 提前停止的 token 数量
+            temperature: 温度参数
+            repetition_penalty: 重复惩罚系数
+            
+        Returns:
+            元组 (生成的语义 token 列表, 索引列表)
+        """
         y_list = []
         idx_list = []
         for i in range(len(x)):
@@ -844,9 +1077,9 @@ class Text2SemanticDecoder(nn.Module):
 
     def infer_panel_naive(
         self,
-        x: torch.LongTensor,  # 全部文本 token
+        x: torch.LongTensor,
         x_lens: torch.LongTensor,
-        prompts: torch.LongTensor,  # 参考音频 token
+        prompts: torch.LongTensor,
         bert_feature: torch.LongTensor,
         top_k: int = -100,
         top_p: int = 100,
@@ -857,6 +1090,27 @@ class Text2SemanticDecoder(nn.Module):
         chunk_length: int = 24,
         **kwargs,
     ):
+        """
+        朴素推理生成
+        
+        单序列推理生成，支持流式输出模式。
+        
+        Args:
+            x: 文本 token
+            x_lens: 文本长度
+            prompts: 参考音频 token
+            bert_feature: BERT 特征
+            top_k: Top-K 采样参数
+            top_p: Top-P 采样参数
+            early_stop_num: 提前停止的 token 数量
+            temperature: 温度参数
+            repetition_penalty: 重复惩罚系数
+            streaming_mode: 是否启用流式模式
+            chunk_length: 流式输出的块长度
+            
+        Yields:
+            元组 (生成的语义 token, 是否结束标志)
+        """
         mute_emb_sim_matrix = kwargs.get("mute_emb_sim_matrix", None)
         chunk_split_thershold = kwargs.get("chunk_split_thershold", 0.3)
         check_token_num = 2
@@ -866,17 +1120,14 @@ class Text2SemanticDecoder(nn.Module):
         x = x + self.bert_proj(bert_feature.transpose(1, 2))
         x = self.ar_text_position(x)
 
-        # AR Decoder
         y = prompts
 
         x_len = x.shape[1]
         x_attn_mask = torch.zeros((x_len, x_len), dtype=torch.bool)
         stop = False
-        # print(1111111,self.num_layers)
 
         k_cache = None
         v_cache = None
-        # 第一步
         if y is not None:
             y_emb = self.ar_audio_embedding(y)
             y_len = y_emb.shape[1]
@@ -897,10 +1148,10 @@ class Text2SemanticDecoder(nn.Module):
         src_len = x_len + y_len
         x_attn_mask_pad = F.pad(
             x_attn_mask,
-            (0, y_len),  ###xx的纯0扩展到xx纯0+xy纯1，(x,x+y)
+            (0, y_len),
             value=True,
         )
-        y_attn_mask = F.pad(  ###yy的右上1扩展到左边xy的0,(y,x+y)
+        y_attn_mask = F.pad(
             torch.triu(torch.ones(y_len, y_len, dtype=torch.bool), diagonal=1),
             (x_len, 0),
             value=False,
@@ -915,7 +1166,7 @@ class Text2SemanticDecoder(nn.Module):
 
         token_counter = 0
         curr_ptr = prefix_len
-        for idx in range(1500):  # 已移除tqdm
+        for idx in range(1500):
             token_counter+=1
             if xy_attn_mask is not None:
                 xy_dec, k_cache, v_cache = self.t2s_transformer.process_prompt(xy_pos, xy_attn_mask, None)
@@ -926,7 +1177,7 @@ class Text2SemanticDecoder(nn.Module):
 
             if idx == 0:
                 xy_attn_mask = None
-            if idx < 11:  ###至少预测出10个token不然不给停止（0.4s）
+            if idx < 11:
                 logits = logits[:, :-1]
 
             samples = sample(
@@ -951,7 +1202,6 @@ class Text2SemanticDecoder(nn.Module):
                 if y.shape[1] == 0:
                     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
                     print("bad zero prediction")
-                # print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
                 if streaming_mode:
                     yield y[:, curr_ptr:] if curr_ptr<y.shape[1] else None, True
                 break
@@ -960,7 +1210,7 @@ class Text2SemanticDecoder(nn.Module):
             if streaming_mode and (mute_emb_sim_matrix is not None) and (token_counter >= chunk_length+check_token_num):
                 score = mute_emb_sim_matrix[y[0, curr_ptr:]] - chunk_split_thershold
                 score[score<0]=-1
-                score[:-1]=score[:-1]+score[1:] ##考虑连续两个token
+                score[:-1]=score[:-1]+score[1:]
                 argmax_idx = score.argmax()
 
                 if score[argmax_idx]>=0 and argmax_idx+1>=chunk_length: 
@@ -975,9 +1225,8 @@ class Text2SemanticDecoder(nn.Module):
                 curr_ptr+=token_counter
                 token_counter = 0
                 
-                
 
-            # 更新下一步
+
             y_emb = self.ar_audio_embedding(y[:, -1:])
             xy_pos = y_emb * self.ar_audio_position.x_scale + self.ar_audio_position.alpha * self.ar_audio_position.pe[
                 :, y_len + idx
@@ -994,9 +1243,9 @@ class Text2SemanticDecoder(nn.Module):
 
     def infer_panel(
         self,
-        x: torch.LongTensor,  # 全部文本 token
+        x: torch.LongTensor,
         x_lens: torch.LongTensor,
-        prompts: torch.LongTensor,  ####参考音频token
+        prompts: torch.LongTensor,
         bert_feature: torch.LongTensor,
         top_k: int = -100,
         top_p: int = 100,
@@ -1005,6 +1254,25 @@ class Text2SemanticDecoder(nn.Module):
         repetition_penalty: float = 1.35,
         **kwargs,
     ):
+        """
+        面板推理接口
+        
+        提供统一的推理接口，内部调用 infer_panel_naive。
+        
+        Args:
+            x: 文本 token
+            x_lens: 文本长度
+            prompts: 参考音频 token
+            bert_feature: BERT 特征
+            top_k: Top-K 采样参数
+            top_p: Top-P 采样参数
+            early_stop_num: 提前停止的 token 数量
+            temperature: 温度参数
+            repetition_penalty: 重复惩罚系数
+            
+        Returns:
+            元组 (生成的语义 token, 索引)
+        """
         return next(self.infer_panel_naive(
             x, x_lens, prompts, bert_feature, top_k, top_p, early_stop_num, temperature, repetition_penalty, **kwargs
         ))

@@ -1,6 +1,27 @@
 """
 提示词模块
+==========
+
+本模块集中管理所有提示词模板，包括任务判断、聊天、手机操作、回复生成等。
+
+主要组件:
+    - TASK_JUDGEMENT_PROMPT: 任务判断提示词
+    - CHAT_SYSTEM_PROMPT: 聊天系统提示词
+    - PHONE_OPERATION_PROMPT: 手机操作提示词
+    - REPLY_GENERATION_PROMPT: 回复生成提示词
+    - PARSE_MESSAGES_PROMPT: 消息解析提示词
+
+任务类型常量:
+    - TASK_TYPE_FREE_CHAT: 自由聊天
+    - TASK_TYPE_BASIC_OPERATION: 基础操作
+    - TASK_TYPE_SINGLE_REPLY: 单次回复
+    - TASK_TYPE_CONTINUOUS_REPLY: 持续回复
+    - TASK_TYPE_COMPLEX_OPERATION: 复杂操作
 """
+import logging
+
+logger = logging.getLogger(__name__)
+
 from .judgement_prompt import (
     TASK_JUDGEMENT_PROMPT,
     TASK_TYPE_FREE_CHAT,
@@ -36,6 +57,7 @@ from .parse_prompt import (
     PARSE_MESSAGES_PROMPT,
     PARSE_MESSAGES_MAX_LENGTH,
 )
+from .agent_executor_prompt import CHAT_MESSAGE_PROMPT
 
 __all__ = [
     "TASK_JUDGEMENT_PROMPT",
@@ -63,4 +85,5 @@ __all__ = [
     "PARSE_MESSAGES_SYSTEM_PROMPT",
     "PARSE_MESSAGES_PROMPT",
     "PARSE_MESSAGES_MAX_LENGTH",
+    "CHAT_MESSAGE_PROMPT",
 ]

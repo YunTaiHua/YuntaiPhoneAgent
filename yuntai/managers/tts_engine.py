@@ -1,12 +1,24 @@
 """
 TTS引擎 - 负责GPT-SoVITS模型加载、环境设置和核心合成调用
-使用 pathlib 进行跨平台路径处理
+=========================================================
+
+使用 pathlib 进行跨平台路径处理。
 
 该模块提供文本到语音(TTS)合成的核心功能，包括：
 - TTS模块加载和环境配置
 - 文本预处理和清理
 - 音频合成和保存
 - 重试机制支持
+
+主要组件:
+    - NullIO: 空输出流类，用于抑制不需要的控制台输出
+    - NullWriter: 空写入器类，用于重定向标准输出和标准错误
+    - TTSEngine: TTS引擎核心类
+
+使用示例:
+    >>> engine = TTSEngine(config, database_manager, text_processor)
+    >>> success, message = engine.load_tts_modules()
+    >>> success, audio_path = engine.synthesize_text(text, ref_audio, ref_text)
 """
 
 from __future__ import annotations
@@ -167,34 +179,56 @@ class TTSEngine:
             return False, f"模块加载失败：{str(e)}"
 
     def _setup_environment(self) -> None:
-        """设置TTS运行环境变量"""
+        """
+        设置TTS运行环境变量
+        
+        配置离线模式、禁用进度条等环境变量，
+        减少不必要的网络请求和控制台输出。
+        """
+        # 设置离线模式，避免网络请求
         os.environ["TRANSFORMERS_OFFLINE"] = "1"
         os.environ["HF_HUB_OFFLINE"] = "1"
+        # 禁用进度条
         os.environ["TQDM_DISABLE"] = "1"
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+        # 设置日志级别
         logging.getLogger("transformers").setLevel(logging.ERROR)
         logging.getLogger("torch").setLevel(logging.WARNING)
+        logger.debug("TTS环境变量已设置")
 
     def _setup_model_paths(self) -> None:
-        """设置模型路径环境变量"""
+        """
+        设置模型路径环境变量
+        
+        配置BERT、HuBERT、GPT和SoVITS模型的路径。
+        这些路径将被TTS模块使用来加载模型。
+        """
+        # 设置BERT模型路径
         if self.bert_model_path and self.bert_model_path.exists():
             os.environ["bert_path"] = str(self.bert_model_path)
             print("✅ BERT模型路径已设置")
+            logger.debug(f"BERT模型路径: {self.bert_model_path}")
 
+        # 设置HuBERT模型路径
         if self.hubert_model_path and self.hubert_model_path.exists():
             os.environ["cnhubert_base_path"] = str(self.hubert_model_path)
             print("✅ HuBERT模型路径已设置")
+            logger.debug(f"HuBERT模型路径: {self.hubert_model_path}")
 
+        # 设置默认GPT模型路径
         if self.database_manager.tts_files_database["gpt"]:
             first_gpt = list(self.database_manager.tts_files_database["gpt"].values())[0]
             os.environ["gpt_path"] = first_gpt
             print(f"📌 默认GPT模型: {Path(first_gpt).name}")
+            logger.debug(f"默认GPT模型: {first_gpt}")
 
+        # 设置默认SoVITS模型路径
         if self.database_manager.tts_files_database["sovits"]:
             first_sovits = list(self.database_manager.tts_files_database["sovits"].values())[0]
             os.environ["sovits_path"] = first_sovits
             print(f"📌 默认SoVITS模型: {Path(first_sovits).name}")
+            logger.debug(f"默认SoVITS模型: {first_sovits}")
 
     def _setup_tts_config(self) -> None:
         """设置TTS配置环境变量"""

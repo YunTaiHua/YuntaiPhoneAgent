@@ -1,22 +1,32 @@
 """
 消息工具模块
-处理消息解析、归属判断、回复生成等
+============
 
-该模块提供聊天消息处理相关的核心功能，包括：
-1. 聊天记录智能解析（使用AI）
-2. 消息归属判断
-3. 智能回复生成
-4. 新消息检测
+处理消息解析、归属判断、回复生成等核心功能。
+
+主要功能:
+    - parse_messages: 解析聊天记录，提取消息
+    - determine_message_ownership: 判断消息归属
+    - generate_reply: 生成回复内容
+    - check_new_messages: 检查是否有新消息
+
+内部函数:
+    - _standardize_position: 标准化头像位置
+    - _standardize_color: 标准化气泡颜色
+    - _emergency_extract: 紧急提取方法
+
+使用示例:
+    >>> from yuntai.tools import parse_messages, generate_reply
+    >>> messages = parse_messages(record, zhipu_client)
+    >>> reply = generate_reply(latest_msg, history, zhipu_client)
 """
 from __future__ import annotations
 
-import re
 import json
 import logging
-from typing import List, Dict, Tuple, Any
+import re
 
 from zhipuai import ZhipuAI
-from zhipuai.types.chat.chat_completion_chunk import ChatCompletionChunk
 
 from yuntai.tools.similarity import is_similar
 from yuntai.core.config import (
@@ -41,19 +51,19 @@ from yuntai.prompts import (
 logger = logging.getLogger(__name__)
 
 
-def parse_messages(record: str, zhipu_client: ZhipuAI) -> List[Dict[str, str]]:
+def parse_messages(record: str, zhipu_client: ZhipuAI) -> list[dict[str, str]]:
     """
     解析聊天记录，提取消息
     
-    使用智谱AI模型从原始聊天记录中智能提取结构化消息。
-    如果AI解析失败，会自动降级到紧急提取方法。
+    使用智谱 AI 模型从原始聊天记录中智能提取结构化消息。
+    如果 AI 解析失败，会自动降级到紧急提取方法。
     
     Args:
         record: 原始聊天记录文本
-        zhipu_client: 智谱AI客户端实例
+        zhipu_client: 智谱 AI 客户端实例
     
     Returns:
-        List[Dict[str, str]]: 消息列表，每个消息包含 content, position, color 字段
+        消息列表，每个消息包含 content, position, color 字段
     """
     if not record or len(record.strip()) < 10:
         logger.debug("聊天记录为空或过短，跳过解析")
@@ -63,7 +73,6 @@ def parse_messages(record: str, zhipu_client: ZhipuAI) -> List[Dict[str, str]]:
     prompt_text = PARSE_MESSAGES_PROMPT.format(records=records_text)
     
     try:
-        # 调用AI进行消息解析
         stream = zhipu_client.chat.completions.create(
             model=ZHIPU_CHAT_MODEL,
             messages=[
@@ -76,7 +85,6 @@ def parse_messages(record: str, zhipu_client: ZhipuAI) -> List[Dict[str, str]]:
             response_format={"type": "json_object"}
         )
         
-        # 流式收集响应内容
         resp_content = ""
         for chunk in stream:
             if chunk.choices and len(chunk.choices) > 0:
@@ -86,15 +94,12 @@ def parse_messages(record: str, zhipu_client: ZhipuAI) -> List[Dict[str, str]]:
         
         resp_content = resp_content.strip()
         
-        # 清理可能的Markdown代码块标记
         if resp_content.startswith("```"):
             resp_content = resp_content.replace("```json", "").replace("```", "").strip()
         
-        # 解析JSON响应
         structured_data = json.loads(resp_content)
         messages = structured_data.get("messages", [])
         
-        # 处理和标准化消息
         final_messages = []
         for msg in messages:
             if not isinstance(msg, dict):
@@ -105,7 +110,6 @@ def parse_messages(record: str, zhipu_client: ZhipuAI) -> List[Dict[str, str]]:
             position = msg.get("position", "未知")
             color = msg.get("color", "未知")
             
-            # 验证消息内容并去重
             if len(content) >= MIN_MESSAGE_LENGTH and not any(
                 existing["content"] == content for existing in final_messages
             ):
@@ -138,7 +142,7 @@ def _standardize_position(position: str) -> str:
         position: 原始位置描述
         
     Returns:
-        str: 标准化后的位置（"左侧有头像" | "右侧有头像" | "未知"）
+        标准化后的位置（"左侧有头像" | "右侧有头像" | "未知"）
     """
     if not position or position == "未知":
         return "未知"
@@ -162,7 +166,7 @@ def _standardize_color(color: str) -> str:
         color: 原始颜色描述
         
     Returns:
-        str: 标准化后的颜色名称
+        标准化后的颜色名称
     """
     if not color or color == "未知":
         return "未知"
@@ -181,42 +185,38 @@ def _standardize_color(color: str) -> str:
     return "未知"
 
 
-def _emergency_extract(record: str) -> List[Dict[str, str]]:
+def _emergency_extract(record: str) -> list[dict[str, str]]:
     """
-    紧急提取方法：当AI解析失败时使用
+    紧急提取方法：当 AI 解析失败时使用
     
     使用正则表达式和简单规则从原始文本中提取消息，
-    作为AI解析失败时的降级方案。
+    作为 AI 解析失败时的降级方案。
     
     Args:
         record: 原始聊天记录文本
         
     Returns:
-        List[Dict[str, str]]: 提取的消息列表
+        提取的消息列表
     """
     logger.info("使用紧急提取方法处理聊天记录")
     
-    # 清理无关文本
     record_clean = re.sub(
         r"思考过程:|性能指标:|总推理时间:|首 Token 延迟|思考完成延迟", 
         "", 
         record
     )
-    # 保留中文、英文、数字和常用标点符号
     record_clean = re.sub(
         r"[^\u4e00-\u9fff\w\s\.,，。！？；：\"''💪~]", 
         "", 
         record_clean
     )
     
-    # 按句子分隔符拆分
     sentences = re.split(r"[。！？；：\n]", record_clean)
     final_messages = []
     
     for sent in sentences:
         sent = sent.strip().strip('"').strip("'")
         
-        # 过滤无效句子
         if (len(sent) >= MIN_MESSAGE_LENGTH 
             and not sent.isdigit() 
             and not sent.startswith("20:")
@@ -224,9 +224,7 @@ def _emergency_extract(record: str) -> List[Dict[str, str]]:
             and "头像" not in sent 
             and "消息" not in sent):
             
-            # 去重
             if not any(existing["content"] == sent for existing in final_messages):
-                # 简单判断归属
                 position = "右侧有头像" if "芸苔" in sent or "💪" in sent or "~" in sent else "左侧有头像"
                 color = "红色" if position == "右侧有头像" else "白色"
                 final_messages.append({
@@ -240,10 +238,10 @@ def _emergency_extract(record: str) -> List[Dict[str, str]]:
 
 
 def determine_message_ownership(
-    messages: List[Dict[str, str]],
-    my_messages_list: List[str],
-    other_messages_list: List[str]
-) -> Tuple[List[str], List[str]]:
+    messages: list[dict[str, str]],
+    my_messages_list: list[str],
+    other_messages_list: list[str]
+) -> tuple[list[str], list[str]]:
     """
     判断消息归属
     
@@ -256,7 +254,7 @@ def determine_message_ownership(
         other_messages_list: 已知的对方消息列表
     
     Returns:
-        Tuple[List[str], List[str]]: (对方消息列表, 我方消息列表)
+        元组 (对方消息列表, 我方消息列表)
     """
     other_messages = []
     my_messages = []
@@ -269,7 +267,6 @@ def determine_message_ownership(
         if not content or len(content) < MIN_MESSAGE_LENGTH:
             continue
         
-        # 优先级1: 通过相似度匹配已知的我方消息
         is_my_message = False
         for my_msg in my_messages_list:
             if is_similar(content, my_msg, threshold=SIMILARITY_THRESHOLD):
@@ -280,7 +277,6 @@ def determine_message_ownership(
         if is_my_message:
             continue
         
-        # 优先级2: 通过相似度匹配已知的对方消息
         is_other_message = False
         for other_msg in other_messages_list:
             if is_similar(content, other_msg, threshold=SIMILARITY_THRESHOLD):
@@ -291,13 +287,11 @@ def determine_message_ownership(
         if is_other_message:
             continue
         
-        # 优先级3: 通过头像位置判断
         if position == "左侧有头像":
             other_messages.append(content)
         elif position == "右侧有头像":
             my_messages.append(content)
         else:
-            # 优先级4: 通过气泡颜色判断
             if color == "白色":
                 other_messages.append(content)
             elif color in ["红色", "粉色", "蓝色", "绿色", "紫色", "黑色", "灰色", "橙色", "黄色"]:
@@ -309,34 +303,32 @@ def determine_message_ownership(
 
 def generate_reply(
     latest_message: str,
-    history_messages: List[str],
+    history_messages: list[str],
     zhipu_client: ZhipuAI,
     system_prompt: str = ""
 ) -> str:
     """
     生成回复内容
     
-    根据最新消息和历史对话，使用AI智能生成合适的回复。
+    根据最新消息和历史对话，使用 AI 智能生成合适的回复。
     
     Args:
         latest_message: 最新收到的消息
         history_messages: 历史消息列表
-        zhipu_client: 智谱AI客户端实例
+        zhipu_client: 智谱 AI 客户端实例
         system_prompt: 可选的自定义系统提示词
     
     Returns:
-        str: 生成的回复内容，失败时返回空字符串
+        生成的回复内容，失败时返回空字符串
     """
     if not latest_message:
         logger.debug("最新消息为空，跳过回复生成")
         return ""
     
-    # 构建历史对话上下文
     history_prompt = ""
     if history_messages:
         history_prompt = "\n\n=== 历史对话（按时间顺序，从旧到新）===\n"
         for i, msg in enumerate(history_messages[-REPLY_HISTORY_LIMIT:], 1):
-            # 截断过长的历史消息
             preview = msg[:50] + "..." if len(msg) > 50 else msg
             history_prompt += f"{i}. {preview}\n"
     
@@ -346,7 +338,6 @@ def generate_reply(
     )
     
     try:
-        # 调用AI生成回复
         stream = zhipu_client.chat.completions.create(
             model=ZHIPU_CHAT_MODEL,
             messages=[
@@ -358,7 +349,6 @@ def generate_reply(
             max_tokens=REPLY_MAX_TOKENS
         )
         
-        # 流式收集回复
         reply = ""
         for chunk in stream:
             if chunk.choices and len(chunk.choices) > 0:
@@ -368,7 +358,6 @@ def generate_reply(
         
         reply = reply.strip()
         
-        # 简单的后处理：只保留第一个完整句子
         if "。" in reply:
             reply = reply.split("。")[0] + "。"
         
@@ -382,10 +371,10 @@ def generate_reply(
 
 
 def check_new_messages(
-    current_other_messages: List[str],
-    previous_other_messages: List[str],
-    my_messages_list: List[str]
-) -> Tuple[bool, List[str]]:
+    current_other_messages: list[str],
+    previous_other_messages: list[str],
+    my_messages_list: list[str]
+) -> tuple[bool, list[str]]:
     """
     检查是否有新消息
     
@@ -397,21 +386,19 @@ def check_new_messages(
         my_messages_list: 已知的我方消息列表（用于排除）
     
     Returns:
-        Tuple[bool, List[str]]: (是否有新消息, 新消息列表)
+        元组 (是否有新消息, 新消息列表)
     """
     new_messages = []
     
     for msg in current_other_messages:
         is_new = True
         
-        # 检查是否在之前的对方消息中
         for existing_msg in previous_other_messages:
             if is_similar(msg, existing_msg, threshold=SIMILARITY_CHECK_NEW_THRESHOLD):
                 is_new = False
                 break
         
         if is_new:
-            # 检查是否是我方消息（防止误判）
             for my_msg in my_messages_list:
                 if is_similar(msg, my_msg, threshold=SIMILARITY_CHECK_NEW_THRESHOLD):
                     is_new = False

@@ -1,5 +1,26 @@
 """
 tts_handler.py - TTS语音处理
+=============================
+
+负责处理TTS语音合成和播报相关操作。
+
+主要功能:
+    - handle_tts_speak: 处理TTS语音播报（从控制中心）
+    - handle_tts_synth: 处理TTS语音合成
+    - handle_tts_select_model: 处理TTS模型选择
+    - handle_tts_load_models: 处理TTS模型加载
+    - handle_tts_settings: 处理TTS设置请求
+
+TTS功能:
+    - 语音播报: 实时播报文本内容
+    - 语音合成: 将文本合成为音频文件
+    - 模型管理: GPT模型、SoVITS模型选择
+    - 参考音频: 参考音频和文本自动匹配
+
+使用示例:
+    >>> await handle_tts_synth(websocket, {
+    ...     "text": "你好，欢迎使用",
+    ... }, controller)
 """
 
 import asyncio
@@ -12,7 +33,16 @@ if TYPE_CHECKING:
 
 
 async def handle_tts_speak(websocket, data: dict, controller: "WebController"):
-    """处理TTS语音播报（从控制中心）"""
+    """
+    处理TTS语音播报（从控制中心）
+    
+    将文本通过TTS进行实时播报。
+    
+    Args:
+        websocket: WebSocket连接
+        data: 请求数据，包含text字段
+        controller: Web控制器实例
+    """
     text = data.get("text", "").strip()
     if not text:
         await controller.send_toast("没有可播报的内容", "warning")
@@ -38,7 +68,16 @@ async def handle_tts_speak(websocket, data: dict, controller: "WebController"):
 
 
 async def handle_tts_synth(websocket, data: dict, controller: "WebController"):
-    """处理TTS合成"""
+    """
+    处理TTS合成
+    
+    将文本合成为音频文件，保存到TTS输出目录。
+    
+    Args:
+        websocket: WebSocket连接
+        data: 请求数据，包含text字段
+        controller: Web控制器实例
+    """
     text = data.get("text", "").strip()
     if not text:
         await controller.send_toast("请输入要合成的文本", "warning")

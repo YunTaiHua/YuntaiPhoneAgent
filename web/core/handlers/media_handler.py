@@ -1,5 +1,25 @@
 """
 media_handler.py - 媒体生成处理（图像/视频）
+============================================
+
+负责处理图像和视频生成相关操作。
+
+主要功能:
+    - handle_generate_image: 处理图像生成请求
+    - handle_generate_video: 处理视频生成请求
+    - start_video_result_polling: 轮询检查视频生成结果
+
+支持功能:
+    - 图像生成: 支持多种尺寸和质量选项
+    - 视频生成: 支持参考图片、帧率、音频等选项
+    - 异步轮询: 视频生成任务异步轮询结果
+
+使用示例:
+    >>> await handle_generate_image(websocket, {
+    ...     "prompt": "一只可爱的猫咪",
+    ...     "size": "1280x1280",
+    ...     "quality": "standard"
+    ... }, controller)
 """
 
 import time

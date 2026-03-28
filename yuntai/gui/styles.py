@@ -1,14 +1,52 @@
 """
 styles.py - PyQt6 样式定义
-完全保持与原 tkinter/customtkinter 主题一致的样式
+===========================
+
+完全保持与原 tkinter/customtkinter 主题一致的样式。
+
+主要组件:
+    - ThemeColors: 浅色主题颜色常量
+    - DarkThemeColors: 深色主题颜色常量
+    - ThemeSpacing: 间距常量
+    - ThemeCorner: 圆角常量
+    - ThemeHeight: 高度常量
+    - ThemeShadow: 阴影常量
+    - ThemeFonts: 字体常量
+    - DialogStyle: 弹窗样式常量
+
+主要函数:
+    - get_theme_colors: 获取当前主题颜色
+    - apply_light_theme: 应用浅色主题
+    - apply_dark_theme: 应用深色主题
+    - get_main_stylesheet: 获取主样式表
+    - get_overlay_stylesheet: 获取遮罩层样式表
+    - show_warning_dialog: 显示警告对话框
+    - show_confirm_dialog: 显示确认对话框
 """
 
+import logging
 from PyQt6.QtGui import QFont, QColor, QPalette
 from PyQt6.QtWidgets import QApplication
 
+# 初始化模块日志记录器
+logger = logging.getLogger(__name__)
+
 
 class ThemeColors:
-    """现代化浅色UI主题颜色类 - 米白色风格"""
+    """
+    现代化浅色UI主题颜色类 - 米白色风格
+    
+    定义浅色主题下所有UI组件使用的颜色常量。
+    采用柔和的蓝色系作为主色调，米白色作为背景色。
+    
+    颜色分类:
+        - 主色调: PRIMARY, SECONDARY, ACCENT
+        - 功能色: SUCCESS, WARNING, DANGER
+        - 状态色: STATUS_ACTIVE, STATUS_INACTIVE
+        - 背景色: BG_MAIN, BG_NAV, BG_CARD等
+        - 边框色: BORDER_LIGHT, BORDER_MEDIUM, BORDER_FOCUS
+        - 文字色: TEXT_PRIMARY, TEXT_SECONDARY, TEXT_DISABLED
+    """
     # 主色调 - 柔和的蓝色系
     PRIMARY = "#5B8DEE"          # 主按钮色 - 柔和蓝
     PRIMARY_HOVER = "#4A7BDD"     # 主按钮悬停色（稍深提升对比度）
@@ -57,7 +95,20 @@ class ThemeColors:
 
 
 class DarkThemeColors:
-    """深色主题颜色类"""
+    """
+    深色主题颜色类
+    
+    定义深色主题下所有UI组件使用的颜色常量。
+    采用深蓝色系作为背景色，保持与浅色主题一致的功能色。
+    
+    颜色分类:
+        - 主色调: PRIMARY, SECONDARY, ACCENT
+        - 功能色: SUCCESS, WARNING, DANGER
+        - 状态色: STATUS_ACTIVE, STATUS_INACTIVE
+        - 背景色: BG_MAIN, BG_NAV, BG_CARD等
+        - 边框色: BORDER_LIGHT, BORDER_MEDIUM, BORDER_FOCUS
+        - 文字色: TEXT_PRIMARY, TEXT_SECONDARY, TEXT_DISABLED
+    """
     # 主色调
     PRIMARY = "#60A5FA"
     PRIMARY_HOVER = "#3B82F6"
@@ -106,32 +157,51 @@ class DarkThemeColors:
 
 
 class ThemeSpacing:
-    """间距常量"""
-    XS = 4
-    SM = 8
-    MD = 16
-    LG = 24
-    XL = 32
+    """
+    间距常量
+    
+    定义UI布局中使用的各种间距值（单位：像素）。
+    """
+    XS = 4   # 超小间距
+    SM = 8   # 小间距
+    MD = 16  # 中等间距
+    LG = 24  # 大间距
+    XL = 32  # 超大间距
 
 
 class ThemeCorner:
-    """圆角常量"""
-    SM = 8
-    MD = 12
-    LG = 16
+    """
+    圆角常量
+    
+    定义UI组件边框圆角半径值（单位：像素）。
+    """
+    SM = 8   # 小圆角（按钮、输入框等）
+    MD = 12  # 中等圆角（卡片、对话框等）
+    LG = 16  # 大圆角（遮罩层卡片等）
 
 
 class ThemeHeight:
-    """高度常量"""
-    BUTTON_SM = 32
-    BUTTON_MD = 40
-    BUTTON_LG = 48
-    INPUT_SM = 36
-    INPUT_MD = 42
+    """
+    高度常量
+    
+    定义UI组件的标准高度值（单位：像素）。
+    """
+    BUTTON_SM = 32  # 小按钮高度
+    BUTTON_MD = 40  # 中等按钮高度
+    BUTTON_LG = 48  # 大按钮高度
+    INPUT_SM = 36   # 小输入框高度
+    INPUT_MD = 42   # 中等输入框高度
 
 
 class ThemeShadow:
-    """阴影常量 - 用于卡片立体感"""
+    """
+    阴影常量 - 用于卡片立体感
+    
+    定义UI组件的阴影效果参数。
+    每个阴影配置为元组: (x_offset, y_offset, blur_radius, color_rgba)
+    
+    浅色主题阴影使用较低的透明度，深色主题使用较高的透明度。
+    """
     # 浅色主题阴影 (使用rgba格式，alpha值为0-255)
     LIGHT_SM = (0, 1, 3, (0, 0, 0, 20))      # 小阴影 (0.08 * 255 ≈ 20)
     LIGHT_MD = (0, 2, 8, (0, 0, 0, 26))      # 中等阴影 (0.10 * 255 ≈ 26)
@@ -144,7 +214,19 @@ class ThemeShadow:
 
 
 class ThemeFonts:
-    """字体常量"""
+    """
+    字体常量
+    
+    定义UI组件使用的字体族和字体大小。
+    主要使用微软雅黑作为主字体，Consolas作为代码字体。
+    
+    字体分类:
+        - 主字体: Microsoft YaHei
+        - Emoji字体: Segoe UI Emoji
+        - 代码字体: Consolas
+        - 标题字体: TITLE_LARGE, TITLE_MEDIUM, TITLE_SMALL
+        - 正文字体: BODY_LARGE, BODY_MEDIUM, BODY_SMALL等
+    """
     # 主字体
     FONT_FAMILY = "Microsoft YaHei"
     FONT_FAMILY_EMOJI = "Segoe UI Emoji"
@@ -181,12 +263,27 @@ class ThemeFonts:
 
 
 def get_theme_colors(is_dark=False):
-    """获取当前主题颜色"""
+    """
+    获取当前主题颜色
+    
+    Args:
+        is_dark: 是否使用深色主题，默认False
+    
+    Returns:
+        ThemeColors或DarkThemeColors类
+    """
     return DarkThemeColors if is_dark else ThemeColors
 
 
 def apply_light_theme(app: QApplication):
-    """应用浅色主题到应用程序"""
+    """
+    应用浅色主题到应用程序
+    
+    设置应用程序调色板为浅色主题配色方案。
+    
+    Args:
+        app: QApplication实例
+    """
     colors = ThemeColors
     
     palette = QPalette()
@@ -231,7 +328,14 @@ def apply_light_theme(app: QApplication):
 
 
 def apply_dark_theme(app: QApplication):
-    """应用深色主题到应用程序"""
+    """
+    应用深色主题到应用程序
+    
+    设置应用程序调色板为深色主题配色方案。
+    
+    Args:
+        app: QApplication实例
+    """
     colors = DarkThemeColors
     
     palette = QPalette()
@@ -277,7 +381,17 @@ def apply_dark_theme(app: QApplication):
 
 # 样式表定义
 def get_main_stylesheet(colors=ThemeColors):
-    """获取主样式表"""
+    """
+    获取主样式表
+    
+    生成应用程序的主样式表，包含所有UI组件的样式定义。
+    
+    Args:
+        colors: 颜色主题类，默认为ThemeColors
+    
+    Returns:
+        str: CSS样式表字符串
+    """
     return f"""
         /* 全局样式 */
         QWidget {{

@@ -1,6 +1,23 @@
 """
-聊天提示词
+聊天提示词模块
+==============
+
+提供聊天场景的系统提示词和上下文提示词模板。
+
+主要组件:
+    - CHAT_SYSTEM_PROMPT: 聊天系统提示词
+    - CHAT_WITH_CONTEXT_PROMPT: 带上下文的聊天提示词
+    - CHAT_BUILD_SYSTEM_PROMPT_BASE: 构建系统提示词的基础模板
+    - CHAT_TIME_INSTRUCTION: 时间相关指令
+    - CHAT_FINAL_INSTRUCTION: 最终指令
+
+使用场景:
+    - 自由聊天模式
+    - 带记忆的聊天
 """
+import logging
+
+logger = logging.getLogger(__name__)
 
 CHAT_SYSTEM_PROMPT = """你是一个友好的助手，名字叫'小芸'（不用刻意用"小芸："放在对话开头做标注），性别为女，请用自然又俏皮可爱的方式回应用户。
 
@@ -41,3 +58,11 @@ CHAT_TIME_INSTRUCTION = """
 - 如果用户未提及时间相关问题不要强行将时间添加到对话中"""
 
 CHAT_FINAL_INSTRUCTION = "\n请基于以上信息和用户当前的问题，生成一个连贯、友好的回复。"
+
+__all__ = [
+    "CHAT_SYSTEM_PROMPT",
+    "CHAT_WITH_CONTEXT_PROMPT",
+    "CHAT_BUILD_SYSTEM_PROMPT_BASE",
+    "CHAT_TIME_INSTRUCTION",
+    "CHAT_FINAL_INSTRUCTION",
+]

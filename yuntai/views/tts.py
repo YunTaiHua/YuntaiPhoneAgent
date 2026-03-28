@@ -1,7 +1,31 @@
 """
 TTSBuilder - TTS语音合成页面构建器（PyQt6 重构版）
-浅色米白色主题版本
+==================================================
+
+浅色米白色主题版本。
+
+负责构建TTS语音合成页面的UI组件，包括模型选择、参考音频选择、
+语音合成和音频播放功能。
+
+主要组件:
+    - TTSBuilder: TTS语音合成页面构建器
+
+功能特性:
+    - GPT/SoVITS模型选择
+    - 参考音频和文本选择
+    - 语音合成输入框
+    - 合成按钮和播放控制
+    - 历史音频列表（播放、删除）
+
+使用示例:
+    >>> builder = TTSBuilder(view)
+    >>> builder.create_page()  # 创建TTS页面
 """
+
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING, Any
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
@@ -16,7 +40,27 @@ from yuntai.gui.styles import ThemeColors, ThemeFonts, ThemeCorner, ThemeSpacing
 
 # TTS页面布局常量 - 避免魔法数字
 class TTSLayoutConstants:
-    """TTS页面布局常量"""
+    """
+    TTS页面布局常量
+    
+    定义TTS页面中使用的各种布局参数，
+    避免在代码中使用魔法数字。
+    
+    Attributes:
+        FORM_LABEL_WIDTH: 左侧标签宽度
+        FORM_VALUE_WIDTH: 中间值标签宽度
+        FORM_BUTTON_WIDTH: 按钮宽度
+        FORM_SPACING: 元素间距
+        FORM_ROW_SPACING: 行间距
+        SYNTH_TOP_MARGIN: 合成文本区域顶部边距
+        SYNTH_BOTTOM_MARGIN: 合成文本区域底部边距
+        SYNTH_LABEL_SPACING: 标签与输入框间距
+        SYNTH_INPUT_MIN_HEIGHT: 合成文本输入框最小高度
+        BUTTON_TOP_MARGIN: 按钮区域顶部边距
+        BUTTON_SPACING: 按钮间距
+        RIGHT_LOG_STRETCH: 执行输出框拉伸比例
+        RIGHT_AUDIO_STRETCH: 历史音频框拉伸比例
+    """
     # 表单布局常量
     FORM_LABEL_WIDTH = 120      # 左侧标签宽度（统一，适配SoVITS模型）
     FORM_VALUE_WIDTH = 180      # 中间值标签宽度（统一）
@@ -39,12 +83,32 @@ class TTSLayoutConstants:
     RIGHT_AUDIO_STRETCH = 5     # 历史音频框拉伸比例
 
 
+# 初始化模块日志记录器
+logger = logging.getLogger(__name__)
+
+
 class TTSBuilder:
-    """TTS语音合成页面构建器"""
+    """
+    TTS语音合成页面构建器
+    
+    负责构建TTS语音合成页面的UI组件，包括模型选择、参考音频选择、
+    语音合成和音频播放功能。
+    
+    Attributes:
+        view: GUIView实例
+        components: UI组件字典
+    """
 
     def __init__(self, view_instance):
+        """
+        初始化TTS语音合成页面构建器
+        
+        Args:
+            view_instance: GUIView实例
+        """
         self.view = view_instance
         self.components = view_instance.components
+        logger.debug("TTSBuilder初始化完成")
     
     @property
     def colors(self):

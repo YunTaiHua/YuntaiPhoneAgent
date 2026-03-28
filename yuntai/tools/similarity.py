@@ -1,18 +1,34 @@
 """
 文本相似度工具模块
+==================
 
 提供文本相似度比较功能，用于消息去重和相似性判断。
 支持多种相似度计算策略，包括精确匹配、包含匹配和模糊匹配。
-"""
 
+主要功能:
+    - is_similar: 判断两条消息是否相似
+    - calculate_similarity: 计算两条消息的相似度比率
+    - clean_text: 清理文本，移除标点符号和空白字符
+
+常量:
+    - DEFAULT_SIMILARITY_THRESHOLD: 默认相似度阈值 (0.6)
+
+使用示例:
+    >>> from yuntai.tools import is_similar, calculate_similarity
+    >>> is_similar("你好", "你好！")
+    True
+    >>> calculate_similarity("你好世界", "你好")
+    0.666...
+"""
 from __future__ import annotations
 
+import logging
 import re
 from difflib import SequenceMatcher
-from typing import Final
 
+logger = logging.getLogger(__name__)
 
-DEFAULT_SIMILARITY_THRESHOLD: Final[float] = 0.6
+DEFAULT_SIMILARITY_THRESHOLD: float = 0.6
 
 
 def clean_text(text: str) -> str:

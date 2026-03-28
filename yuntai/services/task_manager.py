@@ -1,7 +1,30 @@
 """
-TaskManager - 任务调度和执行模块（重构版）
-负责连接管理、TTS管理和工具初始化
-任务分发逻辑已迁移到 TaskChain
+任务管理模块
+============
+
+负责连接管理、TTS 管理和工具初始化，任务分发逻辑已迁移到 TaskChain。
+
+主要组件:
+    - TTSManager: TTS 管理器，统一管理所有 TTS 相关功能
+    - TaskManager: 任务管理器，负责连接管理和工具初始化
+
+TTSManager 功能:
+    - synthesize_text: 合成语音
+    - speak_text_intelligently: 智能语音合成
+    - play_audio_file: 播放音频文件
+    - stop_current_audio_playback: 停止音频播放
+    - synthesize_long_text_serial: 分段串行合成长文本
+
+TaskManager 功能:
+    - connect_device: 连接设备
+    - disconnect_device: 断开设备
+    - detect_devices: 检测设备
+    - preload_tts_modules: 预加载 TTS 模块
+
+使用示例:
+    >>> task_manager = TaskManager(project_root, scrcpy_path)
+    >>> success, device_id, message = task_manager.connect_device(config)
+    >>> task_manager.tts_manager.speak_text_intelligently("你好")
 """
 
 from __future__ import annotations
@@ -62,9 +85,32 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class TTSManager:
-    """TTS管理器：统一管理所有TTS相关功能"""
+    """
+    TTS管理器 - 统一管理所有TTS相关功能
+    
+    整合TTS引擎、数据库管理器、文本处理器和音频播放器，
+    提供统一的TTS功能接口。
+    
+    Attributes:
+        project_root: 项目根目录路径
+        default_tts_config: 默认TTS配置字典
+        tts_enabled: TTS功能是否启用
+        tts_available: TTS模块是否可用
+        tts_modules_loaded: TTS模块是否已加载
+        database_manager: TTS数据库管理器
+        text_processor: TTS文本处理器
+        audio_player: TTS音频播放器
+        engine: TTS引擎实例
+        executor: 线程池执行器
+    """
 
     def __init__(self, project_root: str) -> None:
+        """
+        初始化TTS管理器
+        
+        Args:
+            project_root: 项目根目录路径
+        """
         self.project_root: str = project_root
 
         self.default_tts_config: dict[str, str] = {
@@ -91,41 +137,51 @@ class TTSManager:
         self.executor: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=3)
 
         warnings.filterwarnings('ignore')
+        logger.debug("TTSManager初始化完成")
 
     @property
     def tts_files_database(self) -> dict[str, dict[str, str]]:
+        """获取TTS文件数据库"""
         return self.database_manager.tts_files_database
 
     @property
     def tts_synthesized_files(self) -> list[tuple[str, str]]:
+        """获取已合成的音频文件列表"""
         return self.database_manager.tts_synthesized_files
 
     @tts_synthesized_files.setter
     def tts_synthesized_files(self, value: list[tuple[str, str]]) -> None:
+        """设置已合成的音频文件列表"""
         self.database_manager.tts_synthesized_files = value
 
     @property
     def current_gpt_model(self) -> str | None:
+        """获取当前GPT模型"""
         return self.database_manager.current_gpt_model
 
     @property
     def current_sovits_model(self) -> str | None:
+        """获取当前SoVITS模型"""
         return self.database_manager.current_sovits_model
 
     @property
     def current_ref_audio(self) -> str | None:
+        """获取当前参考音频"""
         return self.database_manager.current_ref_audio
 
     @property
     def current_ref_text(self) -> str | None:
+        """获取当前参考文本"""
         return self.database_manager.current_ref_text
 
     @property
     def tts_synthesized_files_lock(self) -> threading.Lock:
+        """获取合成文件列表锁"""
         return self.database_manager.tts_synthesized_files_lock
 
     @property
     def is_playing_audio(self) -> bool:
+        """检查是否正在播放音频"""
         return self.audio_player.is_playing_audio
 
     @property
@@ -330,9 +386,35 @@ class TTSManager:
 
 
 class TaskManager:
-    """任务管理器 - 负责连接管理、TTS管理和工具初始化"""
+    """
+    任务管理器 - 负责连接管理、TTS管理和工具初始化
+    
+    作为应用程序的核心管理器，协调连接管理器、文件管理器、
+    TTS管理器和工具类的工作。
+    
+    Attributes:
+        project_root: 项目根目录路径
+        scrcpy_path: scrcpy工具路径
+        utils: 工具类实例
+        connection_manager: 连接管理器实例
+        file_manager: 文件管理器实例
+        zhipu_client: 智谱AI客户端实例
+        agent_executor: Agent执行器实例
+        tts_manager: TTS管理器实例
+        device_id: 当前连接的设备ID
+        config: 当前连接配置
+        is_connected: 是否已连接设备
+        task_args: 任务参数对象
+    """
 
     def __init__(self, project_root: str, scrcpy_path: str) -> None:
+        """
+        初始化任务管理器
+        
+        Args:
+            project_root: 项目根目录路径
+            scrcpy_path: scrcpy工具路径
+        """
         self.project_root: str = project_root
         self.scrcpy_path: str = scrcpy_path
 

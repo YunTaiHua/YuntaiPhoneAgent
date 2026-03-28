@@ -1,8 +1,29 @@
 """
 DynamicBuilder - 动态功能页面构建器（PyQt6 重构版）
-浅色米白色主题版本 - 左右分栏布局
+==================================================
+
+浅色米白色主题版本 - 左右分栏布局。
+
+负责构建动态功能页面的UI组件，包括图像生成和视频合成功能。
+
+主要组件:
+    - DynamicLayoutConstants: 动态页面布局常量
+    - DynamicBuilder: 动态功能页面构建器
+    - ImagePreviewWindow: 图像预览窗口
+    - VideoPreviewWindow: 视频预览窗口
+
+功能特性:
+    - 图像生成（支持多种尺寸和质量）
+    - 视频生成（支持参考图片URL）
+    - 图像预览窗口
+    - 视频预览窗口
+
+使用示例:
+    >>> builder = DynamicBuilder(view)
+    >>> builder.create_page()  # 创建动态功能页面
 """
 
+import logging
 from pathlib import Path
 import os
 import subprocess
@@ -23,10 +44,27 @@ from yuntai.gui.styles import (
 )
 from yuntai.core.config import IMAGE_SIZES, VIDEO_SIZES, VIDEO_FPS
 
+# 初始化模块日志记录器
+logger = logging.getLogger(__name__)
+
 
 # 动态页面布局常量 - 避免魔法数字
 class DynamicLayoutConstants:
-    """动态页面布局常量"""
+    """
+    动态页面布局常量
+    
+    定义动态功能页面中使用的各种布局参数，
+    避免在代码中使用魔法数字。
+    
+    Attributes:
+        LEFT_MARGIN: 左侧区域内边距
+        LEFT_SPACING: 左侧元素间距
+        PROMPT_MIN_HEIGHT: 描述框最小高度
+        PARAMS_MARGIN: 参数框架内边距
+        PARAMS_SPACING: 参数元素间距
+        BUTTON_TOP_MARGIN: 按钮区域顶部边距
+        BUTTON_SPACING: 按钮间距
+    """
     # 左侧区域布局常量
     LEFT_MARGIN = 20            # 左侧区域内边距
     LEFT_SPACING = 8            # 左侧元素间距（减小）
@@ -44,11 +82,26 @@ class DynamicLayoutConstants:
 
 
 class DynamicBuilder:
-    """动态功能页面构建器"""
+    """
+    动态功能页面构建器
+    
+    负责构建动态功能页面的UI组件，包括图像生成和视频合成选项卡。
+    
+    Attributes:
+        view: GUIView实例
+        components: UI组件字典
+    """
 
     def __init__(self, view_instance):
+        """
+        初始化动态功能页面构建器
+        
+        Args:
+            view_instance: GUIView实例
+        """
         self.view = view_instance
         self.components = view_instance.components
+        logger.debug("DynamicBuilder初始化完成")
     
     @property
     def colors(self):

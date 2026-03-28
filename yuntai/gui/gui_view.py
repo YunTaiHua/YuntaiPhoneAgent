@@ -1,8 +1,27 @@
 """
 GUIView - 纯界面构建模块（PyQt6 重构版）
-负责所有UI组件的创建和布局，不包含业务逻辑
+========================================
+
+负责所有UI组件的创建和布局，不包含业务逻辑。
+
+主要组件:
+    - ToastWidget: Toast提示组件，底部居中弹出的圆角矩形卡片
+    - GUIView: 主界面窗口类，负责整体UI布局和页面管理
+
+功能特性:
+    - 支持浅色/深色主题切换
+    - 页面堆栈管理（控制中心、设备管理、TTS语音等）
+    - TTS加载遮罩层
+    - Toast消息提示
+    - 文件上传对话框
+
+使用示例:
+    >>> view = GUIView()
+    >>> view.show_page(0)  # 显示控制中心页面
+    >>> view.show_toast("操作成功", "success")
 """
 
+import logging
 from pathlib import Path
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
@@ -11,6 +30,9 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve, QPoint
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QCursor, QColor
+
+# 初始化模块日志记录器
+logger = logging.getLogger(__name__)
 
 # 从 yuntai.config 导入配置
 from yuntai.core.config import APP_VERSION
@@ -24,9 +46,26 @@ from yuntai.gui.styles import (
 
 
 class ToastWidget(QFrame):
-    """Toast提示组件 - 底部居中弹出的圆角矩形卡片"""
+    """
+    Toast提示组件 - 底部居中弹出的圆角矩形卡片
+    
+    提供短暂显示的消息提示功能，支持不同消息类型（info、success、warning、error）。
+    具有显示/隐藏动画效果，自动定时隐藏。
+    
+    Attributes:
+        is_dark_theme: 是否使用深色主题
+        hide_timer: 自动隐藏定时器
+        _pending_messages: 待显示消息队列
+        _is_showing: 是否正在显示消息
+    """
     
     def __init__(self, parent=None):
+        """
+        初始化Toast组件
+        
+        Args:
+            parent: 父组件
+        """
         super().__init__(parent)
         self.is_dark_theme = False
         self._setup_ui()
@@ -192,9 +231,31 @@ class ToastWidget(QFrame):
 
 
 class GUIView(QMainWindow):
-    """纯界面构建类，只负责UI创建"""
+    """
+    主界面窗口类 - 纯界面构建
+    
+    负责所有UI组件的创建和布局管理，不包含业务逻辑。
+    业务逻辑由Controller和Handler处理。
+    
+    主要功能:
+        - 创建和管理导航栏、主内容区、状态栏
+        - 页面堆栈管理（6个页面）
+        - 主题切换（浅色/深色）
+        - Toast消息提示
+        - TTS加载遮罩层
+        - 文件上传对话框
+    
+    Attributes:
+        components: UI组件字典，存储所有可复用的组件引用
+        is_dark_theme: 当前是否使用深色主题
+        current_page_index: 当前显示的页面索引
+        page_initialized: 页面初始化标志列表
+        colors: 当前主题颜色对象
+        page_builder: 页面构建器实例
+    """
 
     def __init__(self):
+        """初始化主界面窗口"""
         super().__init__()
         
         # 窗口设置
@@ -229,9 +290,15 @@ class GUIView(QMainWindow):
         # 创建页面构建器（延迟导入避免循环依赖）
         from yuntai.views.pages import PageBuilder
         self.page_builder = PageBuilder(self)
-        
+        logger.info("GUIView初始化完成")
+
     def _apply_theme(self):
-        """应用主题"""
+        """
+        应用主题
+        
+        根据当前主题设置应用全局样式表和颜色。
+        浅色主题使用ThemeColors，深色主题使用DarkThemeColors。
+        """
         app = QApplication.instance()
         if self.is_dark_theme:
             apply_dark_theme(app)
@@ -276,8 +343,14 @@ class GUIView(QMainWindow):
         widget.setGraphicsEffect(shadow)
         
     def toggle_theme(self):
-        """切换主题"""
+        """
+        切换主题
+        
+        在浅色和深色主题之间切换，重新创建所有页面组件。
+        切换时会清除当前页面的所有组件并重新初始化。
+        """
         self.is_dark_theme = not self.is_dark_theme
+        logger.info(f"主题切换: {'深色' if self.is_dark_theme else '浅色'}")
         
         # 重置页面初始化标志，以便重新创建页面
         self.page_initialized = [False] * 6
@@ -878,8 +951,32 @@ class GUIView(QMainWindow):
             
     # ========== 页面创建方法（委托给PageBuilder）==========
     
+    def show_toast(self, message: str, msg_type: str = "info", duration: int = 2000):
+        """
+        显示Toast消息
+        
+        Args:
+            message: 要显示的消息文本
+            msg_type: 消息类型，可选值: "info", "success", "warning", "error"
+            duration: 显示持续时间（毫秒），默认2000ms
+        """
+        self.toast_widget.show_toast(message, msg_type, duration)
+        
     def show_page(self, page_index: int):
-        """显示指定页面（使用堆栈容器）"""
+        """
+        显示指定页面
+        
+        使用堆栈容器切换到指定索引的页面，并更新导航按钮高亮状态。
+        
+        Args:
+            page_index: 页面索引 (0-5)
+                0: 控制中心
+                1: 设备管理
+                2: TTS语音
+                3: 历史记录
+                4: 动态功能
+                5: 系统设置
+        """
         # 1. 显示目标页面
         if 0 <= page_index < 6:
             self.page_stack.setCurrentIndex(page_index)

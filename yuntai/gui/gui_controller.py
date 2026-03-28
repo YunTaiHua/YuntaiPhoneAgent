@@ -1,9 +1,30 @@
 """
-GUIController - 事件处理和业务逻辑模块 (PyQt6 重构版)
-负责处理用户操作，连接UI和后台任务，并协调各个Handler
-支持 LangChain Callbacks 实现流式输出
-"""
+GUI 控制器模块
+==============
 
+本模块实现 GUI 控制器，负责处理用户操作，连接 UI 和后台任务，并协调各个 Handler。
+支持 LangChain Callbacks 实现流式输出。
+
+主要功能：
+    - 用户事件处理：处理按钮点击、输入提交等事件
+    - 任务执行：执行用户命令，支持多模态输入
+    - 流式输出：支持实时流式输出响应内容
+    - 设备管理：管理设备连接和状态
+    - TTS 集成：支持语音播报回复内容
+    - 主题切换：支持深色/浅色主题切换
+
+类说明：
+    - GUIController: GUI 控制器类
+
+使用示例：
+    >>> from yuntai.gui import GUIController
+    >>> 
+    >>> # 创建控制器
+    >>> controller = GUIController(project_root, scrcpy_path)
+    >>> 
+    >>> # 运行应用
+    >>> exit_code = controller.run()
+"""
 import sys
 import logging
 import threading
@@ -18,6 +39,7 @@ from pathlib import Path
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal, QObject
 
+# 配置模块级日志记录器
 logger = logging.getLogger(__name__)
 
 # 第三方库
@@ -54,7 +76,32 @@ from yuntai.callbacks import (
 
 
 class GUIController(QObject):
-    """GUI控制器 - 处理所有用户事件和业务逻辑，支持流式输出"""
+    """
+    GUI 控制器
+    
+    处理所有用户事件和业务逻辑，支持流式输出。
+    使用 PyQt6 信号机制实现线程安全的 UI 更新。
+    
+    Attributes:
+        project_root: 项目根目录
+        scrcpy_path: Scrcpy 工具路径
+        app: QApplication 实例
+        view: GUI 视图实例
+        task_manager: 任务管理器实例
+        callback_manager: 回调管理器实例
+        task_chain: 任务处理链实例
+        judgement_agent: 任务判断 Agent
+        output_capture: 输出捕获器
+        message_queue: 消息队列
+        is_executing: 是否正在执行任务
+        is_continuous_mode: 是否处于持续回复模式
+        terminate_flag: 终止标志
+        device_type: 设备类型
+    
+    使用示例：
+        >>> controller = GUIController(project_root, scrcpy_path)
+        >>> controller.run()
+    """
 
     # 定义信号用于线程安全的UI更新
     _output_signal = pyqtSignal(str)
@@ -75,14 +122,26 @@ class GUIController(QObject):
     _streaming_complete_signal = pyqtSignal(str)
 
     def __init__(self, project_root, scrcpy_path):
+        """
+        初始化 GUI 控制器
+        
+        Args:
+            project_root: 项目根目录
+            scrcpy_path: Scrcpy 工具路径
+        """
         super().__init__()
+        
+        # 存储路径参数
         self.project_root = project_root
         self.scrcpy_path = SCRCPY_PATH
+        
+        logger.debug("初始化 GUIController")
 
         # 创建QApplication实例（如果不存在）
         self.app = QApplication.instance()
         if not self.app:
             self.app = QApplication(sys.argv)
+            logger.debug("创建 QApplication 实例")
 
         # 初始化视图
         self.view = GUIView()
@@ -107,10 +166,12 @@ class GUIController(QObject):
 
         # 初始化任务管理器（保留用于连接管理和TTS）
         self.task_manager = TaskManager(project_root, self.scrcpy_path)
+        logger.debug("任务管理器初始化完成")
 
         # 初始化回调管理器
         self.callback_manager = get_callback_manager()
         self._setup_callbacks()
+        logger.debug("回调管理器初始化完成")
 
         # 初始化新的 TaskChain
         self.task_chain = TaskChain(
@@ -147,6 +208,7 @@ class GUIController(QObject):
         self.tts_handler = TTSHandler(self)
         self.dynamic_handler = DynamicHandler(self)
         self.system_handler = SystemHandler(self)
+        logger.debug("Handlers 初始化完成")
 
         # 初始化UI事件绑定
         self._bind_ui_events()
@@ -168,9 +230,13 @@ class GUIController(QObject):
 
         # 设置设备类型变化回调
         self._setup_device_type_callback()
+        
+        logger.info("GUIController 初始化完成")
 
     def _setup_callbacks(self):
         """设置 LangChain Callbacks"""
+        logger.debug("设置 LangChain Callbacks")
+        
         # 创建 Qt 流式输出处理器
         self.streaming_handler = QtStreamingCallbackHandler(
             append_signal=self._streaming_output_signal,
@@ -212,16 +278,27 @@ class GUIController(QObject):
         )
     
     def _on_streaming_complete(self, response: str):
-        """流式输出完成回调"""
-        # 可以在这里添加完成后的处理逻辑
-        pass
+        """
+        流式输出完成回调
+        
+        Args:
+            response: 完整的响应内容
+        """
+        logger.debug("流式输出完成，响应长度: %d", len(response))
     
     def get_callbacks(self) -> list:
-        """获取 GUI 控制器的回调处理器列表"""
+        """
+        获取 GUI 控制器的回调处理器列表
+        
+        Returns:
+            回调处理器列表
+        """
         return self.callback_manager.get_callbacks(include_global=True)
 
     def _bind_ui_events(self):
         """绑定所有UI事件（主要是导航和主控台）"""
+        logger.debug("绑定 UI 事件")
+        
         # 导航按钮点击事件
         nav_buttons = self.view.get_component("nav_buttons")
         if nav_buttons:
@@ -245,6 +322,8 @@ class GUIController(QObject):
 
     def _bind_dashboard_events(self):
         """绑定控制台页面事件"""
+        logger.debug("绑定控制台页面事件")
+        
         execute_btn = self.view.get_component("execute_button")
         if execute_btn:
             try:
@@ -326,6 +405,7 @@ class GUIController(QObject):
 
     def show_dashboard(self):
         """显示控制台页面"""
+        logger.debug("显示控制台页面")
         self.view.create_dashboard_page()
         self._bind_dashboard_events()
 
@@ -333,6 +413,8 @@ class GUIController(QObject):
 
     def show_file_upload(self):
         """显示文件上传对话框"""
+        logger.debug("显示文件上传对话框")
+        
         if self.is_executing:
             self.show_toast("任务执行中，请等待完成", "warning")
             return
@@ -355,6 +437,7 @@ class GUIController(QObject):
                     self.attached_files.extend(valid_files)
                     self.view.show_attached_files(self.attached_files, self)
                     self.show_toast(f"已添加 {len(valid_files)} 个文件", "success")
+                    logger.info("添加 %d 个文件", len(valid_files))
 
                 if error_messages:
                     error_count = len(error_messages)
@@ -365,10 +448,19 @@ class GUIController(QObject):
                         self.show_toast(f"跳过 {error_count} 个不支持的文件", "warning")
 
         except Exception as e:
+            logger.error("文件选择失败: %s", str(e))
             self.show_toast(f"文件选择失败: {str(e)}", "error")
 
     def _check_file_supported(self, file_path: str) -> tuple[bool, str]:
-        """检查文件是否支持"""
+        """
+        检查文件是否支持
+        
+        Args:
+            file_path: 文件路径
+        
+        Returns:
+            tuple[bool, str]: (是否支持, 原因)
+        """
         if not self.multimodal_processor:
             from yuntai.processors.multimodal_processor import MultimodalProcessor
             self.multimodal_processor = MultimodalProcessor()
@@ -387,6 +479,8 @@ class GUIController(QObject):
 
     def clear_attached_files(self):
         """清空已选文件列表"""
+        logger.debug("清空已选文件列表")
+        
         if self.is_executing:
             self.show_toast("任务执行中，请等待完成", "warning")
             return
@@ -399,7 +493,14 @@ class GUIController(QObject):
             self.show_toast(f"已清空 {file_count} 个文件", "success")
 
     def remove_attached_file(self, file_path: str):
-        """移除单个文件"""
+        """
+        移除单个文件
+        
+        Args:
+            file_path: 要移除的文件路径
+        """
+        logger.debug("移除文件: %s", file_path)
+        
         if self.is_executing:
             self.show_toast("任务执行中，请等待完成", "warning")
             return
@@ -426,6 +527,8 @@ class GUIController(QObject):
         if not command and not has_attachments:
             self.show_toast("请输入命令或选择文件", "warning")
             return
+        
+        logger.info("执行命令: %s", command[:50] if len(command) > 50 else command)
 
         command_input.clear()
         command_input.setFixedHeight(42)
@@ -481,6 +584,7 @@ class GUIController(QObject):
                             )
                             return
                     except Exception as e:
+                        logger.error("解析持续回复标记失败: %s", str(e))
                         print(f"❌ 解析持续回复标记失败: {e}")
                         result = f"❌ 解析持续回复参数失败: {str(e)}"
 
@@ -492,6 +596,7 @@ class GUIController(QObject):
                     return
 
             except Exception as e:
+                logger.error("命令执行错误: %s", str(e), exc_info=True)
                 print(f"❌ 错误：{str(e)}")
                 traceback.print_exc()
             finally:
@@ -510,7 +615,17 @@ class GUIController(QObject):
         self.active_threads.append(thread)
 
     def _handle_multimodal_chat(self, text: str, file_paths: list[str]) -> str:
-        """处理多模态聊天"""
+        """
+        处理多模态聊天
+        
+        Args:
+            text: 文本内容
+            file_paths: 文件路径列表
+        
+        Returns:
+            处理结果
+        """
+        logger.info("处理多模态聊天，文件数: %d", len(file_paths))
         print(f"📋 文本: {text}")
         print(f"📌 附件: {len(file_paths)} 个文件")
 
@@ -553,11 +668,11 @@ class GUIController(QObject):
                         try:
                             self.task_manager.tts_manager.speak_text_intelligently(response)
                         except Exception as e:
+                            logger.warning("语音播报失败: %s", str(e))
                             print(f"❌ 语音播报失败: {e}")
 
                     threading.Timer(0.5, speak_reply).start()
 
-                # 返回空字符串，因为结果已经通过流式输出显示
                 return ""
             else:
                 error_msg = f"❌ 多模态分析失败: {response}"
@@ -566,6 +681,7 @@ class GUIController(QObject):
 
         except Exception as e:
             error_msg = f"❌ 多模态处理失败: {str(e)}"
+            logger.error("多模态处理失败: %s", str(e), exc_info=True)
             print(error_msg)
             traceback.print_exc()
             return error_msg
@@ -575,16 +691,26 @@ class GUIController(QObject):
         if self.task_manager.is_connected:
             self.task_chain.device_id = self.task_manager.device_id
             self.task_chain.task_args = self.task_manager.task_args
+            logger.debug("同步设备信息到 TaskChain: %s", self.task_manager.device_id)
 
     def _append_output(self, text: str):
-        """追加输出到文本框"""
+        """
+        追加输出到文本框
+        
+        Args:
+            text: 要追加的文本
+        """
         output_text = self.view.get_component("output_text")
         if output_text:
-            # 使用信号确保线程安全
             self._output_signal.emit(text)
 
     def _do_append_output_from_signal(self, text: str):
-        """实际执行输出追加（在主线程中调用）"""
+        """
+        实际执行输出追加（在主线程中调用）
+        
+        Args:
+            text: 要追加的文本
+        """
         output_text = self.view.get_component("output_text")
         if output_text:
             output_text.setReadOnly(False)
@@ -596,6 +722,8 @@ class GUIController(QObject):
         """终止当前操作"""
         if not self.is_executing:
             return
+        
+        logger.info("终止当前操作")
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"\n{'═' * 9} [{timestamp} 操作终止] {'═' * 9}")
@@ -627,17 +755,20 @@ class GUIController(QObject):
 
     def simulate_enter(self):
         """模拟回车键效果"""
+        logger.debug("模拟回车键")
         print("[用户点击模拟回车按钮]")
         try:
             from yuntai.core.agent_executor import AgentExecutor
             AgentExecutor.user_confirm()
         except Exception as e:
+            logger.warning("发送确认信号失败: %s", str(e))
             print(f"⚠️  发送确认信号失败: {e}")
 
         print("[用户已确认]")
 
     def clear_output(self):
         """清空输出区域"""
+        logger.debug("清空输出区域")
         output_text = self.view.get_component("output_text")
         if output_text:
             output_text.setReadOnly(False)
@@ -702,6 +833,7 @@ class GUIController(QObject):
         try:
             self.clear_attached_files()
         except Exception as e:
+            logger.error("清理文件失败: %s", str(e))
             print(f"❌ 清理文件失败: {e}")
 
     # ============ 消息处理 ============
@@ -716,7 +848,13 @@ class GUIController(QObject):
             logger.debug(f"处理消息队列失败: {e}")
 
     def show_toast(self, message: str, msg_type: str = "info"):
-        """显示提示消息 - 使用新的Toast组件"""
+        """
+        显示提示消息
+        
+        Args:
+            message: 消息内容
+            msg_type: 消息类型（info/success/warning/error）
+        """
         if hasattr(self.view, 'toast_widget'):
             self.view.toast_widget.show_toast(message, msg_type, duration=2000)
 
@@ -727,7 +865,13 @@ class GUIController(QObject):
         self.view._device_type_callback = self._on_device_type_changed
 
     def _on_device_type_changed(self, device_type: str):
-        """设备类型改变时的回调"""
+        """
+        设备类型改变时的回调
+        
+        Args:
+            device_type: 新的设备类型
+        """
+        logger.info("设备类型改变: %s", device_type)
         if "HarmonyOS" in device_type or "HDC" in device_type:
             self.device_type = "harmonyos"
         else:
@@ -738,12 +882,11 @@ class GUIController(QObject):
 
     def preload_tts_modules(self):
         """预加载TTS模块"""
+        logger.debug("预加载 TTS 模块")
         
         def load_async():
-            # 使用信号在主线程中显示加载遮罩
             self._show_tts_loading_signal.emit("正在加载TTS语音资源中...")
             success = self.task_manager.preload_tts_modules()
-            # 使用信号在主线程中更新指示器
             self._update_tts_indicator_signal.emit(success)
             if success:
                 self._synthesize_welcome_message()
@@ -754,6 +897,7 @@ class GUIController(QObject):
 
     def _synthesize_welcome_message(self):
         """启动时合成欢迎语（自动降级）"""
+        logger.debug("合成欢迎语")
         try:
             tts = self.task_manager.tts_manager
 
@@ -799,7 +943,17 @@ class GUIController(QObject):
     # ============ 持续回复线程 ============
 
     def start_continuous_reply_thread(self, task_args, target_app, target_object, device_id):
-        """启动持续回复线程"""
+        """
+        启动持续回复线程
+        
+        Args:
+            task_args: 任务参数
+            target_app: 目标 APP
+            target_object: 聊天对象
+            device_id: 设备 ID
+        """
+        logger.info("启动持续回复线程: %s -> %s", target_app, target_object)
+        
         if self.is_continuous_mode:
             print("⚠️  已经有持续回复在运行")
             return
@@ -830,12 +984,12 @@ class GUIController(QObject):
                     print(f"⏹️  {result}")
                     
             except Exception as e:
+                logger.error("持续回复错误: %s", str(e), exc_info=True)
                 print(f"❌ 持续回复错误：{str(e)}")
             finally:
                 self.is_continuous_mode = False
                 self.terminate_flag.clear()
                 self._current_reply_chain = None
-                # 使用信号槽重置按钮状态
                 self._reset_button_states_signal.emit()
 
         thread = threading.Thread(target=continuous_reply_loop)
@@ -847,61 +1001,69 @@ class GUIController(QObject):
 
     def toggle_theme(self):
         """切换主题"""
-        # 重置TTS事件绑定标志，以便重新创建页面后能重新绑定事件
+        logger.info("切换主题")
+        
         self.tts_handler._events_bound = False
         self.tts_handler._events_bound_success = False
 
-        # 保存当前页面索引
         current_page = self.view.current_page_index
 
         self.view.toggle_theme()
         theme_name = "深色主题" if self.view.is_dark_theme else "浅色主题"
         self.show_toast(f"已切换到{theme_name}", "info")
 
-        # 更新输出捕获的主题状态
         if self.output_capture:
             self.output_capture.set_dark_theme(self.view.is_dark_theme)
         
-        # 重新绑定当前页面的事件
         self._rebind_current_page_events(current_page)
     
     def _rebind_current_page_events(self, page_index: int):
-        """重新绑定当前页面的事件"""
+        """
+        重新绑定当前页面的事件
+        
+        Args:
+            page_index: 页面索引
+        """
+        logger.debug("重新绑定页面事件，索引: %d", page_index)
+        
         if page_index == 0:
-            # 控制中心页面
             self._bind_dashboard_events()
         elif page_index == 1:
-            # 设备管理页面
             self.connection_handler._bind_events()
         elif page_index == 2:
-            # TTS语音页面 - 重新绑定事件
             self.tts_handler._bind_events()
         elif page_index == 3:
-            # 历史记录页面
             self.system_handler._bind_history_events()
         elif page_index == 4:
-            # 动态功能页面
             self.dynamic_handler._bind_events()
         elif page_index == 5:
-            # 系统设置页面
             self.system_handler._bind_settings_events()
 
     # ============ 初始连接检查 ============
 
     def check_initial_connection(self):
         """检查初始连接"""
+        logger.debug("检查初始连接")
         try:
             self.task_manager.check_initial_connection()
             if self.task_manager.is_connected:
                 self.connection_handler._update_connection_status_gui(True)
                 self.show_toast(f"已自动连接: {self.task_manager.device_id}", "success")
         except Exception as e:
+            logger.warning("初始连接检查失败: %s", str(e))
             print(f"初始连接检查失败: {e}")
 
     # ============ 快捷键处理 ============
 
     def execute_shortcut(self, shortcut_key):
-        """执行快捷键对应的应用打开命令"""
+        """
+        执行快捷键对应的应用打开命令
+        
+        Args:
+            shortcut_key: 快捷键
+        """
+        logger.debug("执行快捷键: %s", shortcut_key)
+        
         from yuntai.core.config import SHORTCUTS
         command = SHORTCUTS.get(shortcut_key, "")
         if not command:
@@ -918,7 +1080,14 @@ class GUIController(QObject):
     # ============ TTS 指示器更新 ============
 
     def update_tts_indicator(self, enabled: bool):
-        """更新TTS指示器状态"""
+        """
+        更新TTS指示器状态
+        
+        Args:
+            enabled: 是否启用
+        """
+        logger.debug("更新 TTS 指示器: %s", enabled)
+        
         tts_indicator = self.view.get_component("tts_indicator")
         if tts_indicator:
             if enabled:
@@ -958,7 +1127,12 @@ class GUIController(QObject):
         self.is_executing = False
     
     def _get_chat_history_for_multimodal(self) -> list:
-        """获取多模态聊天的历史记录"""
+        """
+        获取多模态聊天的历史记录
+        
+        Returns:
+            历史消息列表
+        """
         try:
             from yuntai.core.config import CONVERSATION_HISTORY_FILE
             history_data = self.task_manager.file_manager.safe_read_json_file(
@@ -975,11 +1149,19 @@ class GUIController(QObject):
                     messages.append({"role": "assistant", "content": [{"type": "text", "text": assistant_reply}]})
             return messages
         except Exception as e:
+            logger.warning("获取历史记录失败: %s", str(e))
             print(f"❌ 获取历史记录失败: {e}")
             return []
     
     def _save_multimodal_chat_history(self, text: str, file_paths: list, reply: str):
-        """保存多模态聊天历史"""
+        """
+        保存多模态聊天历史
+        
+        Args:
+            text: 文本内容
+            file_paths: 文件路径列表
+            reply: 回复内容
+        """
         try:
             file_names = [Path(f).name for f in file_paths]
             session_data = {
@@ -992,27 +1174,37 @@ class GUIController(QObject):
             }
             self.task_manager.file_manager.save_conversation_history(session_data)
         except Exception as e:
+            logger.warning("保存聊天历史失败: %s", str(e))
             print(f"❌ 保存聊天历史失败: {e}")
 
     # ============ 窗口关闭 ============
 
     def on_closing(self, event):
-        """窗口关闭事件处理"""
+        """
+        窗口关闭事件处理
+        
+        Args:
+            event: 关闭事件对象
+        """
+        logger.info("窗口关闭")
         self.terminate_operation()
         
-        # 恢复标准输出
         if self.output_capture:
             self.output_capture.restore()
         
-        # 停止定时器
         if hasattr(self, 'message_timer'):
             self.message_timer.stop()
         
-        # 接受关闭事件
         event.accept()
 
     def run(self):
-        """运行应用程序"""
+        """
+        运行应用程序
+        
+        Returns:
+            int: 退出代码
+        """
+        logger.info("运行应用程序")
         self.view.show()
         return self.app.exec()
 

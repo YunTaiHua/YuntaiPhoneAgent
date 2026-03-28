@@ -1,9 +1,20 @@
-#!/usr/bin/env python3
 """
-agent_executor.py 的提示词管理文件
-"""
+Agent 执行器提示词模块
+======================
 
-# 提取聊天记录/发消息场景专用提示词
+提供 Agent 执行器专用的提示词模板。
+
+主要组件:
+    - CHAT_MESSAGE_PROMPT: 聊天消息提取/发送场景专用提示词
+
+使用场景:
+    - 提取聊天记录
+    - 发送消息
+"""
+import logging
+
+logger = logging.getLogger(__name__)
+
 CHAT_MESSAGE_PROMPT = """你是手机操作执行器，严格按指令执行：
 
 重要：准确识别头像位置和气泡颜色是判断消息发送方的关键！
@@ -30,3 +41,5 @@ CHAT_MESSAGE_PROMPT = """你是手机操作执行器，严格按指令执行：
 8. 不要查看完整聊天历史或更早的聊天记录，只需当前屏幕可见消息
 9. 发送消息后必须使用Back按钮关闭键盘
 """
+
+__all__ = ["CHAT_MESSAGE_PROMPT"]
