@@ -845,7 +845,7 @@ class GUIController(QObject):
                 msg_type, msg_content = self.message_queue.get_nowait()
                 self.show_toast(msg_content, msg_type)
         except Exception as e:
-            logger.debug(f"处理消息队列失败: {e}")
+            logger.debug("处理消息队列失败: %s", str(e))
 
     def show_toast(self, message: str, msg_type: str = "info"):
         """

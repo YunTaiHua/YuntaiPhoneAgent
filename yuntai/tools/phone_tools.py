@@ -37,7 +37,7 @@ def open_app_tool(device_id: str, app_name: str) -> tuple[bool, str]:
     Returns:
         元组 (是否成功, 消息)
     """
-    logger.debug(f"打开 APP: {app_name}, device_id={device_id}")
+    logger.debug("打开 APP: %s, device_id=%s", app_name, device_id)
     agent = PhoneAgent(device_id)
     return agent.open_app(app_name)
 
@@ -55,7 +55,7 @@ def execute_phone_operation(device_id: str, task: str) -> tuple[bool, str]:
     Returns:
         元组 (是否成功, 消息)
     """
-    logger.debug(f"执行手机操作: {task}, device_id={device_id}")
+    logger.debug("执行手机操作: %s, device_id=%s", task, device_id)
     agent = PhoneAgent(device_id)
     return agent.execute_operation(task)
 
@@ -80,7 +80,7 @@ def extract_chat_records_tool(
     Returns:
         元组 (是否成功, 聊天记录或错误消息)
     """
-    logger.debug(f"提取聊天记录: app={app_name}, object={chat_object}")
+    logger.debug("提取聊天记录: app=%s, object=%s", app_name, chat_object)
     agent = PhoneAgent(device_id)
     return agent.extract_chat_records(app_name, chat_object)
 
@@ -105,6 +105,6 @@ def send_message_tool(
     Returns:
         元组 (是否成功, 消息)
     """
-    logger.debug(f"发送消息: app={app_name}, object={chat_object}, message={message[:20]}...")
+    logger.debug("发送消息: app=%s, object=%s, message=%s...", app_name, chat_object, message[:20])
     agent = PhoneAgent(device_id)
     return agent.send_message(app_name, chat_object, message)

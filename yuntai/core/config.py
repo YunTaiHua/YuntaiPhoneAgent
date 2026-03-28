@@ -372,7 +372,7 @@ def validate_config() -> bool:
         print("⚠️  配置验证警告:")
         for error in errors:
             print(f"  - {error}")
-        logger.warning(f"配置验证失败，共 {len(errors)} 项问题")
+        logger.warning("配置验证失败，共 %d 项问题", len(errors))
         return False
 
     print("✅ 配置验证通过")

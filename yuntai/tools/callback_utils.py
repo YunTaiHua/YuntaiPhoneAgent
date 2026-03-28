@@ -73,7 +73,7 @@ def prepare_callbacks(
     if callbacks:
         all_callbacks.extend(callbacks)
     
-    logger.debug(f"准备回调处理器: 共 {len(all_callbacks)} 个")
+    logger.debug("准备回调处理器: 共 %d 个", len(all_callbacks))
     return all_callbacks
 
 
@@ -114,7 +114,7 @@ def prepare_callbacks_with_manager(
     if callbacks:
         all_callbacks.extend(callbacks)
     
-    logger.debug(f"使用自定义管理器准备回调处理器: 共 {len(all_callbacks)} 个")
+    logger.debug("使用自定义管理器准备回调处理器: 共 %d 个", len(all_callbacks))
     return all_callbacks
 
 
@@ -130,5 +130,5 @@ def get_global_callbacks() -> list[BaseCallbackHandler]:
     """
     callback_manager = get_callback_manager()
     callbacks = callback_manager.get_callbacks(include_global=True)
-    logger.debug(f"获取全局回调处理器: 共 {len(callbacks)} 个")
+    logger.debug("获取全局回调处理器: 共 %d 个", len(callbacks))
     return callbacks

@@ -193,7 +193,7 @@ class SimpleOutputCapture(QObject):
             is_dark_theme: 是否使用深色主题
         """
         self.is_dark_theme = is_dark_theme
-        logger.debug(f"输出捕获主题切换: {'深色' if is_dark_theme else '浅色'}")
+        logger.debug("输出捕获主题切换: %s", '深色' if is_dark_theme else '浅色')
 
     def restore(self):
         """

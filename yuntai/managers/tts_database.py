@@ -90,7 +90,7 @@ class TTSDatabaseManager:
             dir_path = Path(self.default_tts_config[dir_key])
             dir_path.mkdir(parents=True, exist_ok=True)
             print(f"📁 确保目录存在: {dir_path}")
-            logger.debug(f"确保目录存在: {dir_path}")
+            logger.debug("确保目录存在: %s", dir_path)
 
         self.tts_files_database["gpt"] = {}
         gpt_model_dir = Path(self.default_tts_config["gpt_model_dir"])
@@ -100,7 +100,7 @@ class TTSDatabaseManager:
                 self.tts_files_database["gpt"][ckpt_file.name] = str(abs_path)
         else:
             print(f"⚠️  GPT模型目录不存在: {gpt_model_dir}")
-            logger.warning(f"GPT 模型目录不存在: {gpt_model_dir}")
+            logger.warning("GPT 模型目录不存在: %s", gpt_model_dir)
 
         self.tts_files_database["sovits"] = {}
         sovits_model_dir = Path(self.default_tts_config["sovits_model_dir"])
@@ -110,7 +110,7 @@ class TTSDatabaseManager:
                 self.tts_files_database["sovits"][pth_file.name] = str(abs_path)
         else:
             print(f"⚠️  SoVITS模型目录不存在: {sovits_model_dir}")
-            logger.warning(f"SoVITS 模型目录不存在: {sovits_model_dir}")
+            logger.warning("SoVITS 模型目录不存在: %s", sovits_model_dir)
 
         self.tts_files_database["audio"] = {}
         ref_audio_root = Path(self.default_tts_config["ref_audio_root"])
@@ -121,7 +121,7 @@ class TTSDatabaseManager:
                     self.tts_files_database["audio"][audio_file.name] = str(abs_path)
         else:
             print(f"⚠️  参考音频目录不存在: {ref_audio_root}")
-            logger.warning(f"参考音频目录不存在: {ref_audio_root}")
+            logger.warning("参考音频目录不存在: %s", ref_audio_root)
 
         self.tts_files_database["text"] = {}
         ref_text_root = Path(self.default_tts_config["ref_text_root"])
@@ -131,17 +131,18 @@ class TTSDatabaseManager:
                 self.tts_files_database["text"][text_file.name] = str(abs_path)
         else:
             print(f"⚠️  参考文本目录不存在: {ref_text_root}")
-            logger.warning(f"参考文本目录不存在: {ref_text_root}")
+            logger.warning("参考文本目录不存在: %s", ref_text_root)
 
         print("✅ 文件数据库初始化完成:")
         print(f"   - GPT模型: {len(self.tts_files_database['gpt'])} 个")
         print(f"   - SoVITS模型: {len(self.tts_files_database['sovits'])} 个")
         print(f"   - 参考音频: {len(self.tts_files_database['audio'])} 个")
         print(f"   - 参考文本: {len(self.tts_files_database['text'])} 个")
-        logger.info(f"TTS 文件数据库初始化完成: GPT={len(self.tts_files_database['gpt'])}, "
-                   f"SoVITS={len(self.tts_files_database['sovits'])}, "
-                   f"Audio={len(self.tts_files_database['audio'])}, "
-                   f"Text={len(self.tts_files_database['text'])}")
+        logger.info("TTS 文件数据库初始化完成: GPT=%d, SoVITS=%d, Audio=%d, Text=%d",
+                   len(self.tts_files_database['gpt']),
+                   len(self.tts_files_database['sovits']),
+                   len(self.tts_files_database['audio']),
+                   len(self.tts_files_database['text']))
 
         return True
 
@@ -162,17 +163,17 @@ class TTSDatabaseManager:
         """
         with self._cache_lock:
             if file_path in self._text_cache:
-                logger.debug(f"从缓存获取文本: {file_path}")
+                logger.debug("从缓存获取文本: %s", file_path)
                 return self._text_cache[file_path]
             try:
                 text_file = Path(file_path)
                 content = text_file.read_text(encoding="utf-8").strip()
                 self._text_cache[file_path] = content
-                logger.debug(f"从文件读取文本并缓存: {file_path}")
+                logger.debug("从文件读取文本并缓存: %s", file_path)
                 return content
             except IOError as e:
                 print(f"❌ 读取文本文件失败: {file_path}, {e}")
-                logger.error(f"读取文本文件失败: {file_path}, {e}")
+                logger.error("读取文本文件失败: %s, %s", file_path, str(e))
                 raise
 
     def set_current_model(self, model_type: str, filename: str) -> bool:
@@ -190,22 +191,22 @@ class TTSDatabaseManager:
             if model_type == "gpt":
                 if filename in self.tts_files_database["gpt"]:
                     self.current_gpt_model = self.tts_files_database["gpt"][filename]
-                    logger.debug(f"设置 GPT 模型: {filename}")
+                    logger.debug("设置 GPT 模型: %s", filename)
                     return True
             elif model_type == "sovits":
                 if filename in self.tts_files_database["sovits"]:
                     self.current_sovits_model = self.tts_files_database["sovits"][filename]
-                    logger.debug(f"设置 SoVITS 模型: {filename}")
+                    logger.debug("设置 SoVITS 模型: %s", filename)
                     return True
             elif model_type == "audio":
                 if filename in self.tts_files_database["audio"]:
                     self.current_ref_audio = self.tts_files_database["audio"][filename]
-                    logger.debug(f"设置参考音频: {filename}")
+                    logger.debug("设置参考音频: %s", filename)
                     return True
             elif model_type == "text":
                 if filename in self.tts_files_database["text"]:
                     self.current_ref_text = self.tts_files_database["text"][filename]
-                    logger.debug(f"设置参考文本: {filename}")
+                    logger.debug("设置参考文本: %s", filename)
                     return True
         return False
 
@@ -261,7 +262,7 @@ class TTSDatabaseManager:
                 wav_files = [f for f in output_dir.iterdir() if f.is_file() and f.suffix == '.wav']
                 for wav_file in sorted(wav_files, key=lambda x: x.name, reverse=True):
                     self.tts_synthesized_files.append((str(wav_file), wav_file.name))
-        logger.debug(f"加载已合成音频文件: {len(self.tts_synthesized_files)} 个")
+        logger.debug("加载已合成音频文件: %d 个", len(self.tts_synthesized_files))
         return self.tts_synthesized_files
 
     def add_synthesized_file(self, audio_path: str) -> None:
@@ -274,4 +275,4 @@ class TTSDatabaseManager:
         with self.tts_synthesized_files_lock:
             audio_file = Path(audio_path)
             self.tts_synthesized_files.append((str(audio_file), audio_file.name))
-        logger.debug(f"添加合成音频文件: {audio_path}")
+        logger.debug("添加合成音频文件: %s", audio_path)

@@ -4,22 +4,27 @@
 
 使用 FFmpeg 和 Whisper 处理音频，支持从视频中提取音频和单独处理音频文件。
 支持繁简中文转换，使用 pathlib 进行跨平台路径处理。
+支持异步操作，避免阻塞主线程。
 
 主要功能:
-    - 从视频中提取音频
-    - 使用 Whisper 进行语音转文字
+    - 从视频中提取音频（支持异步）
+    - 使用 Whisper 进行语音转文字（支持异步）
     - 支持繁体中文转简体中文
     - 临时文件清理
 
 使用示例:
     >>> from yuntai.processors import AudioProcessor
     >>> processor = AudioProcessor()
-    >>> success, text = processor.transcribe_audio("audio.wav")
+    >>> success, text = await processor.transcribe_audio_async("audio.wav")
 """
+from __future__ import annotations
+
+import asyncio
 import logging
 import subprocess
 import tempfile
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from yuntai.core.config import (
@@ -32,12 +37,29 @@ from yuntai.core.config import (
 
 logger = logging.getLogger(__name__)
 
+# 全局线程池执行器，用于执行阻塞操作
+_executor: ThreadPoolExecutor | None = None
+
+
+def _get_executor() -> ThreadPoolExecutor:
+    """
+    获取或创建全局线程池执行器
+    
+    Returns:
+        ThreadPoolExecutor: 线程池执行器实例
+    """
+    global _executor
+    if _executor is None:
+        _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="audio_processor")
+    return _executor
+
 
 class AudioProcessor:
     """
     音频处理器类
     
     使用 FFmpeg 和 Whisper 处理音频文件，支持语音转文字功能。
+    支持同步和异步两种操作模式。
     
     Attributes:
         ffmpeg_path: FFmpeg 可执行文件路径
@@ -58,15 +80,15 @@ class AudioProcessor:
         Args:
             ffmpeg_path: FFmpeg 可执行文件路径
         """
-        self.ffmpeg_path = Path(ffmpeg_path) if ffmpeg_path else (Path(FFMPEG_PATH) if FFMPEG_PATH else None)
+        self.ffmpeg_path: Path | None = Path(ffmpeg_path) if ffmpeg_path else (Path(FFMPEG_PATH) if FFMPEG_PATH else None)
         self.whisper_model = None
         self.whisper_lock = threading.Lock()
         self.model_loaded = False
 
-        self.temp_dir = Path(tempfile.gettempdir())
+        self.temp_dir: Path = Path(tempfile.gettempdir())
 
         self.text_converter = None
-        logger.debug(f"AudioProcessor 初始化完成, ffmpeg_path={self.ffmpeg_path}")
+        logger.debug("AudioProcessor 初始化完成, ffmpeg_path=%s", self.ffmpeg_path)
 
     def _convert_to_simplified_chinese(self, text: str) -> str:
         """
@@ -104,7 +126,7 @@ class AudioProcessor:
                 return self.text_converter(text, 'zh-cn')
 
         except Exception as e:
-            logger.warning(f"繁简转换失败: {e}")
+            logger.warning("繁简转换失败: %s", str(e))
             return text
 
     def check_ffmpeg(self) -> tuple[bool, str]:
@@ -132,6 +154,17 @@ class AudioProcessor:
 
         except Exception as e:
             return False, f"FFmpeg 检查失败: {str(e)}"
+
+    async def check_ffmpeg_async(self) -> tuple[bool, str]:
+        """
+        异步检查 FFmpeg 是否可用
+
+        Returns:
+            元组 (是否可用, 错误信息)
+        """
+        loop = asyncio.get_event_loop()
+        executor = _get_executor()
+        return await loop.run_in_executor(executor, self.check_ffmpeg)
 
     def extract_audio_from_video(self, video_path: str, output_path: str | None = None) -> tuple[bool, str]:
         """
@@ -162,7 +195,7 @@ class AudioProcessor:
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
             print(f"🎵 正在从视频中提取音频: {video_file.name}")
-            logger.info(f"从视频中提取音频: {video_file} -> {output_path}")
+            logger.info("从视频中提取音频: %s -> %s", video_file, output_path)
 
             cmd = [
                 str(self.ffmpeg_path),
@@ -183,7 +216,7 @@ class AudioProcessor:
 
             if result.returncode == 0:
                 print(f"✅ 音频提取成功: {output_path}")
-                logger.debug(f"音频提取成功: {output_path}")
+                logger.debug("音频提取成功: %s", output_path)
                 return True, str(output_path)
             else:
                 error_msg = result.stderr.decode('utf-8', errors='ignore')
@@ -192,7 +225,7 @@ class AudioProcessor:
         except subprocess.TimeoutExpired:
             return False, "音频提取超时（超过5分钟）"
         except Exception as e:
-            logger.error(f"音频提取异常: {e}")
+            logger.exception("音频提取异常: %s", str(e))
             return False, f"音频提取异常: {str(e)}"
 
     def load_whisper_model(self, model_size: str = "small", device: str = "cpu") -> tuple[bool, str]:
@@ -216,7 +249,7 @@ class AudioProcessor:
                 self.whisper_model = whisper.load_model(model_size, device=device)
 
                 self.model_loaded = True
-                logger.info(f"Whisper 模型加载成功: {model_size}, device={device}")
+                logger.info("Whisper 模型加载成功: %s, device=%s", model_size, device)
 
                 return True, ""
 
@@ -247,7 +280,7 @@ class AudioProcessor:
                     return False, error_msg
 
             print(f"🎙️正在转录音频: {audio_file.name}")
-            logger.info(f"转录音频: {audio_path}")
+            logger.info("转录音频: %s", audio_path)
 
             result = self.whisper_model.transcribe(
                 audio_path,
@@ -260,13 +293,13 @@ class AudioProcessor:
             transcription_text = self._convert_to_simplified_chinese(transcription_text)
 
             if transcription_text:
-                logger.debug(f"转录成功: {transcription_text[:50]}...")
+                logger.debug("转录成功: %s...", transcription_text[:50])
                 return True, transcription_text
             else:
                 return False, "音频转录结果为空"
 
         except Exception as e:
-            logger.error(f"音频转录失败: {e}")
+            logger.exception("音频转录失败: %s", str(e))
             return False, f"音频转录失败: {str(e)}"
 
     def process_video_with_audio(self, video_path: str, prompt: str | None = None,
@@ -305,16 +338,40 @@ class AudioProcessor:
             }
 
             print(f"✅ 视频+音频处理完成")
-            logger.info(f"视频+音频处理完成: {video_path}")
+            logger.info("视频+音频处理完成: %s", video_path)
 
             return True, result
 
         except Exception as e:
-            logger.error(f"视频+音频处理失败: {e}")
+            logger.exception("视频+音频处理失败: %s", str(e))
             return False, {"error": f"视频+音频处理失败: {str(e)}"}
 
+    async def process_video_with_audio_async(
+        self, 
+        video_path: str, 
+        prompt: str | None = None,
+        language: str = "zh"
+    ) -> tuple[bool, dict[str, Any]]:
+        """
+        异步处理视频并提取音频转录
+
+        Args:
+            video_path: 视频文件路径
+            prompt: 用户提示词
+            language: 音频语言代码
+
+        Returns:
+            元组 (是否成功, 包含视频和音频信息的字典)
+        """
+        loop = asyncio.get_event_loop()
+        executor = _get_executor()
+        return await loop.run_in_executor(
+            executor, 
+            lambda: self.process_video_with_audio(video_path, prompt, language)
+        )
+
     def process_audio_only(self, audio_path: str, prompt: str | None = None,
-                          language: str = "zh") -> tuple[bool, dict]:
+                          language: str = "zh") -> tuple[bool, dict[str, Any]]:
         """
         单独处理音频文件
 
@@ -343,13 +400,37 @@ class AudioProcessor:
             }
 
             print(f"✅ 音频处理完成")
-            logger.info(f"音频处理完成: {audio_path}")
+            logger.info("音频处理完成: %s", audio_path)
 
             return True, result
 
         except Exception as e:
-            logger.error(f"音频处理失败: {e}")
+            logger.exception("音频处理失败: %s", str(e))
             return False, {"error": f"音频处理失败: {str(e)}"}
+
+    async def process_audio_only_async(
+        self, 
+        audio_path: str, 
+        prompt: str | None = None,
+        language: str = "zh"
+    ) -> tuple[bool, dict[str, Any]]:
+        """
+        异步单独处理音频文件
+
+        Args:
+            audio_path: 音频文件路径
+            prompt: 用户提示词
+            language: 音频语言代码
+
+        Returns:
+            元组 (是否成功, 包含音频信息的字典)
+        """
+        loop = asyncio.get_event_loop()
+        executor = _get_executor()
+        return await loop.run_in_executor(
+            executor,
+            lambda: self.process_audio_only(audio_path, prompt, language)
+        )
 
     def cleanup_temp_files(self, older_than_hours: int = 24) -> None:
         """
@@ -376,13 +457,13 @@ class AudioProcessor:
                     try:
                         filepath.unlink()
                         deleted_count += 1
-                        logger.debug(f"清理临时文件: {filepath.name}")
+                        logger.debug("清理临时文件: %s", filepath.name)
                     except Exception as e:
-                        logger.warning(f"清理失败 {filepath.name}: {e}")
+                        logger.warning("清理失败 %s: %s", filepath.name, str(e))
 
             if deleted_count > 0:
                 print(f"✅清理了 {deleted_count} 个临时音频文件")
-                logger.info(f"清理了 {deleted_count} 个临时音频文件")
+                logger.info("清理了 %d 个临时音频文件", deleted_count)
 
         except Exception as e:
-            logger.warning(f"清理临时文件失败: {e}")
+            logger.warning("清理临时文件失败: %s", str(e))

@@ -1,23 +1,56 @@
 """
-Phone Agent - 智能版 v1.3.5 (Web入口)
+Web 应用入口模块
+================
 
-更新日志详见: doc/CHANGELOG.md
-技术架构详见: doc/ARCHITECTURE.md
+本模块是 Phone Agent Web 版本的入口点，提供基于 FastAPI 的 Web 界面。
+
+主要功能：
+    - 创建 FastAPI 应用实例
+    - 配置 CORS 中间件（安全配置）
+    - 初始化 WebSocket 管理器和控制器
+    - 设置路由和静态文件服务
+    - 启动 Web 服务器
+
+使用示例：
+    >>> # 直接运行启动 Web 服务
+    >>> python main_web.py
+    
+    >>> # 或使用 uvicorn 启动
+    >>> uvicorn main_web:app --host 0.0.0.0 --port 8000
+
+注意事项：
+    - 需要先配置 .env 文件中的环境变量
+    - CORS 配置可通过环境变量 ALLOWED_ORIGINS 自定义
+    - 默认监听 0.0.0.0:8000，支持局域网访问
 """
-
+import logging
 import os
-import sys
 import socket
+import sys
 from pathlib import Path
 
+# 配置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # 预加载 onnxruntime (解决DLL冲突问题)
-import onnxruntime
-onnxruntime.get_available_providers()
+try:
+    import onnxruntime
+    onnxruntime.get_available_providers()
+    logger.debug("onnxruntime 预加载成功")
+except ImportError:
+    logger.warning("onnxruntime 未安装，TTS功能将不可用")
+except Exception as e:
+    logger.warning("onnxruntime 预加载失败: %s", str(e))
 
 # 切换到 GPT-SoVITS 目录
 from yuntai.core.config import GPT_SOVITS_ROOT, PROJECT_ROOT, SCRCPY_PATH, APP_VERSION
 if GPT_SOVITS_ROOT and Path(GPT_SOVITS_ROOT).exists():
     os.chdir(str(GPT_SOVITS_ROOT))
+    logger.debug("切换到 GPT-SoVITS 目录: %s", GPT_SOVITS_ROOT)
 
 # FastAPI 相关
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException
@@ -38,14 +71,28 @@ app = FastAPI(
     version=APP_VERSION
 )
 
+# CORS 安全配置
+# 从环境变量读取允许的来源，默认为本地开发环境
+# 生产环境应设置 ALLOWED_ORIGINS 环境变量，多个来源用逗号分隔
+# 示例: ALLOWED_ORIGINS=http://localhost:8000,http://192.168.1.100:8000
+_allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000")
+ALLOWED_ORIGINS = [origin.strip() for origin in _allowed_origins_str.split(",") if origin.strip()]
+
+# 如果环境变量为空或仅包含通配符，则使用安全默认值
+if not ALLOWED_ORIGINS or ALLOWED_ORIGINS == ["*"]:
+    ALLOWED_ORIGINS = ["http://localhost:8000"]
+    logger.warning("CORS 配置使用默认值，生产环境请设置 ALLOWED_ORIGINS 环境变量")
+
 # 添加CORS中间件 - 安全配置：禁用allow_credentials防止CSRF风险
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
+
+logger.info("CORS 中间件已配置，允许的来源: %s", ALLOWED_ORIGINS)
 
 # 创建WebSocket管理器
 ws_manager = ConnectionManager()
@@ -65,20 +112,46 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # ==================== 主函数 ====================
 
-def get_local_ip():
-    """获取本机局域网IP地址"""
+def get_local_ip() -> str | None:
+    """
+    获取本机局域网IP地址
+    
+    通过创建 UDP 连接获取本机在局域网中的 IP 地址。
+    此方法不需要实际发送数据，仅用于获取本地 IP。
+    
+    Returns:
+        str | None: 本机局域网 IP 地址，获取失败返回 None
+    
+    使用示例：
+        >>> ip = get_local_ip()
+        >>> if ip:
+        ...     print(f"局域网IP: {ip}")
+    """
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         local_ip = s.getsockname()[0]
         s.close()
         return local_ip
-    except Exception:
+    except Exception as e:
+        logger.warning("获取本机IP失败: %s", str(e))
         return None
 
 
-def main():
-    """主函数"""
+def main() -> None:
+    """
+    主函数入口
+    
+    执行以下操作：
+        1. 打印启动信息
+        2. 验证配置文件
+        3. 创建必要的目录
+        4. 启动 Web 服务器
+    
+    注意：
+        - 如果配置验证失败，程序将退出并返回错误码 1
+        - 服务器默认监听 0.0.0.0:8000
+    """
     print("=" * 60)
     print(f"  Phone Agent Web v{APP_VERSION}")
     print("  智能移动助手 - Web版本")
@@ -88,6 +161,7 @@ def main():
     
     if not validate_config():
         print("❌ 配置验证失败，请检查 .env 文件")
+        logger.error("配置验证失败，程序退出")
         sys.exit(1)
     
     print_config_summary()
@@ -95,6 +169,7 @@ def main():
     web_dir = Path(PROJECT_ROOT) / "web"
     web_dir.mkdir(parents=True, exist_ok=True)
     (web_dir / "static").mkdir(parents=True, exist_ok=True)
+    logger.debug("Web 目录已创建: %s", web_dir)
     
     local_ip = get_local_ip()
     
@@ -104,6 +179,7 @@ def main():
         print(f"📍 局域网访问: http://{local_ip}:8000")
     print("📍 按 Ctrl+C 停止服务器\n")
     
+    logger.info("Web 服务器启动中...")
     uvicorn.run(
         app,
         host="0.0.0.0",

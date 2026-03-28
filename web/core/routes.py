@@ -20,6 +20,11 @@ routes.py - FastAPI路由定义
     - 文件路由: /api/upload
     - WebSocket: /ws
 
+安全性:
+    - 文件路径验证：防止路径遍历攻击
+    - 文件类型验证：只允许特定类型的文件上传
+    - 文件大小限制：防止大文件攻击
+
 使用示例:
     >>> from fastapi import FastAPI
     >>> app = FastAPI()
@@ -31,7 +36,8 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Callable, Coroutine
+from typing import Any
+from urllib.parse import unquote
 
 from fastapi import WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
@@ -41,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 from yuntai.core.config import (
     PROJECT_ROOT, SHORTCUTS, CONVERSATION_HISTORY_FILE, TEMP_DIR,
-    TTS_OUTPUT_DIR, CONNECTION_CONFIG_FILE, APP_VERSION
+    TTS_OUTPUT_DIR, CONNECTION_CONFIG_FILE, APP_VERSION, MAX_FILE_SIZE
 )
 
 from .controller import WebController
@@ -59,6 +65,71 @@ from .handlers import (
 WEB_DIR = Path(__file__).resolve().parent.parent
 
 Path(TTS_OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
+
+
+def _validate_filename(filename: str) -> str:
+    """
+    验证文件名安全性
+    
+    检查文件名是否包含路径遍历攻击字符，防止恶意访问系统文件。
+    
+    Args:
+        filename: 待验证的文件名
+    
+    Returns:
+        str: 验证后的安全文件名
+    
+    Raises:
+        HTTPException: 当文件名包含危险字符时抛出 400 错误
+    
+    使用示例：
+        >>> safe_name = _validate_filename("audio.wav")
+        >>> # 如果文件名包含 ".." 或 "/" 会抛出异常
+    """
+    filename = unquote(filename)
+    
+    if not filename:
+        raise HTTPException(status_code=400, detail="文件名不能为空")
+    
+    if ".." in filename or filename.startswith("/") or filename.startswith("\\"):
+        logger.warning("检测到危险的文件名: %s", filename)
+        raise HTTPException(status_code=400, detail="无效的文件名")
+    
+    if any(sep in filename for sep in ["/", "\\"]):
+        logger.warning("文件名包含路径分隔符: %s", filename)
+        raise HTTPException(status_code=400, detail="文件名不能包含路径")
+    
+    return filename
+
+
+def _validate_file_path(base_dir: Path, filename: str) -> Path:
+    """
+    验证文件路径安全性
+    
+    确保文件路径在指定的基础目录内，防止路径遍历攻击。
+    
+    Args:
+        base_dir: 基础目录路径
+        filename: 文件名
+    
+    Returns:
+        Path: 验证后的安全文件路径
+    
+    Raises:
+        HTTPException: 当路径不在基础目录内时抛出 403 错误
+    
+    使用示例：
+        >>> filepath = _validate_file_path(Path("/data/audio"), "test.wav")
+    """
+    safe_filename = _validate_filename(filename)
+    filepath = (base_dir / safe_filename).resolve()
+    base_dir_resolved = base_dir.resolve()
+    
+    if not str(filepath).startswith(str(base_dir_resolved)):
+        logger.warning("路径遍历攻击检测: %s", filepath)
+        raise HTTPException(status_code=403, detail="禁止访问该路径")
+    
+    return filepath
 
 
 def setup_routes(
@@ -100,39 +171,80 @@ def setup_routes(
 
     @app.get("/api/tts/audio/{filename}")
     async def get_audio_file(filename: str) -> FileResponse:
-        """获取音频文件"""
-        from urllib.parse import unquote
-        filename = unquote(filename)
-        filepath = Path(TTS_OUTPUT_DIR) / filename
-        if not filepath.exists():
-            raise HTTPException(status_code=404, detail="音频文件不存在")
-        return FileResponse(str(filepath), media_type="audio/wav")
+        """
+        获取音频文件
+        
+        Args:
+            filename: 音频文件名
+        
+        Returns:
+            FileResponse: 音频文件响应
+        
+        Raises:
+            HTTPException: 文件不存在或路径不安全时抛出异常
+        """
+        try:
+            filepath = _validate_file_path(Path(TTS_OUTPUT_DIR), filename)
+            if not filepath.exists():
+                raise HTTPException(status_code=404, detail="音频文件不存在")
+            return FileResponse(str(filepath), media_type="audio/wav")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception("获取音频文件失败: %s", str(e))
+            raise HTTPException(status_code=500, detail="服务器内部错误")
 
     @app.get("/api/images/{filename}")
     async def get_image_file(filename: str) -> FileResponse:
-        """获取图像文件"""
-        from urllib.parse import unquote
-        filename = unquote(filename)
-        possible_paths = [
-            Path(TEMP_DIR) / "images" / filename,
-        ]
-        for filepath in possible_paths:
-            if filepath.exists():
-                return FileResponse(str(filepath), media_type="image/png")
-        raise HTTPException(status_code=404, detail="图像文件不存在")
+        """
+        获取图像文件
+        
+        Args:
+            filename: 图像文件名
+        
+        Returns:
+            FileResponse: 图像文件响应
+        
+        Raises:
+            HTTPException: 文件不存在或路径不安全时抛出异常
+        """
+        try:
+            images_dir = Path(TEMP_DIR) / "images"
+            filepath = _validate_file_path(images_dir, filename)
+            if not filepath.exists():
+                raise HTTPException(status_code=404, detail="图像文件不存在")
+            return FileResponse(str(filepath), media_type="image/png")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception("获取图像文件失败: %s", str(e))
+            raise HTTPException(status_code=500, detail="服务器内部错误")
 
     @app.get("/api/videos/{filename}")
     async def get_video_file(filename: str) -> FileResponse:
-        """获取视频文件"""
-        from urllib.parse import unquote
-        filename = unquote(filename)
-        possible_paths = [
-            Path(TEMP_DIR) / "videos" / filename,
-        ]
-        for filepath in possible_paths:
-            if filepath.exists():
-                return FileResponse(str(filepath), media_type="video/mp4")
-        raise HTTPException(status_code=404, detail="视频文件不存在")
+        """
+        获取视频文件
+        
+        Args:
+            filename: 视频文件名
+        
+        Returns:
+            FileResponse: 视频文件响应
+        
+        Raises:
+            HTTPException: 文件不存在或路径不安全时抛出异常
+        """
+        try:
+            videos_dir = Path(TEMP_DIR) / "videos"
+            filepath = _validate_file_path(videos_dir, filename)
+            if not filepath.exists():
+                raise HTTPException(status_code=404, detail="视频文件不存在")
+            return FileResponse(str(filepath), media_type="video/mp4")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception("获取视频文件失败: %s", str(e))
+            raise HTTPException(status_code=500, detail="服务器内部错误")
 
     @app.get("/api/tts/audio_history")
     async def get_audio_history() -> JSONResponse:
@@ -192,63 +304,109 @@ def setup_routes(
 
     @app.post("/api/upload")
     async def upload_file(file: UploadFile = File(...)) -> JSONResponse:
-        """上传文件"""
+        """
+        上传文件
+        
+        支持的文件类型包括图像、视频、音频和文档文件。
+        文件大小限制由 MAX_FILE_SIZE 配置决定。
+        
+        Args:
+            file: 上传的文件对象
+        
+        Returns:
+            JSONResponse: 包含上传结果的 JSON 响应
+        
+        Raises:
+            HTTPException: 文件类型不支持或大小超限时抛出异常
+        """
         try:
             from yuntai.processors.multimodal_processor import MultimodalProcessor
             processor = MultimodalProcessor()
-
-            upload_dir = Path(TEMP_DIR) / "uploads"
-            upload_dir.mkdir(parents=True, exist_ok=True)
-
-            file_path = upload_dir / (file.filename or "unknown")
+            
+            filename = file.filename or "unknown"
+            safe_filename = _validate_filename(filename)
+            
             content = await file.read()
-            file_path.write_bytes(content)
-
-            if not processor.is_file_supported(str(file_path)):
-                file_path.unlink()
+            file_size = len(content)
+            
+            if file_size > MAX_FILE_SIZE:
+                logger.warning("上传文件过大: %s (%.2fMB > %.2fMB)", 
+                             safe_filename, file_size / 1024 / 1024, MAX_FILE_SIZE / 1024 / 1024)
                 return JSONResponse(
                     status_code=400,
-                    content={"success": False, "message": f"不支持的文件类型: {file.filename}"}
+                    content={"success": False, "message": f"文件大小超过限制 ({MAX_FILE_SIZE // 1024 // 1024}MB)"}
                 )
-
+            
+            upload_dir = Path(TEMP_DIR) / "uploads"
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            
+            file_path = upload_dir / safe_filename
+            file_path.write_bytes(content)
+            
+            if not processor.is_file_supported(str(file_path)):
+                file_path.unlink()
+                logger.warning("不支持的文件类型: %s", safe_filename)
+                return JSONResponse(
+                    status_code=400,
+                    content={"success": False, "message": f"不支持的文件类型: {safe_filename}"}
+                )
+            
             controller.attached_files.append(str(file_path))
-
+            logger.info("文件上传成功: %s", safe_filename)
+            
             return JSONResponse(content={
                 "success": True,
-                "filename": file.filename,
+                "filename": safe_filename,
                 "attached_files": [Path(f).name for f in controller.attached_files]
             })
+        except HTTPException:
+            raise
         except Exception as e:
-            return JSONResponse(status_code=500, content={"success": False, "message": str(e)})
+            logger.exception("文件上传失败: %s", str(e))
+            return JSONResponse(status_code=500, content={"success": False, "message": "服务器内部错误"})
 
     @app.delete("/api/upload/{filename}")
     async def remove_file(filename: str) -> JSONResponse:
-        """移除上传的文件"""
+        """
+        移除上传的文件
+        
+        Args:
+            filename: 要移除的文件名
+        
+        Returns:
+            JSONResponse: 包含操作结果的 JSON 响应
+        """
         try:
             upload_dir = Path(TEMP_DIR) / "uploads"
-            file_path = upload_dir / filename
-
+            file_path = _validate_file_path(upload_dir, filename)
+            
             if str(file_path) in controller.attached_files:
                 controller.attached_files.remove(str(file_path))
-
+            
             if file_path.exists():
                 file_path.unlink()
-
+                logger.info("文件已删除: %s", filename)
+            
             return JSONResponse(content={
                 "success": True,
                 "attached_files": [Path(f).name for f in controller.attached_files]
             })
+        except HTTPException:
+            raise
         except Exception as e:
-            return JSONResponse(status_code=500, content={"success": False, "message": str(e)})
+            logger.exception("删除文件失败: %s", str(e))
+            return JSONResponse(status_code=500, content={"success": False, "message": "服务器内部错误"})
 
     @app.delete("/api/upload")
     async def clear_files() -> JSONResponse:
         """清空所有上传的文件"""
         try:
             controller.attached_files.clear()
+            logger.info("已清空所有上传文件")
             return JSONResponse(content={"success": True, "attached_files": []})
         except Exception as e:
-            return JSONResponse(status_code=500, content={"success": False, "message": str(e)})
+            logger.exception("清空文件列表失败: %s", str(e))
+            return JSONResponse(status_code=500, content={"success": False, "message": "服务器内部错误"})
 
     @app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket) -> None:
@@ -289,9 +447,9 @@ def setup_routes(
                     try:
                         controller.task_manager.tts_manager.stop_current_audio_playback()
                     except AttributeError as e:
-                        logger.debug(f"TTS管理器不可用: {e}")
+                        logger.debug("TTS管理器不可用: %s", str(e))
                     except Exception as e:
-                        logger.warning(f"停止TTS播放失败: {e}")
+                        logger.warning("停止TTS播放失败: %s", str(e))
                     await controller.send_toast("已停止播放", "info")
                 elif msg_type == "tts_load_models":
                     await handle_tts_load_models(websocket, controller)
@@ -347,9 +505,9 @@ def setup_routes(
                     await handle_file_management(websocket, controller)
 
         except WebSocketDisconnect:
+            logger.info("WebSocket 连接正常断开")
             await ws_manager.disconnect(websocket)
         except Exception as e:
+            logger.exception("WebSocket 错误: %s", str(e))
             print(f"WebSocket错误: {e}")
-            import traceback
-            traceback.print_exc()
             await ws_manager.disconnect(websocket)

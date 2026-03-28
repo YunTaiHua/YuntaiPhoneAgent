@@ -45,7 +45,7 @@ class TTSTextProcessor:
             max_text_length: 单个文本片段最大长度
         """
         self.max_text_length: int = max_text_length
-        logger.debug(f"TTSTextProcessor 初始化完成, max_text_length={max_text_length}")
+        logger.debug("TTSTextProcessor 初始化完成, max_text_length=%d", max_text_length)
 
     def clean_text_for_tts(self, text: str) -> str:
         """
@@ -81,10 +81,10 @@ class TTSTextProcessor:
 
         if total_char_count == 0 or (total_char_count > 0 and chinese_char_count / total_char_count < 0.1) or len(cleaned_text) < 2:
             print(f"⚠️  清理后的文本质量不佳（中文字符占比: {chinese_char_count}/{total_char_count}），使用兜底文本")
-            logger.warning(f"文本质量不佳: chinese={chinese_char_count}, total={total_char_count}")
+            logger.warning("文本质量不佳: chinese=%d, total=%d", chinese_char_count, total_char_count)
             return "你好，我是小芸，很高兴为您服务"
 
-        logger.debug(f"文本清理完成: 原始长度={len(original_text)}, 清理后长度={len(cleaned_text)}")
+        logger.debug("文本清理完成: 原始长度=%d, 清理后长度=%d", len(original_text), len(cleaned_text))
         return cleaned_text
 
     def should_use_segmented_synthesis(self, text: str) -> bool:
@@ -105,7 +105,7 @@ class TTSTextProcessor:
         cleaned_text = self.clean_text_for_tts(text)
 
         if len(cleaned_text) > self.max_text_length * 1.5:
-            logger.debug(f"文本过长，使用分段合成: {len(cleaned_text)}")
+            logger.debug("文本过长，使用分段合成: %d", len(cleaned_text))
             return True
 
         numbered_patterns: list[str] = [r'\d+\.\s', r'\d+、\s', r'\(\d+\)\s']
@@ -184,7 +184,7 @@ class TTSTextProcessor:
             if segments and len(segments) >= 2:
                 avg_length = sum(len(s) for s in segments) / len(segments)
                 if 50 <= avg_length <= self.max_text_length * 2:
-                    logger.debug(f"按序号分段完成: {len(segments)} 段")
+                    logger.debug("按序号分段完成: %d 段", len(segments))
                     return segments
                 else:
                     segments = []
@@ -210,7 +210,7 @@ class TTSTextProcessor:
                     merged.append(buffer)
 
                 if len(merged) >= 2:
-                    logger.debug(f"按段落分段完成: {len(merged)} 段")
+                    logger.debug("按段落分段完成: %d 段", len(merged))
                     return merged
 
         if not segments:
@@ -273,5 +273,5 @@ class TTSTextProcessor:
         if buffer:
             merged_segments.append(buffer)
 
-        logger.debug(f"按标点分段完成: {len(merged_segments)} 段")
+        logger.debug("按标点分段完成: %d 段", len(merged_segments))
         return merged_segments

@@ -73,7 +73,7 @@ def get_judgement_model() -> BaseChatModel:
     Returns:
         配置好的 ChatOpenAI 模型实例
     """
-    logger.debug(f"创建判断模型: {ZHIPU_JUDGEMENT_MODEL}")
+    logger.debug("创建判断模型: %s", ZHIPU_JUDGEMENT_MODEL)
     return ChatOpenAI(
         model=ZHIPU_JUDGEMENT_MODEL,
         api_key=ZHIPU_API_KEY,
@@ -91,7 +91,7 @@ def get_chat_model() -> BaseChatModel:
     Returns:
         配置好的 ChatOpenAI 模型实例
     """
-    logger.debug(f"创建聊天模型: {ZHIPU_CHAT_MODEL}")
+    logger.debug("创建聊天模型: %s", ZHIPU_CHAT_MODEL)
     return ChatOpenAI(
         model=ZHIPU_CHAT_MODEL,
         api_key=ZHIPU_API_KEY,
@@ -109,7 +109,7 @@ def get_phone_model() -> BaseChatModel:
     Returns:
         配置好的 ChatOpenAI 模型实例
     """
-    logger.debug(f"创建手机操作模型: {ZHIPU_MODEL}")
+    logger.debug("创建手机操作模型: %s", ZHIPU_MODEL)
     return ChatOpenAI(
         model=ZHIPU_MODEL,
         api_key=ZHIPU_API_KEY,

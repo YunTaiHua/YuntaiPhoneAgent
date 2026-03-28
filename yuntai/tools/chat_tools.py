@@ -89,7 +89,7 @@ def get_history_context(
     if forever_memory:
         context_parts.append(f"\n=== 永久记忆 ===\n{forever_memory}")
     
-    logger.debug(f"获取历史上下文: {len(context_parts)} 部分")
+    logger.debug("获取历史上下文: %d 部分", len(context_parts))
     return "\n".join(context_parts)
 
 

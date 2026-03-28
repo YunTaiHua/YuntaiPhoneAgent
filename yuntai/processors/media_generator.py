@@ -100,7 +100,7 @@ class MediaGenerator:
 
         self.video_fps = VIDEO_FPS
         
-        logger.debug(f"MediaGenerator 初始化完成, image_output_dir={self.image_output_dir}")
+        logger.debug("MediaGenerator 初始化完成, image_output_dir=%s", self.image_output_dir)
 
     def generate_image(self, prompt: str, size: str = "1280x1280",
                        quality: str = "standard") -> dict[str, object]:
@@ -128,7 +128,7 @@ class MediaGenerator:
                 "quality": quality
             }
             
-            logger.info(f"生成图像: prompt={prompt[:30]}..., size={size}, quality={quality}")
+            logger.info("生成图像: prompt=%s..., size=%s, quality=%s", prompt[:30], size, quality)
 
             response = requests.post(self.image_api_url, json=payload, headers=headers)
 
@@ -141,20 +141,20 @@ class MediaGenerator:
                     "message": "图像生成成功"
                 }
             else:
-                logger.warning(f"图像生成 API 请求失败: {response.status_code}")
+                logger.warning("图像生成 API 请求失败: %d", response.status_code)
                 return {
                     "success": False,
                     "message": f"API请求失败: {response.status_code} - {response.text}"
                 }
 
         except (requests.RequestException, ValueError, KeyError) as e:
-            logger.error(f"图像生成失败: {e}")
+            logger.error("图像生成失败: %s", str(e))
             return {
                 "success": False,
                 "message": f"图像生成失败: {str(e)}"
             }
         except Exception as e:
-            logger.exception(f"图像生成未知错误: {e}")
+            logger.exception("图像生成未知错误: %s", str(e))
             return {
                 "success": False,
                 "message": f"图像生成未知错误: {str(e)}"
@@ -183,13 +183,13 @@ class MediaGenerator:
             response = requests.get(image_url)
             if response.status_code == 200:
                 file_path.write_bytes(response.content)
-                logger.debug(f"图像下载成功: {file_path}")
+                logger.debug("图像下载成功: %s", file_path)
                 return str(file_path)
             else:
                 raise Exception(f"下载失败: {response.status_code}")
 
         except Exception as e:
-            logger.error(f"下载图像失败: {e}")
+            logger.error("下载图像失败: %s", str(e))
             raise Exception(f"下载图像失败: {str(e)}")
 
     def generate_video(self, prompt: str, image_urls: list[str] | None = None,
@@ -224,13 +224,13 @@ class MediaGenerator:
                         continue
 
                     if not (url.startswith("http://") or url.startswith("https://")):
-                        logger.warning(f"图片URL格式不正确: {url}")
+                        logger.warning("图片URL格式不正确: %s", url)
                         continue
 
                     valid_urls.append(url)
 
                 if len(image_urls) != len(valid_urls):
-                    logger.warning(f"过滤了 {len(image_urls) - len(valid_urls)} 个无效URL")
+                    logger.warning("过滤了 %d 个无效URL", len(image_urls) - len(valid_urls))
 
                 image_urls = valid_urls
 
@@ -263,7 +263,7 @@ class MediaGenerator:
                         "message": "需要1-2张有效图片"
                     }
 
-            logger.info(f"发送视频生成请求: 模型 {ZHIPU_VIDEO_MODEL}")
+            logger.info("发送视频生成请求: 模型 %s", ZHIPU_VIDEO_MODEL)
 
             response = requests.post(self.video_api_url, json=payload, headers=headers)
 
@@ -294,7 +294,7 @@ class MediaGenerator:
                         "error_code": error_code
                     }
 
-                logger.debug(f"视频生成任务已提交: task_id={task_id}")
+                logger.debug("视频生成任务已提交: task_id=%s", task_id)
                 return {
                     "success": True,
                     "data": result,
@@ -306,7 +306,7 @@ class MediaGenerator:
                 error_msg = f"API请求失败: {response.status_code}"
                 print(f"❌ {error_msg}")
                 print(f"错误响应: {response.text}")
-                logger.warning(f"视频生成 API 请求失败: {error_msg}")
+                logger.warning("视频生成 API 请求失败: %s", error_msg)
 
                 try:
                     error_data = json.loads(response.text)
@@ -327,9 +327,7 @@ class MediaGenerator:
         except Exception as e:
             error_msg = f"视频生成失败: {str(e)}"
             print(f"❌ {error_msg}")
-            logger.error(f"视频生成失败: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("视频生成失败: %s", str(e))
             return {
                 "success": False,
                 "message": error_msg
@@ -364,7 +362,7 @@ class MediaGenerator:
                         cover_url = video_result[0].get("cover_image_url")
                         video_url = video_result[0].get("url")
                         
-                        logger.debug(f"视频生成成功: task_id={task_id}")
+                        logger.debug("视频生成成功: task_id=%s", task_id)
                         return {
                             "success": True,
                             "status": task_status,
@@ -410,9 +408,7 @@ class MediaGenerator:
         except Exception as e:
             error_msg = f"查询视频结果失败: {str(e)}"
             print(f"❌ {error_msg}")
-            logger.error(f"查询视频结果失败: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("查询视频结果失败: %s", str(e))
             return {
                 "success": False,
                 "message": error_msg
@@ -461,9 +457,9 @@ class MediaGenerator:
                         if cover_response.status_code == 200:
                             cover_path.write_bytes(cover_response.content)
                     except Exception as cover_error:
-                        logger.warning(f"下载视频封面失败: {cover_error}")
+                        logger.warning("下载视频封面失败: %s", str(cover_error))
 
-                logger.info(f"视频下载成功: {video_path}")
+                logger.info("视频下载成功: %s", video_path)
                 return {
                     "success": True,
                     "video_path": str(video_path),
@@ -480,7 +476,7 @@ class MediaGenerator:
 
         except Exception as e:
             error_msg = f"下载失败: {str(e)}"
-            logger.error(f"下载视频失败: {e}")
+            logger.error("下载视频失败: %s", str(e))
             return {
                 "success": False,
                 "message": error_msg
@@ -524,7 +520,7 @@ class MediaGenerator:
             if result.get("success") and result.get("status") == "SUCCESS":
                 if callback:
                     callback("SUCCESS", attempt, task_id, status, interval)
-                logger.info(f"视频生成完成: task_id={task_id}")
+                logger.info("视频生成完成: task_id=%s", task_id)
                 return result
             elif result.get("status") == "FAIL":
                 if callback:
@@ -538,7 +534,7 @@ class MediaGenerator:
                 if callback:
                     callback("TIMEOUT", attempt, task_id, status, interval)
 
-        logger.warning(f"视频生成超时: task_id={task_id}")
+        logger.warning("视频生成超时: task_id=%s", task_id)
         return {
             "success": False,
             "message": "视频生成超时",

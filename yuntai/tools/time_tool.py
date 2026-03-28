@@ -64,7 +64,7 @@ class TimeTool:
         elif format_type == "short":
             return time.strftime("[%H:%M:%S]")
         else:
-            logger.debug(f"未知格式类型: {format_type}，使用默认格式")
+            logger.debug("未知格式类型: %s，使用默认格式", format_type)
             return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     @staticmethod

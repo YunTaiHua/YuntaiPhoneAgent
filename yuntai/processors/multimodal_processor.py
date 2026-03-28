@@ -87,7 +87,7 @@ class MultimodalProcessor:
         self.max_file_size: int = MAX_FILE_SIZE
 
         self.audio_processor: AudioProcessor | None = None
-        logger.debug(f"MultimodalProcessor 初始化完成, model={self.model}")
+        logger.debug("MultimodalProcessor 初始化完成, model=%s", self.model)
 
     def get_audio_processor(self) -> AudioProcessor:
         """
@@ -126,11 +126,11 @@ class MultimodalProcessor:
             if len(text_content) > 10000:
                 text_content = text_content[:10000] + "\n\n[文件内容过长，已截断]"
 
-            logger.debug(f"文档解析成功: {file_path}")
+            logger.debug("文档解析成功: %s", file_path)
             return text_content
 
         except Exception as e:
-            logger.warning(f"markitdown 解析文档失败 {file_path}: {e}")
+            logger.warning("markitdown 解析文档失败 %s: %s", file_path, str(e))
             return None
 
     def encode_file_to_base64(self, file_path: str) -> str | None:
@@ -147,7 +147,7 @@ class MultimodalProcessor:
             path = Path(file_path)
             file_size = path.stat().st_size
             if file_size > self.max_file_size:
-                logger.warning(f"文件太大: {file_path} ({file_size / 1024 / 1024:.2f}MB)")
+                logger.warning("文件太大: %s (%.2fMB)", file_path, file_size / 1024 / 1024)
                 return None
 
             with open(file_path, 'rb') as file:
@@ -155,7 +155,7 @@ class MultimodalProcessor:
                 base64_content = base64.b64encode(file_content).decode('utf-8')
                 return base64_content
         except Exception as e:
-            logger.error(f"编码文件失败 {file_path}: {e}")
+            logger.error("编码文件失败 %s: %s", file_path, str(e))
             return None
 
     def get_file_type(self, file_path: str) -> tuple[str, str]:
@@ -227,7 +227,7 @@ class MultimodalProcessor:
                     file_name = Path(file_path).name
 
                     print(f"📄 准备文件: {file_name} (类型: {file_type})")
-                    logger.debug(f"准备文件: {file_name}, 类型: {file_type}")
+                    logger.debug("准备文件: %s, 类型: %s", file_name, file_type)
 
                     if file_type == "video":
                         processor = self.get_audio_processor()
@@ -253,7 +253,7 @@ class MultimodalProcessor:
                                 })
                                 print(f"✅ 已添加视频+音频内容")
                         else:
-                            logger.warning(f"音频处理失败，仅使用视频: {result.get('error', 'unknown error')}")
+                            logger.warning("音频处理失败，仅使用视频: %s", result.get('error', 'unknown error'))
                             current_message["content"].append({
                                 "type": "video_url",
                                 "video_url": {
@@ -276,7 +276,7 @@ class MultimodalProcessor:
                                     "text": audio_text
                                 })
                         else:
-                            logger.warning(f"音频处理失败: {result.get('error', 'unknown error')}")
+                            logger.warning("音频处理失败: %s", result.get('error', 'unknown error'))
                             current_message["content"].append({
                                 "type": "text",
                                 "text": f"[音频处理失败: {result.get('error', 'unknown error')}]"
@@ -366,17 +366,17 @@ class MultimodalProcessor:
                         size_mb = file_size / 1024 / 1024
                         max_mb = self.max_file_size / 1024 / 1024
                         print(f"⚠️  文件太大，跳过: {path.name} ({size_mb:.1f}MB > {max_mb:.1f}MB)")
-                        logger.warning(f"文件太大，跳过: {path.name} ({size_mb:.1f}MB > {max_mb:.1f}MB)")
+                        logger.warning("文件太大，跳过: %s (%.1fMB > %.1fMB)", path.name, size_mb, max_mb)
                 else:
                     print(f"⚠️  不支持的文件类型，跳过: {Path(file_path).name}")
-                    logger.warning(f"不支持的文件类型，跳过: {Path(file_path).name}")
+                    logger.warning("不支持的文件类型，跳过: %s", Path(file_path).name)
 
             if not valid_file_paths:
                 return False, "没有有效的支持文件", None
 
             print(f"📄 有效文件: {len(valid_file_paths)} 个")
             print(f"📊 文件类型分布: {', '.join(set(file_types))}")
-            logger.info(f"处理文件: {len(valid_file_paths)} 个, 类型: {set(file_types)}")
+            logger.info("处理文件: %d 个, 类型: %s", len(valid_file_paths), set(file_types))
 
             messages, audio_result = self.prepare_multimodal_messages(text, valid_file_paths, history)
 
@@ -405,13 +405,13 @@ class MultimodalProcessor:
                     audio_processor = self.get_audio_processor()
                     audio_processor.cleanup_temp_files(older_than_hours=1)
 
-                logger.debug(f"多模态处理完成, response_length={len(response_text)}")
+                logger.debug("多模态处理完成, response_length=%d", len(response_text))
                 return True, response_text, audio_result
 
             except Exception as api_error:
                 error_msg = str(api_error)
                 print(f"❌ API调用失败: {error_msg}")
-                logger.error(f"API调用失败: {api_error}")
+                logger.error("API调用失败: %s", str(api_error))
 
                 if "Invalid" in error_msg or "不支持" in error_msg:
                     file_summary = []
@@ -428,9 +428,7 @@ class MultimodalProcessor:
         except Exception as e:
             error_msg = f"处理失败: {str(e)}"
             print(f"❌ {error_msg}")
-            logger.error(f"多模态处理失败: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("多模态处理失败: %s", str(e))
             return False, error_msg, None
 
     def is_file_supported(self, file_path: str) -> bool:
@@ -515,5 +513,5 @@ class MultimodalProcessor:
 
         except Exception as e:
             print(f"❌ API连接测试失败: {e}")
-            logger.error(f"API 连接测试失败: {e}")
+            logger.error("API 连接测试失败: %s", str(e))
             return False

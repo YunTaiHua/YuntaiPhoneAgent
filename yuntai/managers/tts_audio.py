@@ -99,7 +99,7 @@ class TTSAudioPlayer:
             logger.debug("PyAudio 初始化成功")
         except Exception as e:
             print(f"❌ 初始化音频播放失败: {e}")
-            logger.error(f"PyAudio 初始化失败: {e}")
+            logger.error("PyAudio 初始化失败: %s", str(e))
             self.audio_player = None
 
     def play_audio_file(self, audio_path: str) -> None:
@@ -124,13 +124,13 @@ class TTSAudioPlayer:
         audio_file = Path(audio_path)
         if not audio_file.exists():
             print(f"❌ 音频文件不存在：{audio_path}")
-            logger.warning(f"音频文件不存在: {audio_path}")
+            logger.warning("音频文件不存在: %s", audio_path)
             with self.is_playing_audio_lock:
                 self.is_playing_audio = False
             return
 
         try:
-            logger.debug(f"开始播放音频: {audio_path}")
+            logger.debug("开始播放音频: %s", audio_path)
             wf: wave.Wave_read = wave.open(str(audio_file), 'rb')
 
             stream = self.audio_player.open(
@@ -153,12 +153,11 @@ class TTSAudioPlayer:
             stream.stop_stream()
             stream.close()
             wf.close()
-            logger.debug(f"音频播放完成: {audio_path}")
+            logger.debug("音频播放完成: %s", audio_path)
 
         except Exception as e:
             print(f"❌ 播放失败：{e}")
-            logger.error(f"音频播放失败: {e}")
-            traceback.print_exc()
+            logger.exception("音频播放失败: %s", str(e))
         finally:
             with self.is_playing_audio_lock:
                 self.is_playing_audio = False
@@ -210,14 +209,14 @@ class TTSAudioPlayer:
                     all_sample_rates.append(samplerate)
                 else:
                     print(f"⚠️  文件不存在: {audio_file}")
-                    logger.warning(f"合并时文件不存在: {audio_file}")
+                    logger.warning("合并时文件不存在: %s", audio_file)
 
             if not all_audio_data:
                 return None
 
             if len(set(all_sample_rates)) > 1:
                 print(f"⚠️  采样率不一致，使用第一个文件的采样率: {all_sample_rates[0]}")
-                logger.warning(f"采样率不一致: {all_sample_rates}")
+                logger.warning("采样率不一致: %s", all_sample_rates)
 
             target_samplerate: int = all_sample_rates[0]
 
@@ -241,20 +240,19 @@ class TTSAudioPlayer:
             output_wav = output_path / f"{ref_audio_base}_merged_{timestamp}.wav"
 
             sf.write(str(output_wav), merged_data, target_samplerate)
-            logger.debug(f"音频合并完成: {output_wav}")
+            logger.debug("音频合并完成: %s", output_wav)
 
             return str(output_wav)
 
         except ImportError as e:
             print(f"❌ 音频合并需要soundfile和numpy库: {e}")
             print("💡 请安装: pip install soundfile numpy")
-            logger.error(f"音频合并依赖缺失: {e}")
+            logger.error("音频合并依赖缺失: %s", str(e))
             return audio_files[0]
 
         except Exception as e:
             print(f"❌ 音频合并失败: {e}")
-            logger.error(f"音频合并失败: {e}")
-            traceback.print_exc()
+            logger.exception("音频合并失败: %s", str(e))
             return audio_files[0]
 
     def cleanup(self) -> None:
@@ -267,4 +265,4 @@ class TTSAudioPlayer:
             try:
                 self.audio_player.terminate()
             except OSError as e:
-                logger.debug(f"终止音频播放器失败: {e}")
+                logger.debug("终止音频播放器失败: %s", str(e))

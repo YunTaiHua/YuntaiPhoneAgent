@@ -103,7 +103,7 @@ def parse_messages(record: str, zhipu_client: ZhipuAI) -> list[dict[str, str]]:
         final_messages = []
         for msg in messages:
             if not isinstance(msg, dict):
-                logger.warning(f"跳过非字典类型的消息: {type(msg)}")
+                logger.warning("跳过非字典类型的消息: %s", type(msg))
                 continue
             
             content = msg.get("content", "").strip()
@@ -119,15 +119,15 @@ def parse_messages(record: str, zhipu_client: ZhipuAI) -> list[dict[str, str]]:
                     "color": _standardize_color(color)
                 })
         
-        logger.info(f"成功解析 {len(final_messages)} 条消息")
+        logger.info("成功解析 %d 条消息", len(final_messages))
         return final_messages
     
     except json.JSONDecodeError as e:
-        logger.error(f"JSON解析失败: {e}")
+        logger.error("JSON解析失败: %s", str(e))
         print(f"解析消息失败: JSON格式错误")
         return _emergency_extract(record)
     except Exception as e:
-        logger.warning(f"解析消息失败: {e}", exc_info=True)
+        logger.warning("解析消息失败: %s", str(e), exc_info=True)
         print(f"解析消息失败: {e}")
         return _emergency_extract(record)
 
@@ -233,7 +233,7 @@ def _emergency_extract(record: str) -> list[dict[str, str]]:
                     "color": color
                 })
     
-    logger.info(f"紧急提取完成，共提取 {len(final_messages)} 条消息")
+    logger.info("紧急提取完成，共提取 %d 条消息", len(final_messages))
     return final_messages
 
 
@@ -297,7 +297,7 @@ def determine_message_ownership(
             elif color in ["红色", "粉色", "蓝色", "绿色", "紫色", "黑色", "灰色", "橙色", "黄色"]:
                 my_messages.append(content)
     
-    logger.debug(f"消息归属判断完成: 对方{len(other_messages)}条, 我方{len(my_messages)}条")
+    logger.debug("消息归属判断完成: 对方%d条, 我方%d条", len(other_messages), len(my_messages))
     return other_messages, my_messages
 
 
@@ -361,11 +361,11 @@ def generate_reply(
         if "。" in reply:
             reply = reply.split("。")[0] + "。"
         
-        logger.debug(f"成功生成回复: {reply[:30]}...")
+        logger.debug("成功生成回复: %s...", reply[:30])
         return reply
     
     except Exception as e:
-        logger.error(f"生成回复失败: {e}", exc_info=True)
+        logger.error("生成回复失败: %s", str(e), exc_info=True)
         print(f"生成回复失败: {e}")
         return ""
 
@@ -409,6 +409,6 @@ def check_new_messages(
     
     has_new = len(new_messages) > 0
     if has_new:
-        logger.info(f"检测到 {len(new_messages)} 条新消息")
+        logger.info("检测到 %d 条新消息", len(new_messages))
     
     return has_new, new_messages

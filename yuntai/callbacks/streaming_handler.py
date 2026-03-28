@@ -27,14 +27,34 @@
     >>> # 在模型调用时使用
     >>> response = model.invoke(messages, config={"callbacks": [handler]})
 """
+from __future__ import annotations
+
 import logging
 from collections.abc import Callable
+from typing import Protocol, runtime_checkable
 
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.outputs import LLMResult
 
 # 配置模块级日志记录器
 logger = logging.getLogger(__name__)
+
+
+@runtime_checkable
+class SignalProtocol(Protocol):
+    """
+    Qt 信号协议
+    
+    定义 Qt 信号需要实现的接口，用于类型注解。
+    避免直接依赖 PyQt6 类型，提高代码可移植性。
+    
+    使用示例：
+        >>> def setup_handler(signal: SignalProtocol):
+        ...     signal.emit("message")
+    """
+    def emit(self, value: str) -> None:
+        """发送信号"""
+        ...
 
 
 class StreamingCallbackHandler(BaseCallbackHandler):
@@ -217,8 +237,8 @@ class QtStreamingCallbackHandler(StreamingCallbackHandler):
 
     def __init__(
         self,
-        append_signal: object = None,
-        complete_signal: object = None,
+        append_signal: SignalProtocol | None = None,
+        complete_signal: SignalProtocol | None = None,
         enable_typewriter: bool = True
     ) -> None:
         """
@@ -231,9 +251,9 @@ class QtStreamingCallbackHandler(StreamingCallbackHandler):
         """
         super().__init__(enable_typewriter=enable_typewriter)
         # PyQt 追加文本信号
-        self.append_signal = append_signal
+        self.append_signal: SignalProtocol | None = append_signal
         # PyQt 完成信号
-        self.complete_signal = complete_signal
+        self.complete_signal: SignalProtocol | None = complete_signal
         
         logger.debug("QtStreamingCallbackHandler 初始化完成")
         

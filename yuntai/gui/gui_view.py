@@ -350,7 +350,7 @@ class GUIView(QMainWindow):
         切换时会清除当前页面的所有组件并重新初始化。
         """
         self.is_dark_theme = not self.is_dark_theme
-        logger.info(f"主题切换: {'深色' if self.is_dark_theme else '浅色'}")
+        logger.info("主题切换: %s", '深色' if self.is_dark_theme else '浅色')
         
         # 重置页面初始化标志，以便重新创建页面
         self.page_initialized = [False] * 6

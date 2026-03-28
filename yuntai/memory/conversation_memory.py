@@ -73,7 +73,7 @@ class ConversationMemoryManager:
             self._load_forever_memory()
         
         self._setup_memory_callback()
-        logger.debug(f"ConversationMemoryManager 初始化完成, history_file={history_file}")
+        logger.debug("ConversationMemoryManager 初始化完成, history_file=%s", history_file)
     
     def _load_memory(self) -> None:
         """加载记忆"""
@@ -82,18 +82,18 @@ class ConversationMemoryManager:
                 chat_memory=FileChatMessageHistory(self.history_file),
                 return_messages=True
             )
-            logger.debug(f"加载记忆成功: {self.history_file}")
+            logger.debug("加载记忆成功: %s", self.history_file)
         except Exception as e:
-            logger.warning(f"加载记忆失败: {e}")
+            logger.warning("加载记忆失败: %s", str(e))
             self._memory = ConversationBufferMemory(return_messages=True)
     
     def _load_forever_memory(self) -> None:
         """加载永久记忆"""
         try:
             self._forever_memory = Path(self.forever_memory_file).read_text(encoding='utf-8').strip()
-            logger.debug(f"加载永久记忆成功: {self.forever_memory_file}")
+            logger.debug("加载永久记忆成功: %s", self.forever_memory_file)
         except Exception as e:
-            logger.warning(f"加载永久记忆失败: {e}")
+            logger.warning("加载永久记忆失败: %s", str(e))
             self._forever_memory = ""
     
     def get_memory(self) -> ConversationBufferMemory:
@@ -127,10 +127,10 @@ class ConversationMemoryManager:
         memory = self.get_memory()
         if role == "user":
             memory.chat_memory.add_user_message(content)
-            logger.debug(f"添加用户消息: {content[:50]}...")
+            logger.debug("添加用户消息: %s...", content[:50])
         elif role == "assistant":
             memory.chat_memory.add_ai_message(content)
-            logger.debug(f"添加助手消息: {content[:50]}...")
+            logger.debug("添加助手消息: %s...", content[:50])
     
     def get_messages(self, limit: int = 10) -> list[BaseMessage]:
         """
@@ -194,10 +194,10 @@ class ConversationMemoryManager:
                 existing_data = existing_data[-self.max_history_length:]
             
             file_path.write_text(json.dumps(existing_data, ensure_ascii=False, indent=2), encoding='utf-8')
-            logger.debug(f"保存数据到文件: {filepath}")
+            logger.debug("保存数据到文件: %s", filepath)
                 
         except Exception as e:
-            logger.error(f"保存失败: {e}")
+            logger.error("保存失败: %s", str(e))
     
     def _setup_memory_callback(self) -> None:
         """设置记忆回调处理器"""
@@ -280,7 +280,7 @@ class FreeChatMemory:
             "assistant_reply": assistant_reply,
         }
         self.file_manager.save_conversation_history(session_data)
-        logger.debug(f"保存自由聊天记录: user_input={user_input[:30]}...")
+        logger.debug("保存自由聊天记录: user_input=%s...", user_input[:30])
 
 
 class ChatSessionMemory:
@@ -350,4 +350,4 @@ class ChatSessionMemory:
             "sent_success": True
         }
         self.file_manager.save_conversation_history(session_data)
-        logger.debug(f"保存会话记录: app={app_name}, object={chat_object}")
+        logger.debug("保存会话记录: app=%s, object=%s", app_name, chat_object)

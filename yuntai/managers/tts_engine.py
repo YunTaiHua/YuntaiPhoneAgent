@@ -208,27 +208,27 @@ class TTSEngine:
         if self.bert_model_path and self.bert_model_path.exists():
             os.environ["bert_path"] = str(self.bert_model_path)
             print("✅ BERT模型路径已设置")
-            logger.debug(f"BERT模型路径: {self.bert_model_path}")
+            logger.debug("BERT模型路径: %s", self.bert_model_path)
 
         # 设置HuBERT模型路径
         if self.hubert_model_path and self.hubert_model_path.exists():
             os.environ["cnhubert_base_path"] = str(self.hubert_model_path)
             print("✅ HuBERT模型路径已设置")
-            logger.debug(f"HuBERT模型路径: {self.hubert_model_path}")
+            logger.debug("HuBERT模型路径: %s", self.hubert_model_path)
 
         # 设置默认GPT模型路径
         if self.database_manager.tts_files_database["gpt"]:
             first_gpt = list(self.database_manager.tts_files_database["gpt"].values())[0]
             os.environ["gpt_path"] = first_gpt
             print(f"📌 默认GPT模型: {Path(first_gpt).name}")
-            logger.debug(f"默认GPT模型: {first_gpt}")
+            logger.debug("默认GPT模型: %s", first_gpt)
 
         # 设置默认SoVITS模型路径
         if self.database_manager.tts_files_database["sovits"]:
             first_sovits = list(self.database_manager.tts_files_database["sovits"].values())[0]
             os.environ["sovits_path"] = first_sovits
             print(f"📌 默认SoVITS模型: {Path(first_sovits).name}")
-            logger.debug(f"默认SoVITS模型: {first_sovits}")
+            logger.debug("默认SoVITS模型: %s", first_sovits)
 
     def _setup_tts_config(self) -> None:
         """设置TTS配置环境变量"""

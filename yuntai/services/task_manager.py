@@ -284,7 +284,7 @@ class TTSManager:
                         if segment_path.exists() and segment_file != final_audio_path:
                             segment_path.unlink()
                     except OSError as e:
-                        logger.debug(f"删除分段文件失败 {segment_file}: {e}")
+                        logger.debug("删除分段文件失败 %s: %s", segment_file, str(e))
 
                 return True, final_audio_path
             else:
@@ -321,7 +321,7 @@ class TTSManager:
                         if success and audio_path:
                             self.audio_player.play_audio_file(audio_path)
                         else:
-                            logger.error(f"分段语音合成失败: {audio_path}")
+                            logger.error("分段语音合成失败: %s", audio_path)
                             fallback_text = self.text_processor.clean_text_for_tts(text[:500])
                             if len(fallback_text) < 5:
                                 fallback_text = "你好，我是小芸，很高兴为您服务"
