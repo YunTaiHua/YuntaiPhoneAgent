@@ -133,8 +133,14 @@ class SimpleOutputCapture(QObject):
             if scrollbar:
                 scrollbar.setValue(scrollbar.maximum())
             self.text_widget.setReadOnly(True)
-        except Exception:
-            pass
+        except AttributeError as e:
+            # UI 组件已被销毁，忽略
+            logger.debug("UI组件已销毁，忽略写入: %s", e)
+        except RuntimeError as e:
+            # UI 线程问题
+            logger.debug("UI线程异常，忽略写入: %s", e)
+        except Exception as e:
+            logger.warning("文本插入失败: %s", e)
     
     def _insert_highlighted_text(self, text):
         """

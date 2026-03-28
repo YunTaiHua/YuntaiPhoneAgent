@@ -124,8 +124,14 @@ class TTSHandler(QObject):
                 cursor = tts_log_text.textCursor()
                 cursor.movePosition(cursor.MoveOperation.End)
                 tts_log_text.setTextCursor(cursor)
-            except Exception:
-                pass
+            except AttributeError as e:
+                # UI 组件属性不存在
+                logger.debug("TTS日志组件属性缺失: %s", e)
+            except RuntimeError as e:
+                # UI 组件已被销毁
+                logger.debug("TTS日志UI组件已销毁: %s", e)
+            except Exception as e:
+                logger.warning("TTS日志添加异常: %s", e)
         else:
             print(f"[{time.strftime('%H:%M:%S')}] {msg}")
 

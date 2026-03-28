@@ -535,8 +535,14 @@ class DashboardBuilder:
                 current_height = 42
 
             text_widget.setFixedHeight(current_height)
-        except Exception:
-            pass
+        except AttributeError as e:
+            # UI 组件属性不存在
+            logger.debug("仪表盘组件属性缺失: %s", e)
+        except RuntimeError as e:
+            # UI 组件已被销毁
+            logger.debug("仪表盘UI组件已销毁: %s", e)
+        except Exception as e:
+            logger.warning("仪表盘高度调整异常: %s", e)
 
     def _on_enter_pressed(self):
         """回车键按下时执行命令"""

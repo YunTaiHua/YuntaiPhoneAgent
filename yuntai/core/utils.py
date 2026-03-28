@@ -134,9 +134,14 @@ class Utils:
                     # ADB 版本检查失败
                     logger.warning("ADB 版本检查失败")
                     all_passed = False
-            except Exception:
-                # ADB 检查异常
-                logger.debug("ADB 版本检查异常")
+            except subprocess.TimeoutExpired as e:
+                logger.warning("ADB 版本检查超时: %s", e)
+                all_passed = False
+            except FileNotFoundError as e:
+                logger.warning("ADB 命令未找到: %s", e)
+                all_passed = False
+            except Exception as e:
+                logger.warning("ADB 版本检查异常: %s", e)
                 all_passed = False
 
         return all_passed
@@ -176,8 +181,14 @@ class Utils:
             else:
                 logger.debug("HDC 版本检查失败")
                 return False
-        except Exception:
-            logger.debug("HDC 版本检查异常")
+        except subprocess.TimeoutExpired as e:
+            logger.warning("HDC 版本检查超时: %s", e)
+            return False
+        except FileNotFoundError as e:
+            logger.warning("HDC 命令未找到: %s", e)
+            return False
+        except Exception as e:
+            logger.warning("HDC 版本检查异常: %s", e)
             return False
 
     def check_model_api(

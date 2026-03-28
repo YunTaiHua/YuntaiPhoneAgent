@@ -922,7 +922,15 @@ class GUIController(QObject):
             self._show_tts_loading_signal.emit("正在合成欢迎语...")
             tts.speak_text_intelligently("你好，我是小芸，很高兴为您服务")
             self._wait_audio_then_hide()
-        except Exception:
+        except AttributeError as e:
+            logger.debug("TTS组件属性访问失败: %s", e)
+            self._hide_tts_loading_signal.emit()
+        except RuntimeError as e:
+            # UI 组件已被销毁
+            logger.debug("TTS UI组件已销毁: %s", e)
+            self._hide_tts_loading_signal.emit()
+        except Exception as e:
+            logger.warning("TTS初始化异常: %s", e)
             self._hide_tts_loading_signal.emit()
 
     def _wait_audio_then_hide(self):
