@@ -442,56 +442,6 @@ def check_required_env_vars() -> None:
     logger.info("必需环境变量检查通过")
 
 
-def _get_theme_colors_class() -> type:
-    """
-    延迟获取 ThemeColors 类
-
-    使用延迟导入避免循环依赖问题。
-    只有在实际需要时才导入样式模块。
-
-    Returns:
-        type: ThemeColors 类
-    """
-    from yuntai.gui.styles import ThemeColors as _ThemeColors
-    return _ThemeColors
-
-
-class _ThemeColorsProxy:
-    """
-    ThemeColors 的代理类，实现延迟导入
-
-    用于解决 config 模块与 gui.styles 模块之间的循环依赖问题。
-    实际使用时才进行类导入，提高模块加载效率。
-
-    Attributes:
-        _real_class: 实际保存 ThemeColors 类的引用
-    """
-
-    _real_class = None
-
-    def __getattr__(self, name: str) -> Any:
-        """
-        属性访问代理
-
-        首次访问属性时触发实际类导入，之后直接代理到真实类。
-
-        Args:
-            name: 属性名称
-
-        Returns:
-            Any: 实际类的属性值
-        """
-        if self._real_class is None:
-            self._real_class = _get_theme_colors_class()
-            logger.debug("ThemeColors 类已延迟加载")
-        return getattr(self._real_class, name)
-
-
-# 全局 ThemeColors 代理实例
-# 通过延迟加载解决循环依赖
-ThemeColors = _ThemeColorsProxy()
-
-
 if __name__ == "__main__":
     # 当直接运行 config.py 时，执行配置检查
     check_required_env_vars()
