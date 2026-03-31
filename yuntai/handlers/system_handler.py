@@ -39,7 +39,6 @@ from yuntai.core.config import (
     ZHIPU_API_BASE_URL, ZHIPU_MODEL, ZHIPU_API_KEY,
     DEVICE_TYPE_HARMONY
 )
-from yuntai.gui.gui_view import GUIView
 from yuntai.gui.styles import (
     ThemeColors, ThemeFonts,
     DialogStyle, get_dialog_stylesheet, get_dialog_button_stylesheet,

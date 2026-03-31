@@ -38,7 +38,6 @@ from PyQt6.QtGui import QFont
 
 logger = logging.getLogger(__name__)
 
-from yuntai.gui.gui_view import GUIView
 from yuntai.gui.styles import (
     ThemeColors, ThemeFonts, ThemeCorner,
     DialogStyle, get_dialog_stylesheet, get_dialog_button_stylesheet,

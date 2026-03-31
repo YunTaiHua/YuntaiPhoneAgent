@@ -36,7 +36,6 @@ from PyQt6.QtGui import QFont, QKeySequence, QShortcut
 
 logger = logging.getLogger(__name__)
 
-from yuntai.gui.gui_view import GUIView
 from yuntai.gui.styles import (
     ThemeColors, ThemeFonts, ThemeCorner,
     DialogStyle, get_dialog_stylesheet, get_dialog_button_stylesheet,
@@ -44,7 +43,6 @@ from yuntai.gui.styles import (
     get_dialog_combobox_stylesheet, get_dialog_checkbox_stylesheet,
     show_warning_dialog, show_confirm_dialog
 )
-from yuntai.core.config import ThemeColors
 
 
 class TTSHandler(QObject):
