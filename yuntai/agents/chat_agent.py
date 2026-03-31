@@ -83,7 +83,8 @@ class ChatAgent:
         model: BaseChatModel | None = None,
         file_manager: FileManager | None = None,
         tts_manager: TTSManager | None = None,
-        enable_streaming: bool = True
+        enable_streaming: bool = True,
+        callback_manager=None
     ) -> None:
         """
         初始化聊天 Agent
@@ -108,7 +109,7 @@ class ChatAgent:
         self.enable_streaming = enable_streaming
         
         # 获取回调管理器单例
-        self.callback_manager = get_callback_manager()
+        self.callback_manager = callback_manager or get_callback_manager()
         
         # 流式输出回调函数（可外部设置）
         self._streaming_callback: Callable[[str], None] | None = None
