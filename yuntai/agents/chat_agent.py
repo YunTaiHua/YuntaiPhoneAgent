@@ -37,7 +37,7 @@ from langchain_core.callbacks import BaseCallbackHandler
 
 from yuntai.models import get_chat_model, get_zhipu_client
 from yuntai.prompts import CHAT_SYSTEM_PROMPT, CHAT_WITH_CONTEXT_PROMPT
-from yuntai.tools import get_current_time_info
+from yuntai.tools.chat_tools import get_current_time_info
 from yuntai.tools.callback_utils import prepare_callbacks_with_manager
 from yuntai.callbacks import get_callback_manager
 from yuntai.core.config import (
