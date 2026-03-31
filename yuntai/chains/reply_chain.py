@@ -35,6 +35,7 @@ from typing import Any, Callable, TYPE_CHECKING
 from langchain_core.callbacks import BaseCallbackHandler
 
 from yuntai.graphs import ReplyGraph
+from yuntai.agents.phone_agent import PhoneAgent
 from yuntai.tools.message_tools import parse_messages, generate_reply
 from yuntai.models import get_zhipu_client
 from yuntai.tools.callback_utils import prepare_callbacks_with_manager
@@ -172,9 +173,7 @@ class ReplyChain:
         # 准备回调处理器
         all_callbacks = prepare_callbacks_with_manager(self.callback_manager, callbacks=callbacks)
 
-        # 导入并创建 PhoneAgent
-        from yuntai.agents.phone_agent import PhoneAgent
-
+        # 创建 PhoneAgent
         phone_agent = PhoneAgent(self.device_id)
 
         # 步骤 1: 提取聊天记录
