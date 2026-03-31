@@ -81,15 +81,25 @@ class TaskChain:
         self,
         device_id: str = "",
         file_manager: FileManager | None = None,
-        tts_manager: TTSManager | None = None
+        tts_manager: TTSManager | None = None,
+        judgement_agent: JudgementAgent | None = None,
+        chat_agent: ChatAgent | None = None,
+        phone_agent: PhoneAgent | None = None,
+        reply_chain: ReplyChain | None = None,
+        callback_manager=None
     ) -> None:
         """
         初始化任务处理链
-        
+
         Args:
             device_id: 设备 ID，用于标识要操作的手机设备
             file_manager: 文件管理器实例，用于保存对话历史
             tts_manager: TTS 管理器实例，用于语音播报
+            judgement_agent: 任务判断 Agent，为 None 时自动创建
+            chat_agent: 聊天 Agent，为 None 时自动创建
+            phone_agent: 手机操作 Agent，为 None 时自动创建
+            reply_chain: 回复处理链，为 None 时自动创建
+            callback_manager: 回调管理器实例，为 None 时自动获取单例
         """
         # 设备 ID
         self.device_id: str = device_id
@@ -99,18 +109,20 @@ class TaskChain:
         self.tts_manager: TTSManager | None = tts_manager
 
         # 获取回调管理器单例
-        self.callback_manager: CallbackManager = get_callback_manager()
+        self.callback_manager = callback_manager or get_callback_manager()
 
         # 初始化各个 Agent
-        self.judgement_agent: JudgementAgent = JudgementAgent()
-        self.chat_agent: ChatAgent = ChatAgent(file_manager=file_manager, tts_manager=tts_manager)
-        self.phone_agent: PhoneAgent = PhoneAgent(device_id=device_id)
-        
+        self.judgement_agent = judgement_agent or JudgementAgent(callback_manager=self.callback_manager)
+        self.chat_agent = chat_agent or ChatAgent(
+            file_manager=file_manager, tts_manager=tts_manager,
+            callback_manager=self.callback_manager
+        )
+        self.phone_agent = phone_agent or PhoneAgent(device_id=device_id)
+
         # 初始化回复链
-        self.reply_chain: ReplyChain = ReplyChain(
-            device_id=device_id,
-            file_manager=file_manager,
-            tts_manager=tts_manager
+        self.reply_chain = reply_chain or ReplyChain(
+            device_id=device_id, file_manager=file_manager,
+            tts_manager=tts_manager, callback_manager=self.callback_manager
         )
 
         # 持续回复线程

@@ -79,15 +79,17 @@ class ReplyChain:
         self,
         device_id: str = "",
         file_manager: FileManager | None = None,
-        tts_manager: TTSManager | None = None
+        tts_manager: TTSManager | None = None,
+        callback_manager=None
     ) -> None:
         """
         初始化回复处理链
-        
+
         Args:
             device_id: 设备 ID，用于标识要操作的手机设备
             file_manager: 文件管理器实例，用于保存对话历史
             tts_manager: TTS 管理器实例，用于语音播报
+            callback_manager: 回调管理器实例，为 None 时自动获取单例
         """
         # 设备 ID
         self.device_id: str = device_id
@@ -97,7 +99,7 @@ class ReplyChain:
         self.tts_manager: TTSManager | None = tts_manager
 
         # 获取回调管理器单例
-        self.callback_manager: CallbackManager = get_callback_manager()
+        self.callback_manager = callback_manager or get_callback_manager()
 
         # ReplyGraph 实例（延迟创建）
         self._reply_graph: ReplyGraph | None = None
