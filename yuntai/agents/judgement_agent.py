@@ -122,7 +122,7 @@ class JudgementAgent:
         ...     print(f"需要给 {result.target_object} 发消息")
     """
 
-    def __init__(self, model: BaseChatModel | None = None) -> None:
+    def __init__(self, model: BaseChatModel | None = None, callback_manager=None) -> None:
         """
         初始化任务判断 Agent
         
@@ -135,7 +135,7 @@ class JudgementAgent:
         self.system_prompt = TASK_JUDGEMENT_PROMPT
 
         # 获取回调管理器单例
-        self.callback_manager = get_callback_manager()
+        self.callback_manager = callback_manager or get_callback_manager()
         
         logger.debug("JudgementAgent 初始化完成")
 
