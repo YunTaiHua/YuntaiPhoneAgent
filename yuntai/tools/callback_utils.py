@@ -26,6 +26,8 @@ from yuntai.callbacks import get_callback_manager, StreamingCallbackHandler
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from yuntai.callbacks import CallbackManager
+
 logger = logging.getLogger(__name__)
 
 
@@ -33,23 +35,25 @@ def prepare_callbacks(
     callbacks: list[BaseCallbackHandler] | None = None,
     streaming_callback: Callable[[str], None] | None = None,
     complete_callback: Callable[[str], None] | None = None,
-    enable_streaming: bool = True
+    enable_streaming: bool = True,
+    callback_manager: CallbackManager | None = None
 ) -> list[BaseCallbackHandler]:
     """
     准备回调处理器列表
-    
+
     合并全局回调、流式输出回调和用户自定义回调，
     返回统一的回调处理器列表供 LangChain 调用使用。
-    
+
     Args:
         callbacks: 用户提供的自定义回调处理器列表
         streaming_callback: 流式输出回调函数，每个 token 调用一次
         complete_callback: 完成回调函数，输出完成时调用
         enable_streaming: 是否启用流式输出回调，默认 True
-    
+        callback_manager: 可选的回调管理器实例，不提供时使用全局单例
+
     Returns:
         合并后的回调处理器列表
-    
+
     Example:
         >>> def on_token(text: str): print(text, end='')
         >>> callbacks = prepare_callbacks(
@@ -58,9 +62,9 @@ def prepare_callbacks(
         ... )
     """
     all_callbacks: list[BaseCallbackHandler] = []
-    
-    callback_manager = get_callback_manager()
-    global_callbacks = callback_manager.get_callbacks(include_global=True)
+
+    manager = callback_manager or get_callback_manager()
+    global_callbacks = manager.get_callbacks(include_global=True)
     all_callbacks.extend(global_callbacks)
     
     if enable_streaming and (streaming_callback or complete_callback):
@@ -118,17 +122,22 @@ def prepare_callbacks_with_manager(
     return all_callbacks
 
 
-def get_global_callbacks() -> list[BaseCallbackHandler]:
+def get_global_callbacks(
+    callback_manager: CallbackManager | None = None
+) -> list[BaseCallbackHandler]:
     """
     获取全局回调处理器列表
-    
+
     仅返回已注册的全局回调处理器，不包含流式输出回调。
     适用于不需要流式输出的简单场景。
-    
+
+    Args:
+        callback_manager: 可选的回调管理器实例，不提供时使用全局单例
+
     Returns:
         全局回调处理器列表
     """
-    callback_manager = get_callback_manager()
-    callbacks = callback_manager.get_callbacks(include_global=True)
+    manager = callback_manager or get_callback_manager()
+    callbacks = manager.get_callbacks(include_global=True)
     logger.debug("获取全局回调处理器: 共 %d 个", len(callbacks))
     return callbacks
