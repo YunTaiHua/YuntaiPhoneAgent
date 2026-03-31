@@ -25,7 +25,9 @@
 """
 from __future__ import annotations
 
+import datetime
 import logging
+import threading
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -241,7 +243,6 @@ class ChatAgent:
             
             # 保存对话历史到文件
             if self.file_manager:
-                import datetime
                 session_data = {
                     "type": "free_chat",
                     "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -253,7 +254,6 @@ class ChatAgent:
             
             # TTS 语音播报（如果启用且回复足够长）
             if self.tts_manager and self.tts_manager.tts_enabled and len(reply) > TTS_MIN_REPLY_LENGTH:
-                import threading
                 # 延迟播报，避免与流式输出冲突
                 threading.Timer(TTS_SPEAK_DELAY_REPLY, lambda: self.tts_manager.speak_text_intelligently(reply)).start()
                 logger.debug("已安排 TTS 播报")

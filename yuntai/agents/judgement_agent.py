@@ -29,6 +29,7 @@
 """
 import json
 import logging
+import re
 from dataclasses import dataclass
 
 from langchain_core.language_models import BaseChatModel
@@ -342,8 +343,6 @@ class JudgementAgent:
         Returns:
             提取到的聊天对象名称，如果未找到则返回空字符串
         """
-        import re
-        
         # 定义匹配模式
         patterns = [
             r"给([^\s]+?)发消息",  # 给XXX发消息
@@ -372,8 +371,6 @@ class JudgementAgent:
         Returns:
             提取到的消息内容，如果未找到则返回空字符串
         """
-        import re
-        
         # 尝试匹配引号内的内容
         quote_patterns = [r'["\']([^"\']+)["\']']
         for pattern in quote_patterns:

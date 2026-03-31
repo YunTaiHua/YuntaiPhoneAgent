@@ -28,6 +28,8 @@
     >>> response = model.invoke(messages, config={"callbacks": [handler]})
 """
 import logging
+import statistics
+import time
 from pathlib import Path
 from datetime import datetime
 from langchain_core.callbacks import BaseCallbackHandler
@@ -513,7 +515,6 @@ class PerformanceCallbackHandler(LoggingCallbackHandler):
         super().on_llm_start(serialized, prompts, **kwargs)
         
         # 记录开始时间
-        import time
         self._start_times['llm'] = time.time()
     
     def on_llm_end(self, response: LLMResult, **kwargs: object) -> None:
@@ -524,8 +525,6 @@ class PerformanceCallbackHandler(LoggingCallbackHandler):
             response: LLM 响应结果
             **kwargs: 其他参数
         """
-        import time
-        
         # 计算耗时
         if 'llm' in self._start_times:
             elapsed = time.time() - self._start_times['llm']
@@ -553,7 +552,6 @@ class PerformanceCallbackHandler(LoggingCallbackHandler):
         super().on_chain_start(serialized, inputs, **kwargs)
         
         # 记录开始时间
-        import time
         self._start_times['chain'] = time.time()
     
     def on_chain_end(self, outputs: dict[str, object], **kwargs: object) -> None:
@@ -564,8 +562,6 @@ class PerformanceCallbackHandler(LoggingCallbackHandler):
             outputs: 输出结果
             **kwargs: 其他参数
         """
-        import time
-        
         # 计算耗时
         if 'chain' in self._start_times:
             elapsed = time.time() - self._start_times['chain']
@@ -593,7 +589,6 @@ class PerformanceCallbackHandler(LoggingCallbackHandler):
         super().on_tool_start(serialized, input_str, **kwargs)
         
         # 记录开始时间
-        import time
         self._start_times['tool'] = time.time()
     
     def on_tool_end(
@@ -608,8 +603,6 @@ class PerformanceCallbackHandler(LoggingCallbackHandler):
             output: 输出结果
             **kwargs: 其他参数
         """
-        import time
-        
         # 计算耗时
         if 'tool' in self._start_times:
             elapsed = time.time() - self._start_times['tool']
@@ -628,8 +621,6 @@ class PerformanceCallbackHandler(LoggingCallbackHandler):
         Returns:
             包含各组件性能统计的字典
         """
-        import statistics
-        
         def calc_stats(times: list[float]) -> dict[str, float]:
             """
             计算统计数据

@@ -29,6 +29,7 @@
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Callable
 from typing import Protocol, runtime_checkable
@@ -368,7 +369,6 @@ class AsyncStreamingCallbackHandler(StreamingCallbackHandler):
             try:
                 if callable(self.output_callback):
                     # 检查是否是异步回调
-                    import asyncio
                     if asyncio.iscoroutinefunction(self.output_callback):
                         # 异步调用
                         await self.output_callback(token)
