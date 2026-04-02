@@ -44,13 +44,10 @@ warnings.filterwarnings('ignore')
 # 这是由于PyQt6和onnxruntime的动态链接库加载顺序问题
 try:
     import onnxruntime
-    print("✅ onnxruntime 预加载成功")
     logger.debug("onnxruntime 预加载成功")
 except ImportError:
-    print("⚠️ onnxruntime 未安装，TTS功能将不可用")
     logger.warning("onnxruntime 未安装，TTS功能将不可用")
 except Exception as e:
-    print(f"⚠️ onnxruntime 预加载失败: {e}")
     logger.warning("onnxruntime 预加载失败: %s", str(e))
 
 # PyQt6 导入

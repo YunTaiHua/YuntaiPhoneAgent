@@ -155,7 +155,7 @@ class TTSEngine:
             return True, "模块已加载"
 
         try:
-            logger.info("正在加载TTS模块")
+            logger.debug("正在加载TTS模块")
 
             self._setup_environment()
             self._setup_model_paths()
@@ -170,7 +170,7 @@ class TTSEngine:
 
             self.tts_modules_loaded = True
             self.tts_available = True
-            logger.info("TTS模块加载成功")
+            logger.debug("TTS模块加载成功")
 
             return True, "模块加载成功"
         except Exception as e:
@@ -207,27 +207,23 @@ class TTSEngine:
         # 设置BERT模型路径
         if self.bert_model_path and self.bert_model_path.exists():
             os.environ["bert_path"] = str(self.bert_model_path)
-            logger.info("BERT模型路径已设置")
             logger.debug("BERT模型路径: %s", self.bert_model_path)
 
         # 设置HuBERT模型路径
         if self.hubert_model_path and self.hubert_model_path.exists():
             os.environ["cnhubert_base_path"] = str(self.hubert_model_path)
-            logger.info("HuBERT模型路径已设置")
             logger.debug("HuBERT模型路径: %s", self.hubert_model_path)
 
         # 设置默认GPT模型路径
         if self.database_manager.tts_files_database["gpt"]:
             first_gpt = list(self.database_manager.tts_files_database["gpt"].values())[0]
             os.environ["gpt_path"] = first_gpt
-            logger.info("默认GPT模型: %s", Path(first_gpt).name)
             logger.debug("默认GPT模型: %s", first_gpt)
 
         # 设置默认SoVITS模型路径
         if self.database_manager.tts_files_database["sovits"]:
             first_sovits = list(self.database_manager.tts_files_database["sovits"].values())[0]
             os.environ["sovits_path"] = first_sovits
-            logger.info("默认SoVITS模型: %s", Path(first_sovits).name)
             logger.debug("默认SoVITS模型: %s", first_sovits)
 
     def _setup_tts_config(self) -> None:
@@ -252,7 +248,7 @@ class TTSEngine:
         self.tts_modules['change_sovits_weights'] = change_sovits_weights
         self.tts_modules['get_tts_wav'] = get_tts_wav
         self.tts_modules['i18n'] = I18nAuto()
-        logger.info("使用自定义TTS模块")
+        logger.debug("使用自定义TTS模块")
 
     def _load_original_tts_modules(self) -> None:
         """加载原始TTS模块"""

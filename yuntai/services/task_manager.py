@@ -427,7 +427,7 @@ class TaskManager:
         try:
             self.zhipu_client: ZhipuAI = ZhipuAI(api_key=ZHIPU_API_KEY)
             self.agent_executor: AgentExecutor = AgentExecutor()
-            logger.info("已初始化真实模块")
+            logger.debug("已初始化真实模块")
         except Exception as e:
             logger.error("初始化客户端失败: %s", str(e))
             raise
@@ -519,12 +519,12 @@ class TaskManager:
         self.task_args.device_id = None
 
     def preload_tts_modules(self) -> bool:
-        logger.info("预加载TTS模块")
+        logger.debug("预加载TTS模块")
 
         try:
             success, message = self.tts_manager.load_tts_modules()
             if success:
-                logger.info("TTS模块预加载成功")
+                logger.debug("TTS模块预加载成功")
                 self.tts_manager.tts_enabled = True
                 return True
             else:

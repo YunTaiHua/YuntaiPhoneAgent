@@ -95,7 +95,6 @@ class TTSAudioPlayer:
         """初始化音频播放器"""
         try:
             self.audio_player = pyaudio.PyAudio()
-            logger.info("音频播放器初始化成功")
             logger.debug("PyAudio 初始化成功")
         except Exception as e:
             logger.error("初始化音频播放失败: %s", str(e))

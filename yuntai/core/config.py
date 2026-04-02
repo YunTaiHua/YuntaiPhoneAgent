@@ -375,8 +375,7 @@ def validate_config() -> bool:
         logger.warning("配置验证失败，共 %d 项问题", len(errors))
         return False
 
-    print("✅ 配置验证通过")
-    logger.info("配置验证通过，所有检查项正常")
+    logger.debug("配置验证通过，所有检查项正常")
     return True
 
 
@@ -409,7 +408,7 @@ def print_config_summary() -> None:
 ────────────────────────────────────
 """
     print(summary)
-    logger.info("配置摘要已打印")
+    logger.debug("配置摘要已打印")
 
 
 def check_required_env_vars() -> None:

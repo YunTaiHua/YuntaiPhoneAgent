@@ -83,13 +83,11 @@ class TTSDatabaseManager:
         Returns:
             初始化成功返回 True
         """
-        logger.info("初始化TTS文件数据库")
-        logger.info("开始初始化 TTS 文件数据库")
+        logger.debug("初始化TTS文件数据库")
 
         for dir_key in ["gpt_model_dir", "sovits_model_dir", "ref_audio_root", "output_path"]:
             dir_path = Path(self.default_tts_config[dir_key])
             dir_path.mkdir(parents=True, exist_ok=True)
-            logger.info("确保目录存在: %s", dir_path)
             logger.debug("确保目录存在: %s", dir_path)
 
         self.tts_files_database["gpt"] = {}
@@ -129,7 +127,7 @@ class TTSDatabaseManager:
         else:
             logger.warning("参考文本目录不存在: %s", ref_text_root)
 
-        logger.info("TTS 文件数据库初始化完成: GPT=%d, SoVITS=%d, Audio=%d, Text=%d",
+        logger.debug("TTS 文件数据库初始化完成: GPT=%d, SoVITS=%d, Audio=%d, Text=%d",
                    len(self.tts_files_database['gpt']),
                    len(self.tts_files_database['sovits']),
                    len(self.tts_files_database['audio']),

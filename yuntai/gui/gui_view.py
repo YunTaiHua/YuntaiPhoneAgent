@@ -107,4 +107,4 @@ class GUIView(
         # 创建页面构建器（延迟导入避免循环依赖）
         from yuntai.views.pages import PageBuilder
         self.page_builder = PageBuilder(self)
-        logger.info("GUIView初始化完成")
+        logger.debug("GUIView初始化完成")

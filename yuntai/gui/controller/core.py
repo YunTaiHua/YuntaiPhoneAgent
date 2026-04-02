@@ -213,7 +213,7 @@ class ControllerCore(QObject):
         # 设置设备类型变化回调
         self._setup_device_type_callback()
 
-        logger.info("GUIController 初始化完成")
+        logger.debug("GUIController 初始化完成")
 
     def _setup_callbacks(self):
         """设置 LangChain Callbacks"""

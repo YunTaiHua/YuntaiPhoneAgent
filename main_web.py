@@ -92,7 +92,7 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
-logger.info("CORS 中间件已配置，允许的来源: %s", ALLOWED_ORIGINS)
+logger.debug("CORS 中间件已配置，允许的来源: %s", ALLOWED_ORIGINS)
 
 # 创建WebSocket管理器
 ws_manager = ConnectionManager()
@@ -179,7 +179,7 @@ def main() -> None:
         print(f"📍 局域网访问: http://{local_ip}:8000")
     print("📍 按 Ctrl+C 停止服务器\n")
     
-    logger.info("Web 服务器启动中...")
+    logger.debug("Web 服务器启动中...")
     uvicorn.run(
         app,
         host="0.0.0.0",

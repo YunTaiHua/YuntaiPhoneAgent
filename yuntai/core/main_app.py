@@ -97,7 +97,7 @@ class MainApp:
     def run(self) -> int:
         """运行应用程序"""
         try:
-            logger.info("应用程序启动")
+            logger.debug("应用程序启动")
             return self.app.exec()
         except Exception as e:
             logger.error("GUI 运行错误: %s", str(e), exc_info=True)

@@ -55,7 +55,7 @@ class ConnectionManager:
         await websocket.accept()
         async with self._lock:
             self.active_connections.append(websocket)
-        logger.info(f"WebSocket 连接建立，当前连接数: {len(self.active_connections)}")
+        logger.debug("WebSocket 连接建立，当前连接数: %d", len(self.active_connections))
 
     def is_first_connection(self) -> bool:
         """
@@ -83,7 +83,7 @@ class ConnectionManager:
         async with self._lock:
             if websocket in self.active_connections:
                 self.active_connections.remove(websocket)
-        logger.info(f"WebSocket 连接断开，当前连接数: {len(self.active_connections)}")
+        logger.debug("WebSocket 连接断开，当前连接数: %d", len(self.active_connections))
     
     async def send_personal_message(self, message: dict, websocket: WebSocket) -> None:
         """
