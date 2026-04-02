@@ -22,6 +22,7 @@ import logging
 
 from yuntai.graphs.state import ReplyState
 from yuntai.tools import is_similar
+from phone_agent.events import emit_agent_event
 
 # 配置模块级日志记录器
 logger = logging.getLogger(__name__)
@@ -61,7 +62,7 @@ def check_new_message(state: ReplyState) -> dict[str, object]:
     # 检查是否有对方消息
     if not other_messages:
         logger.debug("没有对方消息")
-        print("⏭️ 没有对方消息")
+        emit_agent_event("status", {"message": "⏭️ 没有对方消息"}, source="yuntai.reply.check_new")
         return {
             "is_new_message": False,
             "latest_message": "",
@@ -90,10 +91,10 @@ def check_new_message(state: ReplyState) -> dict[str, object]:
     # 打印结果
     if is_new:
         logger.info("发现新消息: %s...", latest_new[:50] if len(latest_new) > 50 else latest_new)
-        print(f"💬 发现新消息: {latest_new[:50]}...")
+        emit_agent_event("status", {"message": f"💬 发现新消息: {latest_new[:50]}..."}, source="yuntai.reply.check_new")
     else:
         logger.debug("没有新消息")
-        print("⏭️ 没有新消息")
+        emit_agent_event("status", {"message": "⏭️ 没有新消息"}, source="yuntai.reply.check_new")
     
     return {
         "is_new_message": is_new,

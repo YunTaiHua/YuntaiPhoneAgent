@@ -119,9 +119,8 @@ function handleMessage(data) {
             // 视频生成日志输出
             appendLog('video', data.message || '');
             break;
-        case 'agent_output':
-            // Phone Agent执行输出
-            appendOutput(data.message || '');
+        case 'agent_event':
+            console.log('[agent_event]', data.event || null);
             break;
         // 新增消息类型处理
         case 'devices_detected':

@@ -21,6 +21,7 @@
 import logging
 
 from yuntai.graphs.state import ReplyState
+from phone_agent.events import emit_agent_event
 from yuntai.tools import is_similar
 from yuntai.core.config import SIMILARITY_THRESHOLD
 
@@ -129,7 +130,11 @@ def determine_ownership(state: ReplyState) -> dict[str, list[str]]:
                 logger.debug("消息归类为对方（默认）: %s...", content[:20])
     
     # 打印统计信息
-    print(f"📋 对方消息 {len(other_messages)} 条，我方消息 {len(my_messages)} 条")
+    emit_agent_event(
+        "status",
+        {"message": f"📋 对方消息 {len(other_messages)} 条，我方消息 {len(my_messages)} 条"},
+        source="yuntai.reply.ownership",
+    )
     logger.debug("归属判断完成: 对方 %d 条, 我方 %d 条", len(other_messages), len(my_messages))
     
     return {

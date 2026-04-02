@@ -30,6 +30,7 @@ import threading
 from typing import Literal
 
 from langgraph.graph import StateGraph, END
+from phone_agent.events import emit_agent_event
 
 from yuntai.graphs.state import ReplyState, ReplyStateBuilder
 from yuntai.graphs.nodes import (
@@ -294,9 +295,9 @@ class ReplyGraph:
         logger.info("启动持续回复: APP=%s, 对象=%s, 最大循环=%d", app_name, chat_object, max_cycles)
         
         # 打印启动信息
-        print(f"🔄 启动持续回复流程")
-        print(f"🎯 目标：{app_name} -> {chat_object}")
-        print(f"💡 点击终止按钮结束")
+        emit_agent_event("status", {"message": "🔄 启动持续回复流程"}, source="yuntai.reply_graph")
+        emit_agent_event("status", {"message": f"🎯 目标：{app_name} -> {chat_object}"}, source="yuntai.reply_graph")
+        emit_agent_event("status", {"message": "💡 点击终止按钮结束"}, source="yuntai.reply_graph")
         
         # 清除终止事件
         self.terminate_event.clear()
@@ -328,7 +329,12 @@ class ReplyGraph:
         except Exception as e:
             # 记录错误日志
             logger.error("工作流执行异常: %s", str(e), exc_info=True)
-            print(f"❌ 工作流执行异常: {e}")
+            emit_agent_event(
+                "error",
+                {"message": f"工作流执行异常: {str(e)}"},
+                source="yuntai.reply_graph",
+                level="error",
+            )
             return False, f"执行失败: {str(e)}"
         finally:
             self._running = False

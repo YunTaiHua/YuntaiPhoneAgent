@@ -32,6 +32,7 @@ from yuntai.prompts import (
     PARSE_MESSAGES_PROMPT,
     PARSE_MESSAGES_MAX_LENGTH,
 )
+from phone_agent.events import emit_agent_event
 
 # 配置模块级日志记录器
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ def parse_messages(state: ReplyState) -> dict[str, object]:
     # 检查记录是否为空
     if not records or len(records.strip()) < 10:
         logger.debug("聊天记录为空或过短")
-        print("⏭️ 聊天记录为空")
+        emit_agent_event("status", {"message": "⏭️ 聊天记录为空"}, source="yuntai.reply.parse")
         return {
             "parse_success": False,
             "parsed_messages": [],
@@ -129,7 +130,7 @@ def parse_messages(state: ReplyState) -> dict[str, object]:
                 })
         
         logger.debug("解析成功，消息数: %d", len(parsed_messages))
-        print(f"📋 解析到 {len(parsed_messages)} 条消息")
+        emit_agent_event("status", {"message": f"📋 解析到 {len(parsed_messages)} 条消息"}, source="yuntai.reply.parse")
         
         return {
             "parse_success": True,
@@ -139,7 +140,7 @@ def parse_messages(state: ReplyState) -> dict[str, object]:
     except Exception as e:
         # 解析失败，使用紧急提取方法
         logger.warning("AI 解析失败: %s，使用紧急提取", str(e))
-        print(f"❌ 解析消息失败: {e}")
+        emit_agent_event("error", {"message": f"解析消息失败: {str(e)}"}, source="yuntai.reply.parse", level="error")
         
         return {
             "parse_success": False,

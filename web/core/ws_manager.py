@@ -55,7 +55,6 @@ class ConnectionManager:
         await websocket.accept()
         async with self._lock:
             self.active_connections.append(websocket)
-        print(f"✅ WebSocket连接建立，当前连接数: {len(self.active_connections)}")
         logger.info(f"WebSocket 连接建立，当前连接数: {len(self.active_connections)}")
 
     def is_first_connection(self) -> bool:
@@ -84,7 +83,6 @@ class ConnectionManager:
         async with self._lock:
             if websocket in self.active_connections:
                 self.active_connections.remove(websocket)
-        print(f"❌ WebSocket连接断开，当前连接数: {len(self.active_connections)}")
         logger.info(f"WebSocket 连接断开，当前连接数: {len(self.active_connections)}")
     
     async def send_personal_message(self, message: dict, websocket: WebSocket) -> None:
@@ -102,7 +100,6 @@ class ConnectionManager:
             logger.debug(f"发送个人消息: {message.get('type', 'unknown')}")
         except Exception as e:
             logger.warning(f"发送消息失败: {e}")
-            print(f"发送消息失败: {e}")
     
     async def broadcast(self, message: dict) -> None:
         """

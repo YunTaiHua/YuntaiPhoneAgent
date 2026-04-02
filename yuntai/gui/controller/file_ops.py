@@ -164,7 +164,6 @@ class FileOpsMixin:
             return messages
         except Exception as e:
             logger.warning("获取历史记录失败: %s", str(e))
-            print(f"❌ 获取历史记录失败: {e}")
             return []
 
     def _save_multimodal_chat_history(self, text: str, file_paths: list, reply: str):
@@ -189,4 +188,3 @@ class FileOpsMixin:
             self.task_manager.file_manager.save_conversation_history(session_data)
         except Exception as e:
             logger.warning("保存聊天历史失败: %s", str(e))
-            print(f"❌ 保存聊天历史失败: {e}")

@@ -283,7 +283,7 @@ class SystemHandler(QObject):
                 history_text.setText(text_content)
 
         except Exception as e:
-            print(f"❌ 加载历史数据失败: {e}")
+            logger.error("加载历史数据失败: %s", str(e), exc_info=True)
             import traceback
             traceback.print_exc()
 
@@ -374,7 +374,7 @@ class SystemHandler(QObject):
                         ZHIPU_API_KEY
                     )
                 except Exception as api_error:
-                    print(f"❌ API检查出错: {api_error}")
+                    logger.warning("API检查出错: %s", str(api_error))
                     api_result = False
 
                 dialog.api_result = api_result

@@ -29,6 +29,7 @@ from yuntai.callbacks import get_callback_manager
 from yuntai.prompts import REPLY_NODE_SYSTEM_PROMPT, REPLY_NODE_USER_PROMPT
 from yuntai.tools.similarity import is_similar
 from yuntai.tools.callback_utils import prepare_callbacks
+from phone_agent.events import emit_agent_event
 
 # 配置模块级日志记录器
 logger = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ def generate_reply(
     # 检查消息有效性
     if not latest_message or len(latest_message) < 2:
         logger.debug("消息内容无效")
-        print("⏭️ 消息内容无效")
+        emit_agent_event("status", {"message": "⏭️ 消息内容无效"}, source="yuntai.reply.reply")
         return {"generated_reply": ""}
     
     logger.debug("开始生成回复，最新消息: %s...", latest_message[:50])
@@ -120,23 +121,23 @@ def generate_reply(
         # 检查回复有效性
         if len(reply) < 2:
             logger.debug("未能生成有效回复")
-            print("⏭️ 未能生成有效回复")
+            emit_agent_event("status", {"message": "⏭️ 未能生成有效回复"}, source="yuntai.reply.reply")
             return {"generated_reply": ""}
         
         # 检查是否与上次回复相似
         if last_sent_reply and is_similar(reply, last_sent_reply, 0.7):
             logger.debug("回复与上次相似，跳过")
-            print("⏭️ 回复与上次相似，跳过")
+            emit_agent_event("status", {"message": "⏭️ 回复与上次相似，跳过"}, source="yuntai.reply.reply")
             return {"generated_reply": ""}
         
         # 打印生成的回复
         logger.info("生成回复: %s...", reply[:50])
-        print(f"💬 生成回复: {reply[:50]}...")
+        emit_agent_event("status", {"message": f"💬 生成回复: {reply[:50]}..."}, source="yuntai.reply.reply")
         
         return {"generated_reply": reply}
         
     except Exception as e:
         # 记录错误日志
         logger.error("生成回复失败: %s", str(e), exc_info=True)
-        print(f"❌ 生成回复失败: {e}")
+        emit_agent_event("error", {"message": f"生成回复失败: {str(e)}"}, source="yuntai.reply.reply", level="error")
         return {"generated_reply": ""}

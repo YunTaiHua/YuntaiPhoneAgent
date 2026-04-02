@@ -131,7 +131,7 @@ class TTSHandler(QObject):
             except Exception as e:
                 logger.warning("TTS日志添加异常: %s", e)
         else:
-            print(f"[{time.strftime('%H:%M:%S')}] {msg}")
+            logger.info("[%s] %s", time.strftime('%H:%M:%S'), msg)
 
     def show_panel(self):
         """显示TTS语音合成页面"""

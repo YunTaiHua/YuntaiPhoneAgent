@@ -225,7 +225,10 @@ class JudgementAgent:
             logger.warning("AI 判断失败: %s，使用后备判断", str(e))
         
         # 使用后备判断逻辑
-        print(f"任务判断失败: {e}" if 'e' in dir() else "任务判断失败，使用后备判断")
+        if 'e' in dir():
+            logger.warning("任务判断失败: %s", str(e))
+        else:
+            logger.warning("任务判断失败，使用后备判断")
         return self._fallback_judge(user_input)
     
     def _fallback_judge(self, user_input: str) -> TaskJudgementResult:

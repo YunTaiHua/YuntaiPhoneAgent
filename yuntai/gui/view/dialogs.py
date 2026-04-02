@@ -15,6 +15,10 @@ from PyQt6.QtGui import QFont, QCursor
 
 from yuntai.gui.styles import ThemeCorner, ThemeFonts
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class DialogsMixin:
     """
@@ -56,7 +60,7 @@ class DialogsMixin:
         # 获取文件列表滚动框架
         files_scroll_frame = self.get_component("files_list_scroll_frame")
         if not files_scroll_frame:
-            print("⚠️  未找到files_list_scroll_frame组件")
+            logger.warning("未找到 files_list_scroll_frame 组件")
             return
 
         # 清空现有文件显示

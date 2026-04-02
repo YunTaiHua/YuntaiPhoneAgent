@@ -96,6 +96,5 @@ class LoadingOverlayMixin:
 
     def resizeEvent(self, event):
         """窗口大小改变时调整遮罩层大小"""
-        super().resizeEvent(event)
         if hasattr(self, 'tts_loading_overlay'):
-            self.tts_loading_overlay.setGeometry(self.geometry())
+            self.tts_loading_overlay.setGeometry(0, 0, self.width(), self.height())

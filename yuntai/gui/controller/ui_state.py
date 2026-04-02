@@ -102,7 +102,6 @@ class UIStateMixin:
             self.clear_attached_files()
         except Exception as e:
             logger.error("清理文件失败: %s", str(e))
-            print(f"❌ 清理文件失败: {e}")
 
     # ============ TTS 指示器更新 ============
 

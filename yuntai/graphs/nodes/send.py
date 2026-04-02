@@ -21,6 +21,7 @@ import logging
 
 from yuntai.graphs.state import ReplyState
 from yuntai.graphs.nodes.extract import _get_phone_agent
+from phone_agent.events import emit_agent_event
 
 # 配置模块级日志记录器
 logger = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ def send_message(state: ReplyState) -> dict[str, bool]:
         return {"send_success": False}
     
     logger.info("准备发送回复: %s...", reply[:50])
-    print(f"📤 准备发送回复: {reply[:50]}...")
+    emit_agent_event("status", {"message": f"📤 准备发送回复: {reply[:50]}..."}, source="yuntai.reply.send")
     
     # 获取 PhoneAgent 实例
     agent = _get_phone_agent(device_id)
@@ -80,9 +81,9 @@ def send_message(state: ReplyState) -> dict[str, bool]:
     
     if success:
         logger.info("回复发送成功")
-        print("✅ 回复已发送")
+        emit_agent_event("status", {"message": "✅ 回复已发送"}, source="yuntai.reply.send")
     else:
         logger.error("回复发送失败: %s", result)
-        print(f"❌ 回复发送失败: {result}")
+        emit_agent_event("error", {"message": f"回复发送失败: {result}"}, source="yuntai.reply.send", level="error")
     
     return {"send_success": success}

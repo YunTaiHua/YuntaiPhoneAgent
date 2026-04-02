@@ -23,11 +23,74 @@ import asyncio
 import threading
 import datetime
 import traceback
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from phone_agent.events import get_global_event_emitter
+
+logger = logging.getLogger(__name__)
+
+DIVIDER = "═" * 50
+
+
+def _is_content_event(event_type: str) -> bool:
+    return event_type in {
+        "thinking_chunk",
+        "action_decoded",
+        "performance_metric",
+        "result",
+        "error",
+    }
+
+
+def _format_action_lines(action: dict) -> str:
+    if not isinstance(action, dict):
+        return str(action)
+    lines = []
+    for key, value in action.items():
+        lines.append(f"{key}: {value}")
+    return "\n".join(lines)
+
 if TYPE_CHECKING:
     from ..controller import WebController
+
+
+def _format_agent_event_text(event: dict) -> str:
+    """Fallback text renderer for structured events."""
+    event_type = event.get("type", "")
+    payload = event.get("payload", {}) or {}
+    if event_type == "thinking_chunk":
+        return payload.get("text", "")
+    if event_type == "thinking_complete":
+        return "\n"
+    if event_type == "task_type":
+        task_type = payload.get("task_type", "")
+        if task_type == "free_chat":
+            return f"📋 任务类型: {task_type}\n"
+        return f"📋 任务类型: {task_type}\n\n{DIVIDER}\n💭 思考过程\n{DIVIDER}\n"
+    if event_type == "run_started":
+        return ""
+    if event_type == "action_decoded":
+        action = payload.get("action", {})
+        action_text = _format_action_lines(action)
+        return f"\n{DIVIDER}\n🎯 动作\n{DIVIDER}\n{action_text}\n"
+    if event_type == "action_executed":
+        return ""
+    if event_type == "performance_metric":
+        if payload.get("name") == "label":
+            return f"\n{DIVIDER}\n⏱️  性能指标\n{DIVIDER}\n"
+        return f"{payload.get('label', payload.get('name', 'metric'))}: {payload.get('value', '')}{payload.get('unit', '')}\n"
+    if event_type == "result":
+        msg = payload.get("message", "")
+        return f"\n🎉 结果：{msg}\n" if msg else ""
+    if event_type == "error":
+        return f"❌ 错误：{payload.get('message', '')}\n"
+    if event_type == "status":
+        return f"{payload.get('message', '')}\n"
+    if event_type == "run_finished":
+        return ""
+    return ""
 
 
 async def handle_command(websocket, data: dict, controller: "WebController"):
@@ -70,11 +133,25 @@ async def handle_command(websocket, data: dict, controller: "WebController"):
         await controller.send_output(f"💭 指令: {command}\n", "output")
 
     loop = asyncio.get_event_loop()
+    emitter = get_global_event_emitter()
+
+    def on_agent_event(event: dict):
+        asyncio.run_coroutine_threadsafe(controller.send_agent_event(event), loop)
+        text = _format_agent_event_text(event)
+        if text:
+            asyncio.run_coroutine_threadsafe(controller.send_output(text, "output"), loop)
 
     def run_command():
         result_text = ""
-        # 启动输出捕获
-        controller.output_capture.start_capture(loop)
+        event_seen = False
+
+        def on_agent_event_with_flag(event: dict):
+            nonlocal event_seen
+            if _is_content_event(event.get("type", "")):
+                event_seen = True
+            on_agent_event(event)
+
+        emitter.on(on_agent_event_with_flag)
         try:
             if has_attachments:
                 result = handle_multimodal_chat(command, controller.attached_files, controller, loop)
@@ -100,8 +177,6 @@ async def handle_command(websocket, data: dict, controller: "WebController"):
                                 }), loop)
 
                             def run_continuous_reply():
-                                # 在持续回复线程中启动输出捕获
-                                controller.output_capture.start_capture(loop)
                                 try:
                                     # 直接调用continuous_reply而不是start_continuous_reply_async
                                     # 因为start_continuous_reply_async会创建新线程导致外层线程提前结束
@@ -109,10 +184,18 @@ async def handle_command(websocket, data: dict, controller: "WebController"):
                                         app_name, chat_object, max_cycles=100
                                     )
                                 except Exception as e:
-                                    print(f"❌ 持续回复错误: {str(e)}")
+                                    logger.error("持续回复错误: %s", str(e), exc_info=True)
+                                    asyncio.run_coroutine_threadsafe(
+                                        controller.send_agent_event({
+                                            "type": "error",
+                                            "source": "web.command_handler",
+                                            "level": "error",
+                                            "payload": {"message": f"持续回复错误: {str(e)}"}
+                                        }),
+                                        loop,
+                                    )
                                 finally:
-                                    # 持续回复结束后停止输出捕获
-                                    controller.output_capture.stop_capture()
+                                    emitter.off(on_agent_event_with_flag)
                                     controller.is_continuous_mode = False
                                     asyncio.run_coroutine_threadsafe(
                                         controller.send_state_update({
@@ -138,17 +221,22 @@ async def handle_command(websocket, data: dict, controller: "WebController"):
             result_text = f"❌ 错误：{str(e)}"
 
         finally:
-            # 输出结果或错误（在停止输出捕获之前）
-            # 多模态处理已在内部流式输出，无需重复打印
-            if result_text and not has_attachments:
-                if result_text.startswith("❌"):
-                    print(result_text)
-                else:
-                    print(f"🎉 结果：{result_text}")
-
-            # 如果不是持续回复模式，停止输出捕获
             if not controller.is_continuous_mode:
-                controller.output_capture.stop_capture()
+                emitter.off(on_agent_event_with_flag)
+            if result_text and not has_attachments and not event_seen:
+                fallback_text = result_text if result_text.startswith("❌") else f"🎉 结果：{result_text}\n"
+                asyncio.run_coroutine_threadsafe(
+                    controller.send_agent_event({
+                        "type": "result" if not result_text.startswith("❌") else "error",
+                        "source": "web.command_handler",
+                        "level": "error" if result_text.startswith("❌") else "info",
+                        "payload": {
+                            "message": result_text if result_text.startswith("❌") else result_text
+                        },
+                    }),
+                    loop,
+                )
+                asyncio.run_coroutine_threadsafe(controller.send_output(fallback_text, "output"), loop)
 
             controller.attached_files.clear()
             if not controller.is_continuous_mode:
@@ -190,12 +278,21 @@ def handle_multimodal_chat(text: str, file_paths: list, controller: "WebControll
         asyncio.run_coroutine_threadsafe(
             controller.send_output("🖼️ 正在处理多模态内容...\n", "output"), loop)
 
+        def on_info(text: str):
+            asyncio.run_coroutine_threadsafe(controller.send_output(text, "output"), loop)
+
+        def on_token(text: str):
+            asyncio.run_coroutine_threadsafe(controller.send_output(text, "output"), loop)
+
         success, response, _ = processor.process_with_files(
             text=text, file_paths=valid_files, history=[],
-            temperature=0.7, max_tokens=2000
+            temperature=0.7, max_tokens=2000,
+            on_token=on_token,
+            on_info=on_info,
         )
 
         if success:
+            asyncio.run_coroutine_threadsafe(controller.send_output(f"🎉 结果：{response}\n", "output"), loop)
             # TTS播报
             if controller.tts_enabled and len(response) > 5:
                 try:
@@ -203,7 +300,7 @@ def handle_multimodal_chat(text: str, file_paths: list, controller: "WebControll
                         controller.send_output("🔊 正在播报回复...\n", "output"), loop)
                     controller.task_manager.tts_manager.speak_text_intelligently(response)
                 except Exception as e:
-                    print(f"TTS播报失败: {e}")
+                    logger.warning("TTS播报失败: %s", str(e))
 
         return response if success else f"❌ 多模态分析失败: {response}"
     except Exception as e:

@@ -42,7 +42,6 @@ from yuntai.handlers import ConnectionHandler, TTSHandler, DynamicHandler, Syste
 # PyQt6 GUI
 from yuntai.gui.gui_view import GUIView
 from yuntai.gui.styles import ThemeColors
-from yuntai.gui.output_capture import SimpleOutputCapture
 
 
 class CommandMixin:
@@ -78,10 +77,7 @@ class CommandMixin:
 
         output_text = self.view.get_component("output_text")
         if output_text:
-            if not self.output_capture:
-                self.output_capture = SimpleOutputCapture(output_text, self.view.is_dark_theme)
-            elif self.output_capture.text_widget != output_text:
-                self.output_capture.set_text_widget(output_text)
+            self._append_output("")
 
         self.is_executing = True
         self._disable_execute_button()
@@ -90,26 +86,28 @@ class CommandMixin:
         def run_command():
             try:
                 timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                print(f"\n{'═' * 9} [{timestamp} 对话开始] {'═' * 9}\n")
+                self._append_output(f"\n{'═' * 9} [{timestamp} 对话开始] {'═' * 9}\n")
                 if has_attachments:
-                    print(f"💭 多模态指令: {command if command else '[无文本]'}")
-                    print(f"📌 附件数量: {len(self.attached_files)} 个文件")
+                    self._append_output(f"💭 多模态指令: {command if command else '[无文本]'}\n")
+                    self._append_output(f"📌 附件数量: {len(self.attached_files)} 个文件\n")
                 else:
-                    print(f"💭 指令: {command}")
+                    self._append_output(f"💭 指令: {command}\n")
 
                 if not has_attachments and not self.task_manager.is_connected:
                     task_result = self.judgement_agent.judge(command)
                     task_type = task_result.task_type
                     if task_type != "free_chat":
-                        print(f"❌ 设备未连接，请先连接设备")
+                        self._append_output("❌ 设备未连接，请先连接设备\n")
                         return
 
                 result = None
+                task_type = None
                 if has_attachments:
                     result = self._handle_multimodal_chat(command, self.attached_files)
                 else:
                     self._sync_device_to_task_chain()
                     result, task_info = self.task_chain.process(command)
+                    task_type = task_info.get("task_type") if task_info else None
 
                 # 持续回复处理
                 if result and isinstance(result, str) and "🔄CONTINUOUS_REPLY:" in result:
@@ -118,7 +116,7 @@ class CommandMixin:
                         if len(parts) == 2:
                             target_app, target_object = parts
                             if not self.task_manager.is_connected:
-                                print(f"❌ 设备未连接，无法启动持续回复")
+                                self._append_output("❌ 设备未连接，无法启动持续回复\n")
                                 return
                             self.start_continuous_reply_thread(
                                 self.task_manager.task_args, target_app, target_object, self.task_manager.device_id
@@ -126,19 +124,22 @@ class CommandMixin:
                             return
                     except Exception as e:
                         logger.error("解析持续回复标记失败: %s", str(e))
-                        print(f"❌ 解析持续回复标记失败: {e}")
+                        self._append_output(f"❌ 解析持续回复标记失败: {e}\n")
                         result = f"❌ 解析持续回复参数失败: {str(e)}"
 
-                if result:
-                    print(f"🎉 结果：{result}")
+                if result and "🔄CONTINUOUS_REPLY:" not in str(result):
+                    if task_type == "free_chat":
+                        self._append_output(f"🎉 结果：{result}\n")
+                    elif has_attachments:
+                        self._append_output(f"🎉 结果：{result}\n")
 
                 if "持续回复模式" in str(result) or "continuous_reply" in str(result).lower():
-                    print(f"🔄 检测到持续回复模式，保持按钮状态")
+                    self._append_output("🔄 检测到持续回复模式，保持按钮状态\n")
                     return
 
             except Exception as e:
                 logger.error("命令执行错误: %s", str(e), exc_info=True)
-                print(f"❌ 错误：{str(e)}")
+                self._append_output(f"❌ 错误：{str(e)}\n")
                 traceback.print_exc()
             finally:
                 # 使用信号槽清理附件文件
@@ -167,8 +168,8 @@ class CommandMixin:
             处理结果
         """
         logger.info("处理多模态聊天，文件数: %d", len(file_paths))
-        print(f"📋 文本: {text}")
-        print(f"📌 附件: {len(file_paths)} 个文件")
+        self._append_output(f"📋 文本: {text}\n")
+        self._append_output(f"📌 附件: {len(file_paths)} 个文件\n")
 
         try:
             if not file_paths or len(file_paths) == 0:
@@ -179,7 +180,7 @@ class CommandMixin:
                 if Path(file_path).exists():
                     valid_files.append(file_path)
                 else:
-                    print(f"⚠️  文件不存在: {file_path}")
+                    self._append_output(f"⚠️  文件不存在: {file_path}\n")
 
             if len(valid_files) == 0:
                 return "没有有效的文件"
@@ -192,11 +193,13 @@ class CommandMixin:
 
             success, response, audio_result = self.multimodal_processor.process_with_files(
                 text=text, file_paths=valid_files, history=history,
-                temperature=0.7, max_tokens=2000
+                temperature=0.7, max_tokens=2000,
+                on_token=self._append_output,
+                on_info=self._append_output,
             )
 
             if success:
-                print(f"✅ 多模态分析完成")
+                self._append_output("✅ 多模态分析完成\n")
                 if audio_result:
                     audio_transcription = audio_result.get("audio_transcription", "")
                     if audio_transcription:
@@ -210,20 +213,20 @@ class CommandMixin:
                             self.task_manager.tts_manager.speak_text_intelligently(response)
                         except Exception as e:
                             logger.warning("语音播报失败: %s", str(e))
-                            print(f"❌ 语音播报失败: {e}")
+                            self._append_output(f"❌ 语音播报失败: {e}\n")
 
                     threading.Timer(0.5, speak_reply).start()
 
-                return ""
+                return response
             else:
                 error_msg = f"❌ 多模态分析失败: {response}"
-                print(error_msg)
+                self._append_output(f"{error_msg}\n")
                 return error_msg
 
         except Exception as e:
             error_msg = f"❌ 多模态处理失败: {str(e)}"
             logger.error("多模态处理失败: %s", str(e), exc_info=True)
-            print(error_msg)
+            self._append_output(f"{error_msg}\n")
             traceback.print_exc()
             return error_msg
 
@@ -249,18 +252,18 @@ class CommandMixin:
         logger.info("启动持续回复线程: %s -> %s", target_app, target_object)
 
         if self.is_continuous_mode:
-            print("⚠️  已经有持续回复在运行")
+            self._append_output("⚠️  已经有持续回复在运行\n")
             return
 
         self.is_continuous_mode = True
         self.terminate_flag.clear()
         self._disable_execute_button()
         self._enable_terminate_button()
-        print(f"🔄 启动持续回复模式: {target_app} -> {target_object}")
+        self._append_output(f"🔄 启动持续回复模式: {target_app} -> {target_object}\n")
 
         def continuous_reply_loop():
             try:
-                print(f"🚀 持续回复线程启动: {target_app} -> {target_object}")
+                self._append_output(f"🚀 持续回复线程启动: {target_app} -> {target_object}\n")
 
                 self._current_reply_chain = ReplyChain(
                     device_id=device_id,
@@ -273,13 +276,13 @@ class CommandMixin:
                 )
 
                 if success:
-                    print(f"✅ {result}")
+                    self._append_output(f"✅ {result}\n")
                 else:
-                    print(f"⏹️  {result}")
+                    self._append_output(f"⏹️  {result}\n")
 
             except Exception as e:
                 logger.error("持续回复错误: %s", str(e), exc_info=True)
-                print(f"❌ 持续回复错误：{str(e)}")
+                self._append_output(f"❌ 持续回复错误：{str(e)}\n")
             finally:
                 self.is_continuous_mode = False
                 self.terminate_flag.clear()
@@ -301,8 +304,8 @@ class CommandMixin:
         logger.info("终止当前操作")
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"\n{'═' * 9} [{timestamp} 操作终止] {'═' * 9}")
-        print("🛑 正在发送终止信号...\n")
+        self._append_output(f"\n{'═' * 9} [{timestamp} 操作终止] {'═' * 9}\n")
+        self._append_output("🛑 正在发送终止信号...\n")
 
         self._cleanup_active_threads()
 
@@ -323,23 +326,23 @@ class CommandMixin:
         self._disable_terminate_button()
 
         if self.is_continuous_mode:
-            print(f"\n🛑 正在终止持续回复模式...")
+            self._append_output("\n🛑 正在终止持续回复模式...\n")
         else:
-            print(f"\n🛑 正在终止当前任务...")
+            self._append_output("\n🛑 正在终止当前任务...\n")
         self.show_toast("已发送终止信号", "warning")
 
     def simulate_enter(self):
         """模拟回车键效果"""
         logger.debug("模拟回车键")
-        print("[用户点击模拟回车按钮]")
+        self._append_output("[用户点击模拟回车按钮]\n")
         try:
             from yuntai.core.agent_executor import AgentExecutor
             AgentExecutor.user_confirm()
         except Exception as e:
             logger.warning("发送确认信号失败: %s", str(e))
-            print(f"⚠️  发送确认信号失败: {e}")
+            self._append_output(f"⚠️  发送确认信号失败: {e}\n")
 
-        print("[用户已确认]")
+        self._append_output("[用户已确认]\n")
 
     def clear_output(self):
         """清空输出区域"""

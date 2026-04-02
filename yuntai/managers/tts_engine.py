@@ -155,7 +155,7 @@ class TTSEngine:
             return True, "模块已加载"
 
         try:
-            print("📦 正在加载TTS模块...")
+            logger.info("正在加载TTS模块")
 
             self._setup_environment()
             self._setup_model_paths()
@@ -165,16 +165,16 @@ class TTSEngine:
                 try:
                     self._load_custom_tts_modules()
                 except Exception as e:
-                    print(f"⚠️  自定义TTS不可用，降级到原始版本: {e}")
+                    logger.warning("自定义TTS不可用，降级到原始版本: %s", str(e))
                     self._load_original_tts_modules()
 
             self.tts_modules_loaded = True
             self.tts_available = True
-            print("✅ TTS模块加载成功")
+            logger.info("TTS模块加载成功")
 
             return True, "模块加载成功"
         except Exception as e:
-            print(f"❌ TTS模块加载失败: {e}")
+            logger.error("TTS模块加载失败: %s", str(e))
             self.tts_available = False
             return False, f"模块加载失败：{str(e)}"
 
@@ -207,27 +207,27 @@ class TTSEngine:
         # 设置BERT模型路径
         if self.bert_model_path and self.bert_model_path.exists():
             os.environ["bert_path"] = str(self.bert_model_path)
-            print("✅ BERT模型路径已设置")
+            logger.info("BERT模型路径已设置")
             logger.debug("BERT模型路径: %s", self.bert_model_path)
 
         # 设置HuBERT模型路径
         if self.hubert_model_path and self.hubert_model_path.exists():
             os.environ["cnhubert_base_path"] = str(self.hubert_model_path)
-            print("✅ HuBERT模型路径已设置")
+            logger.info("HuBERT模型路径已设置")
             logger.debug("HuBERT模型路径: %s", self.hubert_model_path)
 
         # 设置默认GPT模型路径
         if self.database_manager.tts_files_database["gpt"]:
             first_gpt = list(self.database_manager.tts_files_database["gpt"].values())[0]
             os.environ["gpt_path"] = first_gpt
-            print(f"📌 默认GPT模型: {Path(first_gpt).name}")
+            logger.info("默认GPT模型: %s", Path(first_gpt).name)
             logger.debug("默认GPT模型: %s", first_gpt)
 
         # 设置默认SoVITS模型路径
         if self.database_manager.tts_files_database["sovits"]:
             first_sovits = list(self.database_manager.tts_files_database["sovits"].values())[0]
             os.environ["sovits_path"] = first_sovits
-            print(f"📌 默认SoVITS模型: {Path(first_sovits).name}")
+            logger.info("默认SoVITS模型: %s", Path(first_sovits).name)
             logger.debug("默认SoVITS模型: %s", first_sovits)
 
     def _setup_tts_config(self) -> None:
@@ -252,7 +252,7 @@ class TTSEngine:
         self.tts_modules['change_sovits_weights'] = change_sovits_weights
         self.tts_modules['get_tts_wav'] = get_tts_wav
         self.tts_modules['i18n'] = I18nAuto()
-        print("✅ 使用自定义TTS模块（已移除冗余输出）")
+        logger.info("使用自定义TTS模块")
 
     def _load_original_tts_modules(self) -> None:
         """加载原始TTS模块"""
@@ -327,7 +327,7 @@ class TTSEngine:
                 with self.is_tts_synthesizing_lock:
                     if self.is_tts_synthesizing:
                         if attempt < max_retries:
-                            print(f"🔄 第{attempt + 1}次重试: TTS正在合成中，等待{retry_delay}秒...")
+                            logger.info("第%d次重试: TTS正在合成中，等待%d秒", attempt + 1, retry_delay)
                             time.sleep(retry_delay)
                             continue
                         else:
@@ -340,14 +340,14 @@ class TTSEngine:
                 if success:
                     return True, result
                 elif "合成中" in result and attempt < max_retries:
-                    print(f"🔄 第{attempt + 1}次重试: {result}")
+                    logger.info("第%d次重试: %s", attempt + 1, result)
                     time.sleep(retry_delay)
                 else:
                     return success, result
 
             except Exception as e:
                 if attempt < max_retries:
-                    print(f"🔄 第{attempt + 1}次重试: 异常 {e}")
+                    logger.warning("第%d次重试异常: %s", attempt + 1, str(e))
                     time.sleep(retry_delay)
                 else:
                     return False, f"合成异常: {str(e)}"
@@ -404,12 +404,12 @@ class TTSEngine:
             cleaned_text = self.text_processor.clean_text_for_tts(text)
 
             if not cleaned_text or len(cleaned_text) < 5:
-                print(f"⚠️  清理后的文本过短（长度: {len(cleaned_text) if cleaned_text else 0}），使用默认文本")
+                logger.warning("清理后的文本过短（长度: %d），使用默认文本", len(cleaned_text) if cleaned_text else 0)
                 cleaned_text = "你好，我是小芸，很高兴为您服务"
 
             chinese_char_count = len([c for c in cleaned_text if '\u4e00' <= c <= '\u9fff'])
             if chinese_char_count < 2:
-                print(f"⚠️  文本中文字符过少（{chinese_char_count}个），使用默认文本")
+                logger.warning("文本中文字符过少（%d个），使用默认文本", chinese_char_count)
                 cleaned_text = "你好，我是小芸，很高兴为您服务"
 
             synthesis_result = self._execute_synthesis(
@@ -425,7 +425,7 @@ class TTSEngine:
 
         except Exception as e:
             error_msg = f"合成出错：{str(e)}"
-            print(f"❌ TTS合成错误详情: {error_msg}")
+            logger.error("TTS合成错误详情: %s", error_msg)
             import traceback
             traceback.print_exc()
             return False, error_msg

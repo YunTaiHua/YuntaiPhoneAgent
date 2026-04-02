@@ -26,6 +26,7 @@ import time
 import threading
 
 from yuntai.graphs.state import ReplyState
+from phone_agent.events import emit_agent_event
 
 # 配置模块级日志记录器
 logger = logging.getLogger(__name__)
@@ -97,7 +98,7 @@ def check_continue(state: ReplyState) -> dict[str, bool]:
     # 检查终止信号
     if check_terminate() or state.get("terminate_flag"):
         logger.info("检测到终止信号，正在退出...")
-        print("🛑 检测到终止信号，正在退出...")
+        emit_agent_event("status", {"message": "🛑 检测到终止信号，正在退出..."}, source="yuntai.reply.control")
         return {
             "should_continue": False,
             "terminate_flag": True
@@ -106,7 +107,7 @@ def check_continue(state: ReplyState) -> dict[str, bool]:
     # 检查是否达到最大循环次数
     if cycle_count >= max_cycles:
         logger.info("达到最大循环次数: %d", max_cycles)
-        print(f"📊 达到最大循环次数 {max_cycles}")
+        emit_agent_event("status", {"message": f"📊 达到最大循环次数 {max_cycles}"}, source="yuntai.reply.control")
         return {"should_continue": False}
     
     # 继续执行
@@ -140,7 +141,7 @@ def do_wait(state: ReplyState) -> dict[str, object]:
     wait_seconds = state.get("wait_seconds", 1)
     
     logger.debug("等待 %d 秒", wait_seconds)
-    print(f"⏳ 等待 {wait_seconds} 秒...")
+    emit_agent_event("status", {"message": f"⏳ 等待 {wait_seconds} 秒..."}, source="yuntai.reply.control")
     
     # 分段等待，便于响应终止信号
     for _ in range(wait_seconds):

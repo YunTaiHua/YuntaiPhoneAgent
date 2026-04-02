@@ -299,7 +299,7 @@ def setup_routes(
                     "device_type": config.get("device_type", "android")
                 })
         except Exception as e:
-            print(f"读取连接配置失败: {e}")
+            logger.warning("读取连接配置失败: %s", str(e))
         return JSONResponse(content={})
 
     @app.post("/api/upload")
@@ -509,5 +509,4 @@ def setup_routes(
             await ws_manager.disconnect(websocket)
         except Exception as e:
             logger.exception("WebSocket 错误: %s", str(e))
-            print(f"WebSocket错误: {e}")
             await ws_manager.disconnect(websocket)

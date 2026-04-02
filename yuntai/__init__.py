@@ -155,11 +155,6 @@ def __getattr__(name: str):
         from yuntai.core.main_app import MainApp
         logger.debug("延迟导入 MainApp")
         return MainApp
-    # 输出捕获器延迟导入
-    elif name == 'SimpleOutputCapture':
-        from yuntai.gui.output_capture import SimpleOutputCapture
-        logger.debug("延迟导入 SimpleOutputCapture")
-        return SimpleOutputCapture
     # 多模态处理器延迟导入
     elif name == 'MultimodalProcessor':
         from yuntai.processors.multimodal_processor import MultimodalProcessor
@@ -208,7 +203,6 @@ __all__ = [
     "GUIController",
     "TaskManager",
     "MainApp",
-    "SimpleOutputCapture",
 
     # 工具函数
     "load_synthesized_files",

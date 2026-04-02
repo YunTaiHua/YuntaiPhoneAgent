@@ -83,13 +83,13 @@ class TTSDatabaseManager:
         Returns:
             初始化成功返回 True
         """
-        print("🔍 初始化TTS文件数据库...")
+        logger.info("初始化TTS文件数据库")
         logger.info("开始初始化 TTS 文件数据库")
 
         for dir_key in ["gpt_model_dir", "sovits_model_dir", "ref_audio_root", "output_path"]:
             dir_path = Path(self.default_tts_config[dir_key])
             dir_path.mkdir(parents=True, exist_ok=True)
-            print(f"📁 确保目录存在: {dir_path}")
+            logger.info("确保目录存在: %s", dir_path)
             logger.debug("确保目录存在: %s", dir_path)
 
         self.tts_files_database["gpt"] = {}
@@ -99,7 +99,6 @@ class TTSDatabaseManager:
                 abs_path = ckpt_file.resolve()
                 self.tts_files_database["gpt"][ckpt_file.name] = str(abs_path)
         else:
-            print(f"⚠️  GPT模型目录不存在: {gpt_model_dir}")
             logger.warning("GPT 模型目录不存在: %s", gpt_model_dir)
 
         self.tts_files_database["sovits"] = {}
@@ -109,7 +108,6 @@ class TTSDatabaseManager:
                 abs_path = pth_file.resolve()
                 self.tts_files_database["sovits"][pth_file.name] = str(abs_path)
         else:
-            print(f"⚠️  SoVITS模型目录不存在: {sovits_model_dir}")
             logger.warning("SoVITS 模型目录不存在: %s", sovits_model_dir)
 
         self.tts_files_database["audio"] = {}
@@ -120,7 +118,6 @@ class TTSDatabaseManager:
                     abs_path = audio_file.resolve()
                     self.tts_files_database["audio"][audio_file.name] = str(abs_path)
         else:
-            print(f"⚠️  参考音频目录不存在: {ref_audio_root}")
             logger.warning("参考音频目录不存在: %s", ref_audio_root)
 
         self.tts_files_database["text"] = {}
@@ -130,14 +127,8 @@ class TTSDatabaseManager:
                 abs_path = text_file.resolve()
                 self.tts_files_database["text"][text_file.name] = str(abs_path)
         else:
-            print(f"⚠️  参考文本目录不存在: {ref_text_root}")
             logger.warning("参考文本目录不存在: %s", ref_text_root)
 
-        print("✅ 文件数据库初始化完成:")
-        print(f"   - GPT模型: {len(self.tts_files_database['gpt'])} 个")
-        print(f"   - SoVITS模型: {len(self.tts_files_database['sovits'])} 个")
-        print(f"   - 参考音频: {len(self.tts_files_database['audio'])} 个")
-        print(f"   - 参考文本: {len(self.tts_files_database['text'])} 个")
         logger.info("TTS 文件数据库初始化完成: GPT=%d, SoVITS=%d, Audio=%d, Text=%d",
                    len(self.tts_files_database['gpt']),
                    len(self.tts_files_database['sovits']),
@@ -172,7 +163,6 @@ class TTSDatabaseManager:
                 logger.debug("从文件读取文本并缓存: %s", file_path)
                 return content
             except IOError as e:
-                print(f"❌ 读取文本文件失败: {file_path}, {e}")
                 logger.error("读取文本文件失败: %s, %s", file_path, str(e))
                 raise
 

@@ -669,7 +669,7 @@ class ConnectionHandler(QObject):
                         if process in self.controller.active_subprocesses:
                             self.controller.active_subprocesses.remove(process)
                     except Exception as e:
-                        print(f"启动scrcpy失败: {e}")
+                        logger.error("启动scrcpy失败: %s", str(e), exc_info=True)
                         self.controller.show_toast(f"启动失败: {str(e)}", "error")
 
                 threading.Thread(target=run_scrcpy, daemon=True).start()

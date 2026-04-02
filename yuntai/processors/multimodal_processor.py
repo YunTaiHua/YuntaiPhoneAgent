@@ -192,7 +192,8 @@ class MultimodalProcessor:
             self,
             text: str,
             file_paths: list[str] | None = None,
-            history: list[dict] | None = None
+            history: list[dict] | None = None,
+            on_info=None,
     ) -> tuple[list[dict], dict | None]:
         """
         准备多模态消息
@@ -226,7 +227,8 @@ class MultimodalProcessor:
                     file_type, mime_type = self.get_file_type(file_path)
                     file_name = Path(file_path).name
 
-                    print(f"📄 准备文件: {file_name} (类型: {file_type})")
+                    if on_info:
+                        on_info(f"📄 准备文件: {file_name} (类型: {file_type})\n")
                     logger.debug("准备文件: %s, 类型: %s", file_name, file_type)
 
                     if file_type == "video":
@@ -251,7 +253,8 @@ class MultimodalProcessor:
                                     "type": "text",
                                     "text": audio_text
                                 })
-                                print(f"✅ 已添加视频+音频内容")
+                                if on_info:
+                                    on_info("✅ 已添加视频+音频内容\n")
                         else:
                             logger.warning("音频处理失败，仅使用视频: %s", result.get('error', 'unknown error'))
                             current_message["content"].append({
@@ -333,7 +336,9 @@ class MultimodalProcessor:
             file_paths: list[str] | None = None,
             history: list[dict] | None = None,
             temperature: float = 0.7,
-            max_tokens: int = 2000
+            max_tokens: int = 2000,
+            on_token=None,
+            on_info=None,
     ) -> tuple[bool, str, dict | None]:
         """
         使用多模态模型处理多模态输入
@@ -365,20 +370,23 @@ class MultimodalProcessor:
                     else:
                         size_mb = file_size / 1024 / 1024
                         max_mb = self.max_file_size / 1024 / 1024
-                        print(f"⚠️  文件太大，跳过: {path.name} ({size_mb:.1f}MB > {max_mb:.1f}MB)")
+                        if on_info:
+                            on_info(f"⚠️  文件太大，跳过: {path.name} ({size_mb:.1f}MB > {max_mb:.1f}MB)\n")
                         logger.warning("文件太大，跳过: %s (%.1fMB > %.1fMB)", path.name, size_mb, max_mb)
                 else:
-                    print(f"⚠️  不支持的文件类型，跳过: {Path(file_path).name}")
+                    if on_info:
+                        on_info(f"⚠️  不支持的文件类型，跳过: {Path(file_path).name}\n")
                     logger.warning("不支持的文件类型，跳过: %s", Path(file_path).name)
 
             if not valid_file_paths:
                 return False, "没有有效的支持文件", None
 
-            print(f"📄 有效文件: {len(valid_file_paths)} 个")
-            print(f"📊 文件类型分布: {', '.join(set(file_types))}")
+            if on_info:
+                on_info(f"📄 有效文件: {len(valid_file_paths)} 个\n")
+                on_info(f"📊 文件类型分布: {', '.join(set(file_types))}\n")
             logger.info("处理文件: %d 个, 类型: %s", len(valid_file_paths), set(file_types))
 
-            messages, audio_result = self.prepare_multimodal_messages(text, valid_file_paths, history)
+            messages, audio_result = self.prepare_multimodal_messages(text, valid_file_paths, history, on_info=on_info)
 
             try:
                 stream = self.client.chat.completions.create(
@@ -398,8 +406,8 @@ class MultimodalProcessor:
                         if chunk.choices[0].delta.content is not None:
                             content = chunk.choices[0].delta.content
                             response_text += content
-                            print(content, end="", flush=True)
-                print()
+                            if on_token:
+                                on_token(content)
 
                 if audio_result and self.audio_processor:
                     audio_processor = self.get_audio_processor()
@@ -410,7 +418,8 @@ class MultimodalProcessor:
 
             except Exception as api_error:
                 error_msg = str(api_error)
-                print(f"❌ API调用失败: {error_msg}")
+                if on_info:
+                    on_info(f"❌ API调用失败: {error_msg}\n")
                 logger.error("API调用失败: %s", str(api_error))
 
                 if "Invalid" in error_msg or "不支持" in error_msg:
@@ -427,7 +436,8 @@ class MultimodalProcessor:
 
         except Exception as e:
             error_msg = f"处理失败: {str(e)}"
-            print(f"❌ {error_msg}")
+            if on_info:
+                on_info(f"❌ {error_msg}\n")
             logger.exception("多模态处理失败: %s", str(e))
             return False, error_msg, None
 
@@ -484,7 +494,6 @@ class MultimodalProcessor:
             连接成功返回 True，否则返回 False
         """
         try:
-            print("🔄 测试API连接...")
             logger.info("测试 API 连接")
 
             stream = self.client.chat.completions.create(
@@ -503,15 +512,12 @@ class MultimodalProcessor:
                         response_text += chunk.choices[0].delta.content
 
             if response_text:
-                print("✅ API连接正常")
                 logger.debug("API 连接测试成功")
                 return True
             else:
-                print("❌ API返回空响应")
                 logger.warning("API 返回空响应")
                 return False
 
         except Exception as e:
-            print(f"❌ API连接测试失败: {e}")
             logger.error("API 连接测试失败: %s", str(e))
             return False

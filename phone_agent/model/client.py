@@ -8,6 +8,7 @@ from typing import Any
 from openai import OpenAI
 
 from phone_agent.config.i18n import get_message
+from phone_agent.events import emit_agent_event
 
 
 @dataclass
@@ -49,6 +50,13 @@ class ModelClient:
     def __init__(self, config: ModelConfig | None = None):
         self.config = config or ModelConfig()
         self.client = OpenAI(base_url=self.config.base_url, api_key=self.config.api_key)
+        self._run_id: str | None = None
+        self._step: int | None = None
+
+    def set_event_context(self, run_id: str | None = None, step: int | None = None) -> None:
+        """Set event context for request-scoped structured output."""
+        self._run_id = run_id
+        self._step = step
 
     def request(self, messages: list[dict[str, Any]]) -> ModelResponse:
         """
@@ -109,8 +117,21 @@ class ModelClient:
                     if marker in buffer:
                         # Marker found, print everything before it
                         thinking_part = buffer.split(marker, 1)[0]
-                        print(thinking_part, end="", flush=True)
-                        print()  # Print newline after thinking is complete
+                        if thinking_part:
+                            emit_agent_event(
+                                "thinking_chunk",
+                                {"text": thinking_part},
+                                source="phone_agent.model.client",
+                                run_id=self._run_id,
+                                step=self._step,
+                            )
+                        emit_agent_event(
+                            "thinking_complete",
+                            {},
+                            source="phone_agent.model.client",
+                            run_id=self._run_id,
+                            step=self._step,
+                        )
                         in_action_phase = True
                         marker_found = True
 
@@ -136,7 +157,13 @@ class ModelClient:
 
                 if not is_potential_marker:
                     # Safe to print the buffer
-                    print(buffer, end="", flush=True)
+                    emit_agent_event(
+                        "thinking_chunk",
+                        {"text": buffer},
+                        source="phone_agent.model.client",
+                        run_id=self._run_id,
+                        step=self._step,
+                    )
                     buffer = ""
 
         # Calculate total time
@@ -145,24 +172,53 @@ class ModelClient:
         # Parse thinking and action from response
         thinking, action = self._parse_response(raw_content)
 
-        # Print performance metrics
+        # Emit performance metrics
         lang = self.config.lang
-        print()
-        print("=" * 50)
-        print(f"⏱️  {get_message('performance_metrics', lang)}:")
-        print("-" * 50)
+        emit_agent_event(
+            "performance_metric",
+            {"name": "label", "label": get_message("performance_metrics", lang)},
+            source="phone_agent.model.client",
+            run_id=self._run_id,
+            step=self._step,
+        )
         if time_to_first_token is not None:
-            print(
-                f"{get_message('time_to_first_token', lang)}: {time_to_first_token:.3f}s"
+            emit_agent_event(
+                "performance_metric",
+                {
+                    "name": "time_to_first_token",
+                    "label": get_message("time_to_first_token", lang),
+                    "value": round(time_to_first_token, 3),
+                    "unit": "s",
+                },
+                source="phone_agent.model.client",
+                run_id=self._run_id,
+                step=self._step,
             )
         if time_to_thinking_end is not None:
-            print(
-                f"{get_message('time_to_thinking_end', lang)}:        {time_to_thinking_end:.3f}s"
+            emit_agent_event(
+                "performance_metric",
+                {
+                    "name": "time_to_thinking_end",
+                    "label": get_message("time_to_thinking_end", lang),
+                    "value": round(time_to_thinking_end, 3),
+                    "unit": "s",
+                },
+                source="phone_agent.model.client",
+                run_id=self._run_id,
+                step=self._step,
             )
-        print(
-            f"{get_message('total_inference_time', lang)}:          {total_time:.3f}s"
+        emit_agent_event(
+            "performance_metric",
+            {
+                "name": "total_inference_time",
+                "label": get_message("total_inference_time", lang),
+                "value": round(total_time, 3),
+                "unit": "s",
+            },
+            source="phone_agent.model.client",
+            run_id=self._run_id,
+            step=self._step,
         )
-        print("=" * 50)
 
         return ModelResponse(
             thinking=thinking,

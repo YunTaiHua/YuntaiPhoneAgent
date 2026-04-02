@@ -25,8 +25,11 @@ TTS功能:
 
 import asyncio
 import threading
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from ..controller import WebController
@@ -61,7 +64,7 @@ async def handle_tts_speak(websocket, data: dict, controller: "WebController"):
         try:
             controller.task_manager.tts_manager.speak_text_intelligently(text)
         except Exception as e:
-            print(f"TTS播报失败: {e}")
+            logger.warning("TTS播报失败: %s", str(e))
 
     threading.Thread(target=speak_thread, daemon=True).start()
     await controller.send_toast("正在播报...", "info")

@@ -1,6 +1,7 @@
 """Action handler for processing AI model outputs."""
 
 import ast
+import logging
 import re
 import subprocess
 import time
@@ -9,6 +10,8 @@ from typing import Any, Callable
 
 from phone_agent.config.timing import TIMING_CONFIG
 from phone_agent.device_factory import get_device_factory
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -342,7 +345,7 @@ def parse_action(response: str) -> dict[str, Any]:
     Raises:
         ValueError: If the response cannot be parsed.
     """
-    print(f"Parsing action: {response}")
+    logger.debug("Parsing action: %s", response)
     try:
         response = response.strip()
         if response.startswith('do(action="Type"') or response.startswith(

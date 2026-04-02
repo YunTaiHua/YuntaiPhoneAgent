@@ -43,6 +43,7 @@ from yuntai.prompts import (
 )
 from yuntai.core.config import SHORTCUTS, TTS_SPEAK_DELAY_TASK
 from yuntai.callbacks import get_callback_manager
+from phone_agent.events import emit_agent_event
 
 # 类型检查时导入，避免运行时循环导入
 if TYPE_CHECKING:
@@ -209,7 +210,13 @@ class TaskChain:
         )
         task_info = judgement_result.to_dict()
 
-        print(f"📋 任务类型: {judgement_result.task_type}")
+        emit_agent_event(
+            "task_type",
+            {"task_type": judgement_result.task_type},
+            source="yuntai.task_chain",
+        )
+
+        logger.info("任务类型: %s", judgement_result.task_type)
 
         # 根据任务类型分发处理
         if judgement_result.task_type == TASK_TYPE_FREE_CHAT:
@@ -292,7 +299,7 @@ class TaskChain:
             操作结果消息
         """
         logger.info("处理基础操作: %s", task)
-        print(f"📱 执行：{task}")
+        logger.info("执行基础操作: %s", task)
         
         # 执行操作
         success, result = self.phone_agent.execute_operation(task)
@@ -371,7 +378,7 @@ class TaskChain:
             操作结果消息
         """
         logger.info("处理复杂操作: %s", task)
-        print(f"⚙️ 执行复杂操作：{task}")
+        logger.info("执行复杂操作: %s", task)
         
         # 执行操作
         success, result = self.phone_agent.execute_operation(task)

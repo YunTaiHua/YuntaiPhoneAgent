@@ -256,7 +256,7 @@ class TTSManager:
                     if i < len(segments) - 1:
                         time.sleep(0.3)
                 else:
-                    print(f"❌ 第 {i + 1} 段合成失败: {result}")
+                    logger.error("第 %d 段合成失败: %s", i + 1, result)
 
             if not segment_files:
                 return False, "所有分段合成失败"
@@ -292,7 +292,7 @@ class TTSManager:
                 return True, first_audio
 
         except Exception as e:
-            print(f"❌ 分段合成失败: {e}")
+            logger.error("分段合成失败: %s", str(e))
             traceback.print_exc()
             return False, f"分段合成失败: {str(e)}"
 
@@ -302,15 +302,15 @@ class TTSManager:
             ref_text = self.get_current_model("text")
 
             if not ref_audio or not ref_text:
-                print("⚠️  无法语音播报：未选择参考音频或文本")
+                logger.warning("无法语音播报：未选择参考音频或文本")
                 return False
 
             if not self.tts_enabled:
-                print("⚠️  TTS功能未启用")
+                logger.warning("TTS功能未启用")
                 return False
 
             if self.should_use_segmented_synthesis(text):
-                print(f"📝 文本较长({len(text)}字符)，使用分段串行合成...")
+                logger.info("文本较长(%d字符)，使用分段串行合成", len(text))
 
                 def async_synthesize() -> None:
                     try:
@@ -329,7 +329,7 @@ class TTSManager:
                                 fallback_text, ref_audio, ref_text, auto_play=True
                             )
                     except Exception as e:
-                        print(f"❌ 分段语音合成异常: {e}")
+                        logger.error("分段语音合成异常: %s", str(e))
 
                 self.executor.submit(async_synthesize)
                 return True
@@ -341,13 +341,13 @@ class TTSManager:
                             text, ref_audio, ref_text, auto_play=True
                         )
                     except Exception as e:
-                        print(f"❌ 语音合成异常: {e}")
+                        logger.error("语音合成异常: %s", str(e))
 
                 threading.Thread(target=async_synthesize, daemon=True).start()
                 return True
 
         except Exception as e:
-            print(f"❌ 智能语音合成失败: {e}")
+            logger.error("智能语音合成失败: %s", str(e))
             traceback.print_exc()
             return False
 
@@ -376,13 +376,13 @@ class TTSManager:
         关闭线程池、停止音频播放并清理相关资源。
         建议在应用退出或TTS功能不再使用时调用。
         """
-        print("🧹 清理TTS资源...")
+        logger.info("清理TTS资源")
         
         self.audio_player.cleanup()
         
         if hasattr(self.executor, 'shutdown'):
             self.executor.shutdown(wait=False)
-            print("✅ TTS线程池已关闭")
+            logger.info("TTS线程池已关闭")
 
 
 class TaskManager:
@@ -427,9 +427,9 @@ class TaskManager:
         try:
             self.zhipu_client: ZhipuAI = ZhipuAI(api_key=ZHIPU_API_KEY)
             self.agent_executor: AgentExecutor = AgentExecutor()
-            print("✅ 已初始化真实模块")
+            logger.info("已初始化真实模块")
         except Exception as e:
-            print(f"❌ 初始化客户端失败: {e}")
+            logger.error("初始化客户端失败: %s", str(e))
             raise
 
         self.tts_manager: TTSManager = TTSManager(project_root)
@@ -437,7 +437,7 @@ class TaskManager:
         try:
             self.tts_manager.init_tts_files_database()
         except Exception as e:
-            print(f"⚠️  TTS文件数据库初始化失败: {e}")
+            logger.warning("TTS文件数据库初始化失败: %s", str(e))
 
         self.tts_manager.tts_enabled = False
 
@@ -489,9 +489,9 @@ class TaskManager:
             self.is_connected = True
             self.device_id = device_id
             self.task_args.device_id = device_id
-            print(f"✅ {message}")
+            logger.info("%s", message)
         else:
-            print(f"❌ 连接失败: {message}")
+            logger.error("连接失败: %s", message)
 
     def connect_device(self, config: dict[str, Any]) -> tuple[bool, str | None, str]:
         self.config = config
@@ -507,7 +507,7 @@ class TaskManager:
         return success, device_id, message
 
     def setup_connection(self) -> None:
-        print("请在连接管理页面设置连接")
+        logger.info("请在连接管理页面设置连接")
 
     def detect_devices(self, device_type: str = "android") -> list[str]:
         self.connection_manager.set_device_type(device_type)
@@ -519,20 +519,20 @@ class TaskManager:
         self.task_args.device_id = None
 
     def preload_tts_modules(self) -> bool:
-        print("📦 预加载TTS模块...")
+        logger.info("预加载TTS模块")
 
         try:
             success, message = self.tts_manager.load_tts_modules()
             if success:
-                print("✅ TTS模块预加载成功")
+                logger.info("TTS模块预加载成功")
                 self.tts_manager.tts_enabled = True
                 return True
             else:
-                print(f"⚠️ TTS模块预加载失败: {message}")
+                logger.warning("TTS模块预加载失败: %s", message)
                 self.tts_manager.tts_enabled = False
                 return False
         except Exception as e:
-            print(f"❌ TTS预加载异常: {e}")
+            logger.error("TTS预加载异常: %s", str(e))
             self.tts_manager.tts_enabled = False
             return False
 
@@ -552,7 +552,7 @@ class TaskManager:
         return self.tts_manager.stop_current_audio_playback()
 
     def cleanup(self) -> None:
-        print("🧹 正在清理任务管理器资源...")
+        logger.info("正在清理任务管理器资源")
 
         self.stop_audio_playback()
 

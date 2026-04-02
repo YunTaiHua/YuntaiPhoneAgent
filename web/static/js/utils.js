@@ -48,6 +48,63 @@ function appendOutput(text) {
     }
 }
 
+function appendAgentEvent(event) {
+    if (!event) return;
+    const type = event.type || '';
+    const payload = event.payload || {};
+
+    if (type === 'thinking_chunk') {
+        appendOutput(payload.text || '');
+        return;
+    }
+
+    if (type === 'thinking_complete') {
+        appendOutput('\n');
+        return;
+    }
+
+    if (type === 'task_type') {
+        appendOutput(`📋 任务类型: ${payload.task_type || ''}\n\n`);
+        return;
+    }
+
+    if (type === 'run_started') {
+        return;
+    }
+
+    if (type === 'action_decoded') {
+        appendOutput(`\n══════════════════\n🎯 动作: ${JSON.stringify(payload.action || {}, null, 2)}\n`);
+        return;
+    }
+
+    if (type === 'action_executed') {
+        return;
+    }
+
+    if (type === 'performance_metric') {
+        if (payload.name === 'label') {
+            appendOutput(`\n══════════════════\n⏱️  ${payload.label || '性能指标'}:\n`);
+        } else {
+            appendOutput(`${payload.label || payload.name || 'metric'}: ${payload.value ?? ''}${payload.unit || ''}\n`);
+        }
+        return;
+    }
+
+    if (type === 'result') {
+        if (payload.message) appendOutput(`🎉 结果：${payload.message}\n`);
+        return;
+    }
+
+    if (type === 'error') {
+        appendOutput(`❌ 错误：${payload.message || ''}\n`);
+        return;
+    }
+
+    if (type === 'run_finished') {
+        return;
+    }
+}
+
 function appendLog(type, text) {
     const logElement = type === 'image' ? elements.imageLog :
                        type === 'video' ? elements.videoLog :
@@ -174,6 +231,7 @@ window.registerPopup = registerPopup;
 window.closePopup = closePopup;
 window.closeAllPopups = closeAllPopups;
 window.appendOutput = appendOutput;
+window.appendAgentEvent = appendAgentEvent;
 window.appendLog = appendLog;
 window.showToast = showToast;
 window.showLoading = showLoading;

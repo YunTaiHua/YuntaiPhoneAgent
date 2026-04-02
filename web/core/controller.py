@@ -45,7 +45,6 @@ from yuntai.agents import JudgementAgent
 from yuntai.callbacks import get_callback_manager, LoggingCallbackHandler, PerformanceCallbackHandler
 
 from .ws_manager import ConnectionManager
-from .output_capture import WebOutputCapture
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +74,7 @@ class WebController:
         attached_files: 附加文件列表
         is_dark_theme: 是否使用深色主题
         tts_enabled: TTS功能是否启用
-        output_capture: 输出捕获器
+        agent_event: 结构化Agent事件转发
         callback_manager: 回调管理器
     """
 
@@ -110,8 +109,6 @@ class WebController:
 
         self._history_cache: list[dict[str, Any]] | None = None
         self._history_file: Path = Path(TEMP_DIR) / "web_history.json"
-
-        self.output_capture: WebOutputCapture = WebOutputCapture(self)
 
         self.callback_manager = get_callback_manager()
         self.logging_handler: LoggingCallbackHandler
@@ -177,6 +174,14 @@ class WebController:
         await self.ws_manager.broadcast({
             "type": msg_type,
             "data": text,
+            "timestamp": datetime.datetime.now().isoformat()
+        })
+
+    async def send_agent_event(self, event: dict[str, Any]) -> None:
+        """Send structured agent runtime event to frontend."""
+        await self.ws_manager.broadcast({
+            "type": "agent_event",
+            "event": event,
             "timestamp": datetime.datetime.now().isoformat()
         })
 
@@ -247,7 +252,7 @@ class WebController:
                 "current_text": tts.get_current_model("text")
             }
         except Exception as e:
-            print(f"获取TTS模型失败: {e}")
+            logger.warning("获取TTS模型失败: %s", str(e))
             return {
                 "gpt_models": [],
                 "sovits_models": [],
@@ -290,7 +295,7 @@ class WebController:
                 success = self.task_manager.preload_tts_modules()
                 self.tts_enabled = success
                 self._tts_loaded = True
-                print(f"{'✅' if success else '❌'} TTS模块预加载{'成功' if success else '失败'}")
+                logger.info("TTS模块预加载%s", "成功" if success else "失败")
 
                 if success and play_welcome_after_load:
                     self._play_welcome_voice()
@@ -298,7 +303,7 @@ class WebController:
                     self._send_welcome_complete(tts_success=False)
 
             except Exception as e:
-                print(f"❌ TTS预加载失败: {e}")
+                logger.error("TTS预加载失败: %s", str(e))
                 if play_welcome_after_load:
                     self._send_welcome_complete(tts_success=False)
 
@@ -377,7 +382,7 @@ class WebController:
             devices = self.task_manager.detect_devices()
             return devices if devices else []
         except Exception as e:
-            print(f"获取设备列表失败: {e}")
+            logger.warning("获取设备列表失败: %s", str(e))
             return []
 
     def get_history(self) -> list[dict[str, Any]]:
@@ -387,7 +392,7 @@ class WebController:
                 data = json.loads(self._history_file.read_text(encoding="utf-8"))
                 return data if isinstance(data, list) else []
         except Exception as e:
-            print(f"读取历史记录失败: {e}")
+            logger.warning("读取历史记录失败: %s", str(e))
         return []
 
     def save_history(self, command: str, result: str) -> None:
@@ -404,7 +409,7 @@ class WebController:
             self._history_file.parent.mkdir(parents=True, exist_ok=True)
             self._history_file.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception as e:
-            print(f"保存历史记录失败: {e}")
+            logger.warning("保存历史记录失败: %s", str(e))
 
     def clear_history(self) -> dict[str, Any]:
         """清空历史记录"""

@@ -111,7 +111,7 @@ async def handle_terminate(websocket, controller: "WebController"):
                 loop.close()
 
         except Exception as e:
-            print(f"终止操作出错: {e}")
+            logger.error("终止操作出错: %s", str(e), exc_info=True)
             # 确保状态被更新
             controller.is_continuous_mode = False
             controller.is_executing = False

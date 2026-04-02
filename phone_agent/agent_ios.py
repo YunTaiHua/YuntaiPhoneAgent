@@ -1,16 +1,20 @@
 """iOS PhoneAgent class for orchestrating iOS phone automation."""
 
 import json
+import logging
 import traceback
 from dataclasses import dataclass
 from typing import Any, Callable
 
 from phone_agent.actions.handler import do, finish, parse_action
 from phone_agent.actions.handler_ios import IOSActionHandler
-from phone_agent.config import get_messages, get_system_prompt
+from phone_agent.config import get_system_prompt
+from phone_agent.events import emit_agent_event, new_run_id
 from phone_agent.model import ModelClient, ModelConfig
 from phone_agent.model.client import MessageBuilder
 from phone_agent.xctest import XCTestConnection, get_current_app, get_screenshot
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -84,10 +88,18 @@ class IOSPhoneAgent:
             success, session_id = self.wda_connection.start_wda_session()
             if success and session_id != "session_started":
                 self.agent_config.session_id = session_id
-                if self.agent_config.verbose:
-                    print(f"✅ Created WDA session: {session_id}")
-            elif self.agent_config.verbose:
-                print(f"⚠️  Using default WDA session (no explicit session ID)")
+                emit_agent_event(
+                    "status",
+                    {"message": f"Created WDA session: {session_id}"},
+                    source="phone_agent.agent_ios",
+                )
+            else:
+                emit_agent_event(
+                    "status",
+                    {"message": "Using default WDA session (no explicit session ID)"},
+                    source="phone_agent.agent_ios",
+                    level="warning",
+                )
 
         self.action_handler = IOSActionHandler(
             wda_url=self.agent_config.wda_url,
@@ -111,20 +123,48 @@ class IOSPhoneAgent:
         """
         self._context = []
         self._step_count = 0
+        run_id = new_run_id()
+        emit_agent_event(
+            "run_started",
+            {"task": task},
+            source="phone_agent.agent_ios",
+            run_id=run_id,
+        )
 
         # First step with user prompt
-        result = self._execute_step(task, is_first=True)
+        result = self._execute_step(task, is_first=True, run_id=run_id)
 
         if result.finished:
+            emit_agent_event(
+                "run_finished",
+                {"message": result.message or "Task completed", "success": result.success},
+                source="phone_agent.agent_ios",
+                run_id=run_id,
+                step=self._step_count,
+            )
             return result.message or "Task completed"
 
         # Continue until finished or max steps reached
         while self._step_count < self.agent_config.max_steps:
-            result = self._execute_step(is_first=False)
+            result = self._execute_step(is_first=False, run_id=run_id)
 
             if result.finished:
+                emit_agent_event(
+                    "run_finished",
+                    {"message": result.message or "Task completed", "success": result.success},
+                    source="phone_agent.agent_ios",
+                    run_id=run_id,
+                    step=self._step_count,
+                )
                 return result.message or "Task completed"
 
+        emit_agent_event(
+            "run_finished",
+            {"message": "Max steps reached", "success": False},
+            source="phone_agent.agent_ios",
+            run_id=run_id,
+            step=self._step_count,
+        )
         return "Max steps reached"
 
     def step(self, task: str | None = None) -> StepResult:
@@ -152,10 +192,20 @@ class IOSPhoneAgent:
         self._step_count = 0
 
     def _execute_step(
-        self, user_prompt: str | None = None, is_first: bool = False
+        self,
+        user_prompt: str | None = None,
+        is_first: bool = False,
+        run_id: str | None = None,
     ) -> StepResult:
         """Execute a single step of the agent loop."""
         self._step_count += 1
+        emit_agent_event(
+            "step_started",
+            {"is_first": is_first, "prompt": user_prompt if is_first else ""},
+            source="phone_agent.agent_ios",
+            run_id=run_id,
+            step=self._step_count,
+        )
 
         # Capture current screen state
         screenshot = get_screenshot(
@@ -193,10 +243,20 @@ class IOSPhoneAgent:
 
         # Get model response
         try:
+            self.model_client.set_event_context(run_id=run_id, step=self._step_count)
             response = self.model_client.request(self._context)
         except Exception as e:
             if self.agent_config.verbose:
                 traceback.print_exc()
+            logger.exception("Model error")
+            emit_agent_event(
+                "error",
+                {"stage": "model_request", "message": str(e)},
+                source="phone_agent.agent_ios",
+                level="error",
+                run_id=run_id,
+                step=self._step_count,
+            )
             return StepResult(
                 success=False,
                 finished=True,
@@ -213,17 +273,13 @@ class IOSPhoneAgent:
                 traceback.print_exc()
             action = finish(message=response.action)
 
-        if self.agent_config.verbose:
-            # Print thinking process
-            msgs = get_messages(self.agent_config.lang)
-            print("\n" + "=" * 50)
-            print(f"💭 {msgs['thinking']}:")
-            print("-" * 50)
-            print(response.thinking)
-            print("-" * 50)
-            print(f"🎯 {msgs['action']}:")
-            print(json.dumps(action, ensure_ascii=False, indent=2))
-            print("=" * 50 + "\n")
+        emit_agent_event(
+            "action_decoded",
+            {"action": action, "thinking": response.thinking},
+            source="phone_agent.agent_ios",
+            run_id=run_id,
+            step=self._step_count,
+        )
 
         # Remove image from context to save space
         self._context[-1] = MessageBuilder.remove_images_from_message(self._context[-1])
@@ -236,9 +292,30 @@ class IOSPhoneAgent:
         except Exception as e:
             if self.agent_config.verbose:
                 traceback.print_exc()
+            logger.exception("Action execute error")
+            emit_agent_event(
+                "error",
+                {"stage": "action_execute", "message": str(e)},
+                source="phone_agent.agent_ios",
+                level="error",
+                run_id=run_id,
+                step=self._step_count,
+            )
             result = self.action_handler.execute(
                 finish(message=str(e)), screenshot.width, screenshot.height
             )
+
+        emit_agent_event(
+            "action_executed",
+            {
+                "success": result.success,
+                "message": result.message,
+                "should_finish": result.should_finish,
+            },
+            source="phone_agent.agent_ios",
+            run_id=run_id,
+            step=self._step_count,
+        )
 
         # Add assistant response to context
         self._context.append(
@@ -250,13 +327,18 @@ class IOSPhoneAgent:
         # Check if finished
         finished = action.get("_metadata") == "finish" or result.should_finish
 
-        if finished and self.agent_config.verbose:
-            msgs = get_messages(self.agent_config.lang)
-            print("\n" + "🎉 " + "=" * 48)
-            print(
-                f"✅ {msgs['task_completed']}: {result.message or action.get('message', msgs['done'])}"
-            )
-            print("=" * 50 + "\n")
+        emit_agent_event(
+            "result",
+            {
+                "finished": finished,
+                "success": result.success,
+                "message": result.message or action.get("message"),
+                "action": json.dumps(action, ensure_ascii=False),
+            },
+            source="phone_agent.agent_ios",
+            run_id=run_id,
+            step=self._step_count,
+        )
 
         return StepResult(
             success=result.success,

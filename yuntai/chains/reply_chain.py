@@ -167,8 +167,7 @@ class ReplyChain:
             >>> success, result = chain.single_reply("微信", "张三")
         """
         logger.info("启动单次回复流程: APP=%s, 对象=%s", app_name, chat_object)
-        print("🔄 启动单次回复流程")
-        print(f"🎯 目标：{app_name} -> {chat_object}")
+        logger.info("单次回复流程开始")
 
         # 准备回调处理器
         all_callbacks = prepare_callbacks_with_manager(self.callback_manager, callbacks=callbacks)
@@ -230,7 +229,7 @@ class ReplyChain:
             logger.warning("未能生成有效回复")
             return False, "未能生成有效回复"
 
-        print(f"\n💬 生成回复: {reply[:50]}...")
+        logger.info("生成回复成功，预览: %s...", reply[:50])
 
         # 步骤 4: 发送回复
         logger.debug("发送回复")

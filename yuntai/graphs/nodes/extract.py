@@ -34,6 +34,7 @@ from typing import Any
 from yuntai.graphs.state import ReplyState
 from yuntai.agents.phone_agent import PhoneAgent
 from yuntai.core.config import PHONE_AGENT_CACHE_MAX_SIZE
+from phone_agent.events import emit_agent_event
 
 # 配置模块级日志记录器
 logger = logging.getLogger(__name__)
@@ -170,7 +171,6 @@ class PhoneAgentCache:
                 oldest_key = next(iter(self._cache))
                 del self._cache[oldest_key]
                 logger.info("LRU 清理最旧缓存: %s", oldest_key)
-                print(f"🧹 LRU 清理最旧缓存: {oldest_key}")
             
             # 添加新条目
             self._cache[device_id] = CacheEntry(
@@ -227,7 +227,6 @@ class PhoneAgentCache:
         
         if expired_keys:
             logger.info("清理过期缓存: %d 个条目", len(expired_keys))
-            print(f"🧹 清理过期缓存: {len(expired_keys)} 个条目")
         
         return len(expired_keys)
     
@@ -306,10 +305,10 @@ def clear_cache(device_id: str | None = None) -> None:
     """
     if device_id is not None:
         if _cache.remove(device_id):
-            print(f"🧹 已清理设备缓存: {device_id}")
+            logger.info("已清理设备缓存: %s", device_id)
     else:
         _cache.clear()
-        print("🧹 已清理全部 PhoneAgent 缓存")
+        logger.info("已清理全部 PhoneAgent 缓存")
 
 
 def get_cache_size() -> int:
@@ -383,16 +382,16 @@ def extract_records(state: ReplyState) -> dict[str, Any]:
     cycle_count = state["cycle_count"] + 1
     
     # 打印循环信息
-    print(f"\n{'='*60}")
-    print(f"📊 循环轮次 {cycle_count}/{state['max_cycles']}")
-    print(f"{'='*60}")
+    emit_agent_event("status", {"message": "\n" + "=" * 60}, source="yuntai.reply.extract")
+    emit_agent_event("status", {"message": f"📊 循环轮次 {cycle_count}/{state['max_cycles']}"}, source="yuntai.reply.extract")
+    emit_agent_event("status", {"message": "=" * 60}, source="yuntai.reply.extract")
     
     logger.debug("提取聊天记录: APP=%s, 对象=%s, 循环=%d", app_name, chat_object, cycle_count)
     
     # 检查终止信号
     if check_terminate() or state.get("terminate_flag"):
         logger.info("检测到终止信号，停止提取")
-        print("🛑 检测到终止信号")
+        emit_agent_event("status", {"message": "🛑 检测到终止信号"}, source="yuntai.reply.extract")
         return {
             "cycle_count": cycle_count,
             "should_continue": False,
@@ -409,7 +408,7 @@ def extract_records(state: ReplyState) -> dict[str, Any]:
     if not success:
         # 提取失败
         logger.error("提取聊天记录失败: %s", records)
-        print(f"❌ 提取聊天记录失败: {records}")
+        emit_agent_event("error", {"message": f"提取聊天记录失败: {records}"}, source="yuntai.reply.extract", level="error")
         return {
             "cycle_count": cycle_count,
             "extracted_records": "",

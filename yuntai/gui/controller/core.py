@@ -20,6 +20,17 @@ from PyQt6.QtCore import QTimer, Qt, pyqtSignal, QObject
 # 配置模块级日志记录器
 logger = logging.getLogger(__name__)
 
+DIVIDER = "═" * 50
+
+
+def _format_action_lines(action: dict) -> str:
+    if not isinstance(action, dict):
+        return str(action)
+    lines = []
+    for key, value in action.items():
+        lines.append(f"{key}: {value}")
+    return "\n".join(lines)
+
 # 项目模块
 from yuntai.core.config import (
     SHORTCUTS, ZHIPU_API_KEY,
@@ -39,7 +50,7 @@ from yuntai.handlers import ConnectionHandler, TTSHandler, DynamicHandler, Syste
 # PyQt6 GUI
 from yuntai.gui.gui_view import GUIView
 from yuntai.gui.styles import ThemeColors
-from yuntai.gui.output_capture import SimpleOutputCapture
+from phone_agent.events import get_global_event_emitter
 
 # LangChain Callbacks
 from yuntai.callbacks import (
@@ -65,7 +76,7 @@ class ControllerCore(QObject):
         callback_manager: 回调管理器实例
         task_chain: 任务处理链实例
         judgement_agent: 任务判断 Agent
-        output_capture: 输出捕获器
+        agent_event_emitter: Agent 事件发射器
         message_queue: 消息队列
         is_executing: 是否正在执行任务
         is_continuous_mode: 是否处于持续回复模式
@@ -153,8 +164,9 @@ class ControllerCore(QObject):
         # 初始化判断 Agent
         self.judgement_agent = JudgementAgent()
 
-        # 初始化输出捕获器
-        self.output_capture = None
+        # 初始化结构化事件监听
+        self.agent_event_emitter = get_global_event_emitter()
+        self.agent_event_emitter.on(self._handle_agent_event)
 
         # 消息队列
         self.message_queue = queue.Queue()
@@ -450,9 +462,6 @@ class ControllerCore(QObject):
         theme_name = "深色主题" if self.view.is_dark_theme else "浅色主题"
         self.show_toast(f"已切换到{theme_name}", "info")
 
-        if self.output_capture:
-            self.output_capture.set_dark_theme(self.view.is_dark_theme)
-
         self._rebind_current_page_events(current_page)
 
     def _rebind_current_page_events(self, page_index: int):
@@ -495,7 +504,6 @@ class ControllerCore(QObject):
                 self.show_toast(f"已自动连接: {self.task_manager.device_id}", "success")
         except Exception as e:
             logger.warning("初始连接检查失败: %s", str(e))
-            print(f"初始连接检查失败: {e}")
 
     # ============ 窗口关闭 ============
 
@@ -509,8 +517,7 @@ class ControllerCore(QObject):
         logger.info("窗口关闭")
         self.terminate_operation()
 
-        if self.output_capture:
-            self.output_capture.restore()
+        self.agent_event_emitter.off(self._handle_agent_event)
 
         if hasattr(self, 'message_timer'):
             self.message_timer.stop()
@@ -527,3 +534,49 @@ class ControllerCore(QObject):
         logger.info("运行应用程序")
         self.view.show()
         return self.app.exec()
+
+    def _format_agent_event_text(self, event: dict[str, Any]) -> str:
+        """Format structured event into GUI output text."""
+        event_type = event.get("type", "")
+        payload = event.get("payload", {}) or {}
+
+        if event_type == "run_started":
+            return ""
+        if event_type == "task_type":
+            task_type = payload.get("task_type", "")
+            if task_type == "free_chat":
+                return f"📋 任务类型: {task_type}\n"
+            return f"📋 任务类型: {task_type}\n\n{DIVIDER}\n💭 思考过程\n{DIVIDER}\n"
+        if event_type == "thinking_chunk":
+            return payload.get("text", "")
+        if event_type == "thinking_complete":
+            return "\n"
+        if event_type == "action_decoded":
+            action = payload.get("action", {})
+            action_text = _format_action_lines(action)
+            return f"\n{DIVIDER}\n🎯 动作\n{DIVIDER}\n{action_text}\n"
+        if event_type == "action_executed":
+            return ""
+        if event_type == "performance_metric":
+            if payload.get("name") == "label":
+                return f"\n{DIVIDER}\n⏱️  性能指标\n{DIVIDER}\n"
+            label = payload.get("label", payload.get("name", "metric"))
+            value = payload.get("value", "")
+            unit = payload.get("unit", "")
+            return f"{label}: {value}{unit}\n"
+        if event_type == "result":
+            msg = payload.get("message", "")
+            return f"\n🎉 结果：{msg}\n" if msg else ""
+        if event_type == "error":
+            return f"❌ 错误：{payload.get('message', '')}\n"
+        if event_type == "status":
+            return f"{payload.get('message', '')}\n"
+        if event_type == "run_finished":
+            return ""
+        return ""
+
+    def _handle_agent_event(self, event: dict[str, Any]) -> None:
+        """Handle agent structured event in GUI thread-safe way."""
+        text = self._format_agent_event_text(event)
+        if text:
+            self._output_signal.emit(text)
