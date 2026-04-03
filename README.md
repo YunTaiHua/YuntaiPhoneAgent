@@ -37,7 +37,8 @@ YuntaiPhoneAgent/
 │   ├── core/                  # 核心基础设施
 │   │   ├── __init__.py
 │   │   ├── config.py          # 配置管理
-│   │   ├── main_app.py        # 主应用程序
+│   │   ├── main_app.py        # 主应用程序（启动编排器）
+│   │   ├── registry.py        # 服务注册中心
 │   │   ├── utils.py           # 工具函数
 │   │   └── agent_executor.py  # Agent执行器
 │   ├── processors/            # 各类处理器
@@ -50,14 +51,36 @@ YuntaiPhoneAgent/
 │   │   ├── connection_manager.py   # 连接管理
 │   │   ├── file_manager.py         # 文件管理
 │   │   └── task_manager.py         # 任务管理
-│   ├── gui/                   # GUI层
+│   ├── gui/                   # GUI层（已重构为模块化）
 │   │   ├── __init__.py
-│   │   ├── gui_controller.py  # GUI控制器
-│   │   ├── gui_view.py        # GUI视图
-│   │   ├── output_capture.py  # 输出捕获
-│   │   └── styles.py          # 样式定义
+│   │   ├── gui_controller.py  # GUI控制器（主控制器）
+│   │   ├── gui_view.py        # GUI视图（主视图）
+│   │   ├── controller/        # 控制器Mixin模块
+│   │   │   ├── __init__.py
+│   │   │   ├── command.py     # 命令处理
+│   │   │   ├── core.py        # 核心功能
+│   │   │   ├── device.py      # 设备管理
+│   │   │   ├── file_ops.py    # 文件操作
+│   │   │   ├── tts_integration.py  # TTS集成
+│   │   │   └── ui_state.py    # UI状态管理
+│   │   ├── view/              # 视图Mixin模块
+│   │   │   ├── __init__.py
+│   │   │   ├── dialogs.py     # 对话框
+│   │   │   ├── loading_overlay.py  # 加载遮罩
+│   │   │   ├── navigation.py  # 导航管理
+│   │   │   ├── page_manager.py     # 页面管理
+│   │   │   ├── theme_manager.py    # 主题管理
+│   │   │   └── toast_widget.py     # 提示组件
+│   │   └── styles/            # 样式模块
+│   │       ├── __init__.py
+│   │       ├── colors.py      # 颜色定义
+│   │       ├── dimensions.py  # 尺寸定义
+│   │       ├── fonts.py       # 字体定义
+│   │       ├── stylesheets.py # 样式表
+│   │       └── theme.py       # 主题管理
 │   ├── handlers/              # GUI事件处理器
 │   │   ├── __init__.py
+│   │   ├── protocols.py       # 处理器协议定义
 │   │   ├── connection_handler.py
 │   │   ├── dynamic_handler.py
 │   │   ├── system_handler.py
@@ -119,9 +142,11 @@ YuntaiPhoneAgent/
 │   │   └── reply_prompt.py
 │   ├── tools/                 # 工具模块
 │   │   ├── __init__.py
+│   │   ├── callback_utils.py  # 回调工具
 │   │   ├── chat_tools.py
 │   │   ├── message_tools.py
 │   │   ├── phone_tools.py
+│   │   ├── similarity.py      # 相似度计算
 │   │   └── time_tool.py
 │   ├── memory/                # 记忆模块
 │   │   ├── __init__.py
@@ -141,7 +166,6 @@ YuntaiPhoneAgent/
 │   │   ├── controller.py      # Web控制器
 │   │   ├── routes.py          # 路由定义
 │   │   ├── ws_manager.py      # WebSocket管理器
-│   │   ├── output_capture.py  # 输出捕获
 │   │   └── handlers/          # 消息处理器
 │   │       ├── __init__.py
 │   │       ├── command_handler.py
@@ -169,13 +193,26 @@ YuntaiPhoneAgent/
 │           ├── actions.js     # 用户操作
 │           ├── popups.js      # 弹窗函数
 │           └── events.js      # 事件绑定
+├── tests/                     # 测试模块（完整测试体系）
+│   ├── conftest.py            # 测试配置和fixtures
+│   ├── contracts/             # 契约测试
+│   │   └── yuntai/            # Yuntai模块契约测试
+│   ├── factories/             # 测试工厂
+│   ├── integration/           # 集成测试
+│   │   └── yuntai/            # Yuntai模块集成测试
+│   └── unit/                  # 单元测试
+│       └── yuntai/            # Yuntai模块单元测试
 ├── phone_agent/               # 外部PhoneAgent模块
 │   ├── agent.py
 │   └── model/
 │       └── client.py
+├── docs/                      # 文档目录
+│   ├── ARCHITECTURE.md        # 技术架构文档
+│   └── CHANGELOG.md           # 更新日志
 ├── forever.txt               # 永久记忆文件
 ├── main.py                   # GUI主入口
 ├── main_web.py               # Web主入口
+├── pytest.ini                # 测试配置
 ├── requirements.txt
 └── setup.py
 ```
@@ -300,7 +337,7 @@ GLM-4.6v-flash (任务分类)
 - v1.2: 升级GLM-4.6v-flash多模态、引入双AI辅助系统
 - v1.3: 使用 LangGraph 重构持续回复流程，状态集中管理，节点化设计
 
- 项目展现了AI Agent、多模态、自动化技术的深度整合，是一个功能完善的智能手机操作代理系统。
+项目展现了AI Agent、多模态、自动化技术的深度整合，是一个功能完善的智能手机操作代理系统。
 
 ## 🚀 使用方法
 

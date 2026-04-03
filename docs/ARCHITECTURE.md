@@ -55,7 +55,8 @@ YuntaiPhoneAgent/
 │   ├── core/             # 核心模块
 │   │   ├── agent_executor.py   # Agent 执行器
 │   │   ├── config.py           # 配置管理
-│   │   ├── main_app.py         # 主应用
+│   │   ├── main_app.py         # 主应用（启动编排器）
+│   │   ├── registry.py         # 服务注册中心
 │   │   └── utils.py            # 工具函数
 │   ├── graphs/           # LangGraph 工作流
 │   │   ├── nodes/              # 工作流节点
@@ -69,12 +70,35 @@ YuntaiPhoneAgent/
 │   │   │   └── send.py         # 发送消息
 │   │   ├── reply_graph.py      # 回复工作流
 │   │   └── state.py             # 状态定义
-│   ├── gui/              # GUI 组件
-│   │   ├── gui_controller.py  # GUI 控制器
-│   │   ├── gui_view.py         # GUI 视图
-│   │   ├── output_capture.py   # 输出捕获
-│   │   └── styles.py           # 样式定义
+│   ├── gui/              # GUI 组件（已重构为模块化）
+│   │   ├── gui_controller.py  # GUI 控制器（主控制器）
+│   │   ├── gui_view.py         # GUI 视图（主视图）
+│   │   ├── controller/         # 控制器 Mixin 模块
+│   │   │   ├── command.py      # 命令处理
+│   │   │   ├── core.py         # 核心功能
+│   │   │   ├── device.py       # 设备管理
+│   │   │   ├── file_ops.py     # 文件操作
+│   │   │   ├── tts_integration.py  # TTS 集成
+│   │   │   └── ui_state.py     # UI 状态管理
+│   │   ├── view/              # 视图 Mixin 模块
+│   │   │   ├── dialogs.py     # 对话框
+│   │   │   ├── loading_overlay.py  # 加载遮罩
+│   │   │   ├── navigation.py  # 导航管理
+│   │   │   ├── page_manager.py     # 页面管理
+│   │   │   ├── theme_manager.py    # 主题管理
+│   │   │   └── toast_widget.py     # 提示组件
+│   │   └── styles/            # 样式模块
+│   │       ├── colors.py      # 颜色定义
+│   │       ├── dimensions.py  # 尺寸定义
+│   │       ├── fonts.py       # 字体定义
+│   │       ├── stylesheets.py # 样式表
+│   │       └── theme.py       # 主题管理
 │   ├── handlers/         # 事件处理器
+│   │   ├── protocols.py       # 处理器协议定义
+│   │   ├── connection_handler.py
+│   │   ├── dynamic_handler.py
+│   │   ├── system_handler.py
+│   │   └── tts_handler.py
 │   ├── managers/         # 管理器
 │   │   ├── tts_audio.py       # TTS 音频
 │   │   ├── tts_database.py    # TTS 数据库
@@ -96,20 +120,27 @@ YuntaiPhoneAgent/
 │   │   ├── file_manager.py       # 文件管理
 │   │   └── task_manager.py       # 任务管理
 │   ├── tools/            # 工具函数
+│   │   ├── callback_utils.py    # 回调工具
 │   │   ├── chat_tools.py        # 聊天工具
 │   │   ├── message_tools.py     # 消息工具
 │   │   ├── phone_tools.py       # 手机工具
+│   │   ├── similarity.py        # 相似度计算
 │   │   └── time_tool.py         # 时间工具
 │   └── views/            # 视图层
 ├── web/                # Web 模块
 │   ├── core/
 │   │   ├── handlers/         # 请求处理器
 │   │   ├── controller.py      # Web 控制器
-│   │   ├── output_capture.py  # 输出捕获
 │   │   ├── routes.py           # 路由定义
 │   │   └── ws_manager.py       # WebSocket 管理
 │   └── static/              # 静态资源
-└── doc/                # 文档目录
+├── tests/               # 测试模块
+│   ├── conftest.py            # 测试配置和fixtures
+│   ├── contracts/             # 契约测试
+│   ├── factories/             # 测试工厂
+│   ├── integration/           # 集成测试
+│   └── unit/                  # 单元测试
+└── docs/                # 文档目录
     ├── PLAN.md            # 重构计划
     ├── CHANGELOG.md       # 更新日志
     └── ARCHITECTURE.md    # 技术架构（本文件）
@@ -478,4 +509,116 @@ prompts/
 
 ---
 
+## 11. 测试体系
+
+### 11.1 测试架构
+
+项目建立了完整的测试体系，包括三个层次的测试：
+
+```
+tests/
+├── conftest.py            # 全局测试配置和fixtures
+├── contracts/             # 契约测试
+│   └── yuntai/            # 验证模块接口契约
+├── factories/             # 测试数据工厂
+│   ├── event_factory.py   # 事件对象工厂
+│   ├── model_factory.py   # 模型对象工厂
+│   └── state_factory.py   # 状态对象工厂
+├── integration/           # 集成测试
+│   └── yuntai/            # 端到端工作流测试
+└── unit/                  # 单元测试
+    └── yuntai/            # 模块单元测试
+```
+
+### 11.2 测试覆盖率
+
+- **目标覆盖率**: 90%+
+- **配置文件**: `pytest.ini`
+- **运行命令**: `pytest --cov=yuntai --cov-report=term-missing`
+
+### 11.3 测试类型
+
+#### 契约测试 (Contract Tests)
+- 验证模块接口的稳定性
+- 确保重构不破坏外部接口
+- 位置: `tests/contracts/`
+
+#### 集成测试 (Integration Tests)
+- 测试多个模块协作
+- 验证工作流完整性
+- 位置: `tests/integration/`
+
+#### 单元测试 (Unit Tests)
+- 测试单个函数和类
+- 验证业务逻辑正确性
+- 位置: `tests/unit/`
+
+---
+
+## 12. 架构特性
+
+### 12.1 模块化设计
+
+#### GUI 模块化重构
+- **控制器分离**: 将 GUIController 拆分为多个 Mixin 模块
+  - `command.py`: 命令处理
+  - `core.py`: 核心功能
+  - `device.py`: 设备管理
+  - `file_ops.py`: 文件操作
+  - `tts_integration.py`: TTS 集成
+  - `ui_state.py`: UI 状态管理
+
+- **视图分离**: 将 GUIView 拆分为多个 Mixin 模块
+  - `dialogs.py`: 对话框管理
+  - `loading_overlay.py`: 加载遮罩
+  - `navigation.py`: 导航管理
+  - `page_manager.py`: 页面管理
+  - `theme_manager.py`: 主题管理
+  - `toast_widget.py`: 提示组件
+
+- **样式分离**: 将样式拆分为独立模块
+  - `colors.py`: 颜色定义
+  - `dimensions.py`: 尺寸定义
+  - `fonts.py`: 字体定义
+  - `stylesheets.py`: 样式表
+  - `theme.py`: 主题管理
+
+### 12.2 服务注册中心
+
+#### Registry 模式
+- **位置**: `yuntai/core/registry.py`
+- **功能**: 统一管理服务生命周期
+- **优势**:
+  - 解耦服务依赖
+  - 统一服务初始化
+  - 简化服务访问
+  - 支持服务热插拔
+
+#### 使用示例
+```python
+from yuntai.core.registry import Registry
+
+# 注册服务
+registry = Registry()
+registry.register_service("file_manager", FileManager())
+registry.register_service("tts_manager", TTSManager())
+
+# 获取服务
+file_manager = registry.get_service("file_manager")
+```
+
+### 12.3 处理器协议
+
+#### 协议定义
+- **位置**: `yuntai/handlers/protocols.py`
+- **目的**: 定义处理器接口规范
+- **优势**:
+  - 类型安全
+  - 接口清晰
+  - 易于扩展
+  - 支持静态检查
+
+---
+
 *文档创建时间: 2026-03-26*
+*最后更新: 2026-04-03*

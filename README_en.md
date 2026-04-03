@@ -37,7 +37,8 @@ YuntaiPhoneAgent/
 │   ├── core/                  # Core Infrastructure
 │   │   ├── __init__.py
 │   │   ├── config.py          # Configuration Management
-│   │   ├── main_app.py        # Main Application
+│   │   ├── main_app.py        # Main Application (Startup Orchestrator)
+│   │   ├── registry.py        # Service Registry Center
 │   │   ├── utils.py           # Utility Functions
 │   │   └── agent_executor.py  # Agent Executor
 │   ├── processors/            # Processors
@@ -50,14 +51,36 @@ YuntaiPhoneAgent/
 │   │   ├── connection_manager.py   # Connection Management
 │   │   ├── file_manager.py         # File Management
 │   │   └── task_manager.py         # Task Management
-│   ├── gui/                   # GUI Layer
+│   ├── gui/                   # GUI Layer (Refactored to Modular)
 │   │   ├── __init__.py
-│   │   ├── gui_controller.py  # GUI Controller
-│   │   ├── gui_view.py        # GUI View
-│   │   ├── output_capture.py  # Output Capture
-│   │   └── styles.py          # Styles
+│   │   ├── gui_controller.py  # GUI Controller (Main Controller)
+│   │   ├── gui_view.py        # GUI View (Main View)
+│   │   ├── controller/        # Controller Mixin Modules
+│   │   │   ├── __init__.py
+│   │   │   ├── command.py     # Command Handling
+│   │   │   ├── core.py        # Core Functionality
+│   │   │   ├── device.py      # Device Management
+│   │   │   ├── file_ops.py    # File Operations
+│   │   │   ├── tts_integration.py  # TTS Integration
+│   │   │   └── ui_state.py    # UI State Management
+│   │   ├── view/              # View Mixin Modules
+│   │   │   ├── __init__.py
+│   │   │   ├── dialogs.py     # Dialogs
+│   │   │   ├── loading_overlay.py  # Loading Overlay
+│   │   │   ├── navigation.py  # Navigation Management
+│   │   │   ├── page_manager.py     # Page Management
+│   │   │   ├── theme_manager.py    # Theme Management
+│   │   │   └── toast_widget.py     # Toast Widget
+│   │   └── styles/            # Style Modules
+│   │       ├── __init__.py
+│   │       ├── colors.py      # Color Definitions
+│   │       ├── dimensions.py  # Dimension Definitions
+│   │       ├── fonts.py       # Font Definitions
+│   │       ├── stylesheets.py # Stylesheets
+│   │       └── theme.py       # Theme Management
 │   ├── handlers/              # GUI Event Handlers
 │   │   ├── __init__.py
+│   │   ├── protocols.py       # Handler Protocol Definitions
 │   │   ├── connection_handler.py
 │   │   ├── dynamic_handler.py
 │   │   ├── system_handler.py
@@ -119,9 +142,11 @@ YuntaiPhoneAgent/
 │   │   └── reply_prompt.py
 │   ├── tools/                 # Tools Module
 │   │   ├── __init__.py
+│   │   ├── callback_utils.py  # Callback Utilities
 │   │   ├── chat_tools.py
 │   │   ├── message_tools.py
 │   │   ├── phone_tools.py
+│   │   ├── similarity.py      # Similarity Calculation
 │   │   └── time_tool.py
 │   ├── memory/                # Memory Module
 │   │   ├── __init__.py
@@ -141,7 +166,6 @@ YuntaiPhoneAgent/
 │   │   ├── controller.py      # Web Controller
 │   │   ├── routes.py          # Routes Definition
 │   │   ├── ws_manager.py      # WebSocket Manager
-│   │   ├── output_capture.py  # Output Capture
 │   │   └── handlers/          # Message Handlers
 │   │       ├── __init__.py
 │   │       ├── command_handler.py
@@ -169,13 +193,26 @@ YuntaiPhoneAgent/
 │           ├── actions.js     # User Actions
 │           ├── popups.js      # Popup Functions
 │           └── events.js      # Event Binding
+├── tests/                     # Test Module (Complete Test Suite)
+│   ├── conftest.py            # Test Configuration and Fixtures
+│   ├── contracts/             # Contract Tests
+│   │   └── yuntai/            # Yuntai Module Contract Tests
+│   ├── factories/             # Test Factories
+│   ├── integration/           # Integration Tests
+│   │   └── yuntai/            # Yuntai Module Integration Tests
+│   └── unit/                  # Unit Tests
+│       └── yuntai/            # Yuntai Module Unit Tests
 ├── phone_agent/               # External PhoneAgent Module
 │   ├── agent.py
 │   └── model/
 │       └── client.py
+├── docs/                      # Documentation Directory
+│   ├── ARCHITECTURE.md        # Technical Architecture Document
+│   └── CHANGELOG.md           # Change Log
 ├── forever.txt               # Permanent Memory File
 ├── main.py                   # GUI Main Entry
 ├── main_web.py               # Web Main Entry
+├── pytest.ini                # Test Configuration
 ├── requirements.txt
 └── setup.py
 ```

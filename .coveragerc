@@ -1,7 +1,0 @@
-# .coveragerc - Coverage.py configuration
-[run]
-source =
-    yuntai
-
-[report]
-show_missing = True
