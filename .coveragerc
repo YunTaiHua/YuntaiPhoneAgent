@@ -1,16 +1,7 @@
 # .coveragerc - Coverage.py configuration
 [run]
-omit =
-    yuntai/managers/gpt_sovits_custom/*
-    yuntai/managers/tts_engine.py
-    yuntai/handlers/*
-    yuntai/gui/*
-    yuntai/views/*
+source =
+    yuntai
 
 [report]
-omit =
-    yuntai/managers/gpt_sovits_custom/*
-    yuntai/managers/tts_engine.py
-    yuntai/handlers/*
-    yuntai/gui/*
-    yuntai/views/*
+show_missing = True
