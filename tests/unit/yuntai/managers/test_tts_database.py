@@ -90,3 +90,80 @@ def test_set_get_model_filename_and_synthesized_files_flow(tmp_path):
 
     manager.add_synthesized_file(str(out / "new.wav"))
     assert manager.tts_synthesized_files[-1][1] == "new.wav"
+
+
+class TestTTSDatabaseManagerDeepBranches:
+    def test_init_tts_files_database_missing_gpt_dir(self, tmp_path):
+        cfg = {
+            "gpt_model_dir": str(tmp_path / "nonexistent_gpt"),
+            "sovits_model_dir": str(tmp_path / "sovits"),
+            "ref_audio_root": str(tmp_path / "audio"),
+            "ref_text_root": str(tmp_path / "text"),
+            "output_path": str(tmp_path / "out"),
+        }
+        for key in ["sovits_model_dir", "ref_audio_root", "ref_text_root"]:
+            Path(cfg[key]).mkdir(parents=True, exist_ok=True)
+        manager = TTSDatabaseManager(cfg)
+        assert manager.init_tts_files_database() is True
+        assert manager.tts_files_database["gpt"] == {}
+
+    def test_init_tts_files_database_missing_sovits_dir(self, tmp_path):
+        cfg = {
+            "gpt_model_dir": str(tmp_path / "gpt"),
+            "sovits_model_dir": str(tmp_path / "nonexistent_sovits"),
+            "ref_audio_root": str(tmp_path / "audio"),
+            "ref_text_root": str(tmp_path / "text"),
+            "output_path": str(tmp_path / "out"),
+        }
+        Path(cfg["gpt_model_dir"]).mkdir(parents=True, exist_ok=True)
+        Path(cfg["ref_audio_root"]).mkdir(parents=True, exist_ok=True)
+        Path(cfg["ref_text_root"]).mkdir(parents=True, exist_ok=True)
+        manager = TTSDatabaseManager(cfg)
+        assert manager.init_tts_files_database() is True
+        assert manager.tts_files_database["sovits"] == {}
+
+    def test_init_tts_files_database_missing_audio_dir(self, tmp_path):
+        cfg = {
+            "gpt_model_dir": str(tmp_path / "gpt"),
+            "sovits_model_dir": str(tmp_path / "sovits"),
+            "ref_audio_root": str(tmp_path / "nonexistent_audio"),
+            "ref_text_root": str(tmp_path / "text"),
+            "output_path": str(tmp_path / "out"),
+        }
+        Path(cfg["gpt_model_dir"]).mkdir(parents=True, exist_ok=True)
+        Path(cfg["sovits_model_dir"]).mkdir(parents=True, exist_ok=True)
+        Path(cfg["ref_text_root"]).mkdir(parents=True, exist_ok=True)
+        manager = TTSDatabaseManager(cfg)
+        assert manager.init_tts_files_database() is True
+        assert manager.tts_files_database["audio"] == {}
+
+    def test_init_tts_files_database_missing_text_dir(self, tmp_path):
+        cfg = {
+            "gpt_model_dir": str(tmp_path / "gpt"),
+            "sovits_model_dir": str(tmp_path / "sovits"),
+            "ref_audio_root": str(tmp_path / "audio"),
+            "ref_text_root": str(tmp_path / "nonexistent_text"),
+            "output_path": str(tmp_path / "out"),
+        }
+        Path(cfg["gpt_model_dir"]).mkdir(parents=True, exist_ok=True)
+        Path(cfg["sovits_model_dir"]).mkdir(parents=True, exist_ok=True)
+        Path(cfg["ref_audio_root"]).mkdir(parents=True, exist_ok=True)
+        manager = TTSDatabaseManager(cfg)
+        assert manager.init_tts_files_database() is True
+        assert manager.tts_files_database["text"] == {}
+
+    def test_get_current_model_sovits_audio_text(self, tmp_path):
+        cfg = _config(tmp_path)
+        manager = TTSDatabaseManager(cfg)
+        manager.tts_files_database = {
+            "gpt": {"g.ckpt": "/abs/g.ckpt"},
+            "sovits": {"s.pth": "/abs/s.pth"},
+            "audio": {"r.wav": "/abs/r.wav"},
+            "text": {"r.txt": "/abs/r.txt"},
+        }
+        manager.set_current_model("sovits", "s.pth")
+        assert manager.get_current_model("sovits") == "/abs/s.pth"
+        manager.set_current_model("audio", "r.wav")
+        assert manager.get_current_model("audio") == "/abs/r.wav"
+        manager.set_current_model("text", "r.txt")
+        assert manager.get_current_model("text") == "/abs/r.txt"

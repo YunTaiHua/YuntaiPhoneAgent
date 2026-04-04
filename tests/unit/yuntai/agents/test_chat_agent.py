@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 from yuntai.agents.chat_agent import ChatAgent
 
@@ -116,3 +117,49 @@ def test_chat_stream_yields_tokens_and_error(monkeypatch):
 
     err_agent = ChatAgent(model=_FakeModel(boom=True), callback_manager=SimpleNamespace(get_callbacks=lambda **k: []))
     assert list(err_agent.chat_stream("hi", include_memory=False)) == ["聊天失败: stream-boom"]
+
+
+class TestChatAgentCoverageGaps:
+    def test_set_streaming_callback(self):
+        agent = ChatAgent(model=MagicMock())
+        cb = lambda t: None
+        agent.set_streaming_callback(cb)
+        assert agent._streaming_callback is cb
+
+    def test_set_complete_callback(self):
+        agent = ChatAgent(model=MagicMock())
+        cb = lambda t: None
+        agent.set_complete_callback(cb)
+        assert agent._complete_callback is cb
+
+    def test_chat_with_history_assistant_role(self, monkeypatch):
+        mock_model = MagicMock()
+        mock_model.invoke.return_value = SimpleNamespace(content="response")
+        agent = ChatAgent(model=mock_model)
+        history = [
+            {"role": "user", "content": "hello"},
+            {"role": "assistant", "content": "hi there"},
+        ]
+        result = agent.chat_with_history("test", history)
+        assert result == "response"
+
+    def test_chat_with_history_exception(self, monkeypatch):
+        mock_model = MagicMock()
+        mock_model.invoke.side_effect = RuntimeError("model boom")
+        agent = ChatAgent(model=mock_model)
+        result = agent.chat_with_history("test", [])
+        assert "聊天失败" in result
+
+    def test_chat_stream_with_memory(self, monkeypatch):
+        mock_model = MagicMock()
+        mock_chunks = [SimpleNamespace(content="hel"), SimpleNamespace(content="lo")]
+        mock_model.stream.return_value = iter(mock_chunks)
+        fm = SimpleNamespace(
+            read_forever_memory=lambda: "永久记忆内容",
+            get_recent_free_chats=lambda limit: [
+                {"user_input": "hi", "assistant_reply": "hello"},
+            ],
+        )
+        agent = ChatAgent(model=mock_model, file_manager=fm)
+        chunks = list(agent.chat_stream("test", include_memory=True))
+        assert len(chunks) > 0

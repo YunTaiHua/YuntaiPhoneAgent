@@ -189,3 +189,112 @@ def test_parse_document_audio_processor_cache_and_no_valid_files(monkeypatch, tm
     bad.write_bytes(b"x")
     ok, msg, ar = p.process_with_files("t", [str(bad)], history=[])
     assert ok is False and "没有有效" in msg and ar is None
+
+
+class TestMultimodalProcessorDeepBranches:
+    def test_encode_file_exception(self, monkeypatch, tmp_path):
+        p = _build_processor(monkeypatch)
+        ok = p.encode_file_to_base64(str(tmp_path / "nonexistent.bin"))
+        assert ok is None
+
+    def test_get_file_type_video(self, monkeypatch):
+        p = _build_processor(monkeypatch)
+        file_type, mime = p.get_file_type("test.mp4")
+        assert file_type == "video"
+        assert "video" in mime
+
+    def test_prepare_messages_video_audio_fail(self, monkeypatch, tmp_path):
+        p = _build_processor(monkeypatch)
+        video = tmp_path / "v.mp4"
+        video.write_bytes(b"data")
+        monkeypatch.setattr(p, "encode_file_to_base64", lambda _fp: "BASE64")
+        monkeypatch.setattr(p, "get_file_type", lambda fp: ("video", "video/mp4") if fp.endswith(".mp4") else ("audio", "audio/wav"))
+        fake_audio_processor = SimpleNamespace(
+            process_video_with_audio=lambda *_args, **_kwargs: (False, {"error": "处理失败"}),
+        )
+        monkeypatch.setattr(p, "get_audio_processor", lambda: fake_audio_processor)
+        messages, audio_result = p.prepare_multimodal_messages("文本", [str(video)])
+        assert any(c.get("type") == "video_url" for c in messages[-1]["content"])
+
+    def test_prepare_messages_audio_success_with_transcription(self, monkeypatch, tmp_path):
+        p = _build_processor(monkeypatch)
+        audio = tmp_path / "a.wav"
+        audio.write_bytes(b"data")
+        monkeypatch.setattr(p, "encode_file_to_base64", lambda _fp: "BASE64")
+        monkeypatch.setattr(p, "get_file_type", lambda fp: ("audio", "audio/wav"))
+        fake_audio_processor = SimpleNamespace(
+            process_audio_only=lambda *_args, **_kwargs: (True, {"audio_transcription": "你好世界"}),
+        )
+        monkeypatch.setattr(p, "get_audio_processor", lambda: fake_audio_processor)
+        messages, audio_result = p.prepare_multimodal_messages("文本", [str(audio)])
+        content = messages[-1]["content"]
+        assert any("你好世界" in c.get("text", "") for c in content)
+
+    def test_prepare_messages_text_parse_fail_uses_base64(self, monkeypatch, tmp_path):
+        p = _build_processor(monkeypatch)
+        txt = tmp_path / "d.txt"
+        txt.write_bytes(b"data")
+        monkeypatch.setattr(p, "encode_file_to_base64", lambda _fp: "BASE64")
+        monkeypatch.setattr(p, "get_file_type", lambda fp: ("text", "text/plain"))
+        monkeypatch.setattr(p, "parse_document_to_text", lambda fp: None)
+        messages, _ = p.prepare_multimodal_messages("文本", [str(txt)])
+        content = messages[-1]["content"]
+        assert any(c.get("type") == "file_url" for c in content)
+
+    def test_prepare_messages_with_on_info_callback(self, monkeypatch, tmp_path):
+        p = _build_processor(monkeypatch)
+        video = tmp_path / "v.mp4"
+        video.write_bytes(b"data")
+        monkeypatch.setattr(p, "encode_file_to_base64", lambda _fp: "BASE64")
+        monkeypatch.setattr(p, "get_file_type", lambda fp: ("video", "video/mp4"))
+        fake_ap = SimpleNamespace(
+            process_video_with_audio=lambda *_a, **_k: (True, {"audio_transcription": "视频内容"}),
+        )
+        monkeypatch.setattr(p, "get_audio_processor", lambda: fake_ap)
+        info_calls = []
+        messages, _ = p.prepare_multimodal_messages("文本", [str(video)], on_info=lambda msg: info_calls.append(msg))
+        assert len(info_calls) > 0
+
+    def test_process_with_files_file_too_large(self, monkeypatch, tmp_path):
+        p = _build_processor(monkeypatch)
+        big = tmp_path / "big.wav"
+        big.write_bytes(b"x" * 100)
+        monkeypatch.setattr(p, "is_file_supported", lambda fp: True)
+        p.max_file_size = 1
+        info_calls = []
+        ok, msg, ar = p.process_with_files("t", [str(big)], on_info=lambda m: info_calls.append(m))
+        assert ok is False
+        assert "没有有效" in msg
+
+    def test_process_with_files_unsupported_file_type(self, monkeypatch, tmp_path):
+        p = _build_processor(monkeypatch)
+        bad = tmp_path / "bad.xyz"
+        bad.write_bytes(b"x")
+        monkeypatch.setattr(p, "is_file_supported", lambda fp: False)
+        info_calls = []
+        ok, msg, ar = p.process_with_files("t", [str(bad)], on_info=lambda m: info_calls.append(m))
+        assert ok is False
+        assert "没有有效" in msg
+        assert any("不支持" in c for c in info_calls)
+
+    def test_process_with_files_api_error_with_invalid_keyword(self, monkeypatch, tmp_path):
+        p = _build_processor(monkeypatch)
+        f1 = tmp_path / "a.wav"
+        f1.write_bytes(b"x")
+        monkeypatch.setattr(p, "is_file_supported", lambda fp: True)
+        monkeypatch.setattr(p, "get_file_type", lambda fp: ("audio", "audio/wav"))
+        monkeypatch.setattr(p, "prepare_multimodal_messages", lambda *a, **k: ([{}], None))
+        p.client.chat.completions.create = lambda **k: (_ for _ in ()).throw(RuntimeError("Invalid model"))
+        info_calls = []
+        ok, msg, _ = p.process_with_files("t", [str(f1)], on_info=lambda m: info_calls.append(m))
+        assert ok is False
+        assert "Invalid" in msg
+
+    def test_process_with_files_outer_exception(self, monkeypatch, tmp_path):
+        p = _build_processor(monkeypatch)
+        monkeypatch.setattr(p, "is_file_supported", lambda fp: (_ for _ in ()).throw(RuntimeError("outer boom")))
+        info_calls = []
+        ok, msg, ar = p.process_with_files("t", ["/fake.wav"], on_info=lambda m: info_calls.append(m))
+        assert ok is False
+        assert "处理失败" in msg
+        assert ar is None

@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 from yuntai.chains.reply_chain import ReplyChain
 
@@ -146,3 +147,38 @@ def test_continuous_async_and_runtime_controls(monkeypatch):
     assert graph.stop_called is True
     assert chain.is_running() is False
     chain.clear_messages()
+
+
+class TestReplyChainCoverageGaps:
+    def test_set_device_id(self):
+        from yuntai.chains.reply_chain import ReplyChain
+        chain = ReplyChain(device_id="old_id")
+        chain.set_device_id("new_id")
+        assert chain.device_id == "new_id"
+        assert chain._reply_graph is None
+
+    def test_get_graph_lazy_creation(self, monkeypatch):
+        import yuntai.chains.reply_chain as mod
+        mock_graph = MagicMock()
+        monkeypatch.setattr(mod, "ReplyGraph", lambda **kw: mock_graph)
+        chain = mod.ReplyChain()
+        graph = chain._get_graph()
+        assert graph is mock_graph
+
+    def test_is_running_no_graph(self):
+        from yuntai.chains.reply_chain import ReplyChain
+        chain = ReplyChain()
+        assert chain.is_running() is False
+
+    def test_single_reply_no_messages(self, monkeypatch):
+        import yuntai.chains.reply_chain as mod
+        mock_phone = MagicMock()
+        mock_phone.extract_chat_records.return_value = (True, "some records")
+        monkeypatch.setattr(mod, "PhoneAgent", lambda device_id: mock_phone)
+        monkeypatch.setattr(mod, "parse_messages", lambda *a, **k: [])
+        monkeypatch.setattr(mod, "get_zhipu_client", lambda: MagicMock())
+        chain = mod.ReplyChain()
+        chain.file_manager = None
+        ok, msg = chain.single_reply("wx", "test")
+        assert ok is False
+        assert "未能解析" in msg

@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 from yuntai.agents.judgement_agent import JudgementAgent
 from yuntai.prompts import (
@@ -78,3 +79,20 @@ def test_fallback_paths_cover_boundaries():
     assert agent._fallback_judge("今天天气如何").task_type == TASK_TYPE_FREE_CHAT
     assert agent._extract_object("给 张三 发消息") == ""
     assert agent._extract_content("提醒我 12:30") == ""
+
+
+class TestJudgementAgentCoverageGaps:
+    def test_extract_app_no_match(self):
+        agent = JudgementAgent(model=MagicMock())
+        result = agent._extract_app("打开一个不存在的应用")
+        assert result == ""
+
+    def test_extract_content_colon(self):
+        agent = JudgementAgent(model=MagicMock())
+        result = agent._extract_content("请帮我发送消息：你好世界")
+        assert result == "你好世界"
+
+    def test_extract_content_colon_with_time_format(self):
+        agent = JudgementAgent(model=MagicMock())
+        result = agent._extract_content("时间：12:30")
+        assert result == "" or "12" not in result

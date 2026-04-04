@@ -1,10 +1,11 @@
 import importlib.util
+import os
 import sys
+import threading
 import types
 from pathlib import Path
 
 import pytest
-
 
 AGENT_EXECUTOR_PATH = Path(__file__).resolve().parents[4] / "yuntai" / "core" / "agent_executor.py"
 
@@ -198,3 +199,49 @@ def test_phone_agent_exec_returns_error_on_exception(monkeypatch, agent_executor
     assert "任务执行失败" in result
     assert logs == ["boom"]
     assert module.AgentExecutor.is_pipe_ready() is False
+
+
+class TestAgentExecutorCoverageGaps:
+    def test_set_device_type(self, agent_executor_module):
+        executor = agent_executor_module.AgentExecutor()
+        executor.set_device_type("harmony")
+        assert executor.device_type == "harmony"
+
+    def test_cleanup_stdin_pipe_oserror(self, monkeypatch, agent_executor_module):
+        module = agent_executor_module
+        module.AgentExecutor._stdin_write = 99
+        module.AgentExecutor._stdin_read = 98
+        monkeypatch.setattr(os, "close", lambda fd: (_ for _ in ()).throw(OSError("bad fd")))
+        module.AgentExecutor._cleanup_stdin_pipe()
+        assert module.AgentExecutor._stdin_write is None
+        assert module.AgentExecutor._stdin_read is None
+
+    def test_user_confirm_with_pipe(self, monkeypatch, agent_executor_module):
+        module = agent_executor_module
+        write_fd = []
+        monkeypatch.setattr(os, "write", lambda fd, data: write_fd.append(fd))
+        module.AgentExecutor._stdin_write = 42
+        module.AgentExecutor._user_confirmation_event = threading.Event()
+        module.AgentExecutor._is_waiting_for_confirmation = threading.Event()
+        result = module.AgentExecutor.user_confirm()
+        assert result is True
+        assert write_fd == [42]
+        module.AgentExecutor._stdin_write = None
+
+    def test_user_confirm_write_oserror(self, monkeypatch, agent_executor_module):
+        module = agent_executor_module
+        monkeypatch.setattr(os, "write", lambda fd, data: (_ for _ in ()).throw(OSError("pipe closed")))
+        module.AgentExecutor._stdin_write = 42
+        module.AgentExecutor._user_confirmation_event = threading.Event()
+        module.AgentExecutor._is_waiting_for_confirmation = threading.Event()
+        result = module.AgentExecutor.user_confirm()
+        assert result is False
+        module.AgentExecutor._stdin_write = None
+
+    def test_user_confirm_no_pipe(self, monkeypatch, agent_executor_module):
+        module = agent_executor_module
+        module.AgentExecutor._stdin_write = None
+        module.AgentExecutor._user_confirmation_event = threading.Event()
+        module.AgentExecutor._is_waiting_for_confirmation = threading.Event()
+        result = module.AgentExecutor.user_confirm()
+        assert result is False

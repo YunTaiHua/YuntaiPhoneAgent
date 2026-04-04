@@ -502,3 +502,53 @@ def test_show_file_management_info_building_and_close_bind(monkeypatch, tmp_path
     }
     h.show_file_management()
     assert not toasts
+
+
+def test_system_check_dialog_slots_and_format_action_lines():
+    dlg = mod.SystemCheckDialog.__new__(mod.SystemCheckDialog)
+
+    class _Cursor:
+        MoveOperation = SimpleNamespace(End=1)
+
+        def __init__(self):
+            self.moves = 0
+
+        def movePosition(self, _op):
+            self.moves += 1
+
+    class _Text:
+        def __init__(self):
+            self.lines = []
+            self.cursor = _Cursor()
+
+        def append(self, text):
+            self.lines.append(text)
+
+        def textCursor(self):
+            return self.cursor
+
+        def setTextCursor(self, _cursor):
+            return None
+
+    dlg.result_text = _Text()
+    dlg.status_label = SimpleNamespace(text="", style="", setText=lambda v: setattr(dlg.status_label, "text", v), setStyleSheet=lambda v: setattr(dlg.status_label, "style", v))
+    dlg._on_append_text("ok")
+    dlg._on_set_status("s")
+    dlg._on_set_status_color("red")
+    dlg.scroll_to_bottom()
+    assert dlg.result_text.lines == ["ok"]
+    assert dlg.status_label.text == "s"
+    assert "red" in dlg.status_label.style
+    assert dlg.result_text.cursor.moves == 2
+
+    dlg.append_text_signal = SimpleNamespace(emit=lambda v: setattr(dlg, "_emit1", v))
+    dlg.set_status_signal = SimpleNamespace(emit=lambda v: setattr(dlg, "_emit2", v))
+    dlg.set_status_color_signal = SimpleNamespace(emit=lambda v: setattr(dlg, "_emit3", v))
+    dlg.append_text("a")
+    dlg.set_status("b")
+    dlg.set_status_color("c")
+    assert dlg._emit1 == "a" and dlg._emit2 == "b" and dlg._emit3 == "c"
+
+    from yuntai.gui.controller import core as controller_core_mod
+    assert controller_core_mod._format_action_lines("x") == "x"
+    assert controller_core_mod._format_action_lines({"a": 1, "b": 2}) == "a: 1\nb: 2"

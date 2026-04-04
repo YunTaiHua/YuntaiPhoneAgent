@@ -1,4 +1,6 @@
 from types import SimpleNamespace
+import types
+import sys
 
 from yuntai.core import main_app as main_app_mod
 from yuntai.core.registry import ServiceRegistry, get_registry
@@ -77,3 +79,68 @@ def test_main_app_register_layers(monkeypatch):
     assert "callback_manager" in reg_calls["register"]
     assert "chat_model" in reg_calls["factory"]
     assert "judgement_model" in reg_calls["factory"]
+
+
+def test_main_app_init_registers_controller_and_timer(monkeypatch):
+    calls = []
+
+    class _FakeApp:
+        _instance = None
+
+        def __init__(self, _argv):
+            self.name = None
+            self.version = None
+            _FakeApp._instance = self
+
+        @classmethod
+        def instance(cls):
+            return cls._instance
+
+        def setApplicationName(self, v):
+            self.name = v
+
+        def setApplicationVersion(self, v):
+            self.version = v
+
+    class _FakeController:
+        def __init__(self, root, scrcpy):
+            self.root = root
+            self.scrcpy = scrcpy
+            self.view = SimpleNamespace(show=lambda: calls.append("show"))
+
+        def show_dashboard(self):
+            calls.append("dashboard")
+
+    fake_registry = SimpleNamespace(register=lambda name, _obj: calls.append(("register", name)))
+
+    monkeypatch.setattr(main_app_mod, "validate_config", lambda: False)
+    monkeypatch.setattr(main_app_mod, "print_config_summary", lambda: calls.append("summary"))
+    monkeypatch.setattr(main_app_mod, "QApplication", _FakeApp)
+    monkeypatch.setattr(main_app_mod, "get_registry", lambda: fake_registry)
+    monkeypatch.setattr(main_app_mod.QTimer, "singleShot", lambda ms, cb: calls.append(("timer", ms, cb.__name__)))
+    monkeypatch.setattr(main_app_mod.atexit, "register", lambda fn: calls.append(("atexit", fn.__name__)))
+
+    fake_gui_mod = types.ModuleType("yuntai.gui.gui_controller")
+    fake_gui_mod.GUIController = _FakeController
+    monkeypatch.setitem(sys.modules, "yuntai.gui.gui_controller", fake_gui_mod)
+
+    monkeypatch.setattr(main_app_mod.MainApp, "_register_foundation_services", lambda self, _r: calls.append("f0"))
+    monkeypatch.setattr(main_app_mod.MainApp, "_register_business_services", lambda self, _r: calls.append("f12"))
+
+    app = main_app_mod.MainApp()
+    assert app.app.name == "Phone Agent"
+    assert app.app.version == main_app_mod.APP_VERSION
+    assert ("register", "gui_controller") in calls
+    assert ("timer", 500, "check_initial_connection") in calls
+    assert "show" in calls and "dashboard" in calls
+
+
+def test_main_app_delegates_and_cleanup_without_hook():
+    app = object.__new__(main_app_mod.MainApp)
+    called = []
+    app.controller = SimpleNamespace(check_initial_connection=lambda: called.append("check"))
+    app.check_initial_connection()
+    assert called == ["check"]
+
+    app.controller = SimpleNamespace()
+    app.cleanup()

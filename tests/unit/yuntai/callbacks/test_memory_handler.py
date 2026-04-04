@@ -67,7 +67,6 @@ def test_file_based_memory_handler_calls_file_manager(monkeypatch):
         auto_save=True,
     )
 
-    # Keep current prompt/response values intact after parent save path.
     def fake_super_save(self):
         return None
     monkeypatch.setattr(MemoryCallbackHandler, "_save_to_memory", fake_super_save)
@@ -79,3 +78,72 @@ def test_file_based_memory_handler_calls_file_manager(monkeypatch):
     assert saved[0]["type"] == "free_chat"
     assert saved[0]["user_input"] == "hello"
     assert saved[0]["assistant_reply"] == "world"
+
+
+class TestMemoryHandlerCoverageGaps:
+    def test_save_to_memory_empty_input_returns(self):
+        handler = MemoryCallbackHandler()
+        handler._current_user_input = ""
+        handler._current_ai_response = "resp"
+        handler._save_to_memory()
+
+    def test_save_to_memory_exception(self):
+        handler = MemoryCallbackHandler()
+        handler._current_user_input = "user"
+        handler._current_ai_response = "ai"
+        handler._memory = SimpleNamespace(
+            append=lambda item: (_ for _ in ()).throw(RuntimeError("mem boom"))
+        )
+        handler._save_to_memory()
+
+    def test_get_messages_for_langchain(self):
+        handler = MemoryCallbackHandler()
+        handler._conversation_history = [
+            {"user": "hello", "assistant": "hi"},
+            {"user": "bye", "assistant": "bye"},
+        ]
+        messages = handler.get_messages_for_langchain(limit=10)
+        assert len(messages) == 4
+        assert messages[0].content == "hello"
+        assert messages[1].content == "hi"
+
+    def test_session_handler_empty_input_returns(self):
+        handler = SessionMemoryCallbackHandler()
+        handler._current_user_input = ""
+        handler._current_ai_response = "resp"
+        handler._save_to_memory()
+
+    def test_session_handler_new_session_init(self):
+        handler = SessionMemoryCallbackHandler()
+        handler._current_session_id = "sess1"
+        handler._current_user_input = "user"
+        handler._current_ai_response = "ai"
+        handler._save_to_memory()
+        assert "sess1" in handler._sessions
+        assert len(handler._sessions["sess1"]) == 1
+
+    def test_session_handler_get_current_session(self):
+        handler = SessionMemoryCallbackHandler()
+        handler._current_session_id = "sess1"
+        assert handler.get_current_session() == "sess1"
+
+    def test_session_handler_get_session_history_empty(self):
+        handler = SessionMemoryCallbackHandler()
+        assert handler.get_session_history("") == []
+        assert handler.get_session_history("nonexistent") == []
+
+    def test_file_handler_empty_input_returns(self):
+        handler = FileBasedMemoryCallbackHandler(file_manager=SimpleNamespace(
+            save_conversation_history=lambda x: None
+        ))
+        handler._current_user_input = ""
+        handler._current_ai_response = "resp"
+        handler._save_to_memory()
+
+    def test_file_handler_save_exception(self):
+        handler = FileBasedMemoryCallbackHandler(file_manager=SimpleNamespace(
+            save_conversation_history=lambda x: (_ for _ in ()).throw(RuntimeError("file boom"))
+        ))
+        handler._current_user_input = "user"
+        handler._current_ai_response = "ai"
+        handler._save_to_memory()

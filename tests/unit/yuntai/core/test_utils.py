@@ -1,7 +1,8 @@
 import importlib.util
 import subprocess
+import sys
 from pathlib import Path
-
+from types import SimpleNamespace
 
 UTILS_PATH = Path(__file__).resolve().parents[4] / "yuntai" / "core" / "utils.py"
 
@@ -106,3 +107,59 @@ def test_load_synthesized_files_and_cleanup(tmp_path):
     status = module.get_current_tts_status()
     assert status["tts_page_synthesizing"] is False
     assert status["tts_synthesized_files_count"] == 0
+
+
+class TestUtilsCoverageGaps:
+    def test_enable_windows_color_oserror(self, monkeypatch):
+        module = _load_utils_module("test_utils_color")
+        utils = module.Utils()
+        monkeypatch.setattr(sys, "platform", "win32")
+        mock_ctypes = SimpleNamespace(
+            windll=SimpleNamespace(
+                kernel32=SimpleNamespace(
+                    GetStdHandle=lambda x: (_ for _ in ()).throw(OSError("no handle"))
+                )
+            )
+        )
+        monkeypatch.setitem(sys.modules, "ctypes", mock_ctypes)
+        utils.enable_windows_color()
+
+    def test_check_system_requirements_adb_not_found(self, monkeypatch):
+        module = _load_utils_module("test_utils_adb_not_found")
+        utils = module.Utils()
+        monkeypatch.setattr("yuntai.core.utils.subprocess.run",
+                            lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError("adb not found")))
+        result = utils.check_system_requirements()
+        assert result is False
+
+    def test_check_system_requirements_adb_exception(self, monkeypatch):
+        module = _load_utils_module("test_utils_adb_exc")
+        utils = module.Utils()
+        monkeypatch.setattr("yuntai.core.utils.subprocess.run",
+                            lambda *a, **k: (_ for _ in ()).throw(RuntimeError("adb crash")))
+        result = utils.check_system_requirements()
+        assert result is False
+
+    def test_check_hdc_not_installed(self, monkeypatch):
+        module = _load_utils_module("test_utils_hdc_not_installed")
+        utils = module.Utils()
+        monkeypatch.setattr("yuntai.core.utils.shutil.which", lambda cmd: None)
+        result = utils.check_hdc()
+        assert result is False
+
+    def test_check_hdc_version_check_exception(self, monkeypatch):
+        module = _load_utils_module("test_utils_hdc_exc")
+        utils = module.Utils()
+        monkeypatch.setattr("yuntai.core.utils.shutil.which", lambda cmd: "/usr/bin/hdc")
+        monkeypatch.setattr("yuntai.core.utils.subprocess.run",
+                            lambda *a, **k: (_ for _ in ()).throw(RuntimeError("hdc crash")))
+        result = utils.check_hdc()
+        assert result is False
+
+    def test_tts_state_manager_page_synthesizing_property(self):
+        module = _load_utils_module("test_utils_tts_prop")
+        mgr = module.TTSStateManager()
+        assert mgr.tts_page_synthesizing is False
+        mgr._tts_page_synthesizing = True
+        assert mgr.tts_page_synthesizing is True
+        mgr._tts_page_synthesizing = False

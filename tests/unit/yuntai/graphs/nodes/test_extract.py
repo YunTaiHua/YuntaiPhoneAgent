@@ -84,3 +84,60 @@ def test_extract_records_terminate_and_failure_and_success(monkeypatch):
     out3 = mod.extract_records(state)
     assert out3["error"] is None
     assert out3["extracted_records"] == "records"
+
+
+class TestExtractCoverageGaps:
+    def _make_cache(self):
+        cache = mod.PhoneAgentCache(max_size=3, expire_seconds=3600)
+        return cache
+
+    def test_cache_put_update_existing(self):
+        cache = self._make_cache()
+        agent1 = SimpleNamespace(name="agent1")
+        agent2 = SimpleNamespace(name="agent2")
+        cache.put("dev1", agent1)
+        cache.put("dev1", agent2)
+        assert cache.get("dev1") is agent2
+
+    def test_cache_remove_existing(self):
+        cache = self._make_cache()
+        cache.put("dev1", SimpleNamespace())
+        result = cache.remove("dev1")
+        assert result is True
+        assert cache.get("dev1") is None
+
+    def test_cache_remove_nonexistent(self):
+        cache = self._make_cache()
+        result = cache.remove("nonexistent")
+        assert result is False
+
+    def test_clear_cache_specific_device(self):
+        mod._cache = self._make_cache()
+        mod._cache.put("dev1", SimpleNamespace())
+        mod._cache.put("dev2", SimpleNamespace())
+        mod.clear_cache("dev1")
+        assert mod._cache.get("dev1") is None
+        assert mod._cache.get("dev2") is not None
+
+    def test_clear_cache_all(self):
+        mod._cache = self._make_cache()
+        mod._cache.put("dev1", SimpleNamespace())
+        mod._cache.put("dev2", SimpleNamespace())
+        mod.clear_cache()
+        assert mod._cache.size() == 0
+
+    def test_get_cache_size(self):
+        mod._cache = self._make_cache()
+        mod._cache.put("dev1", SimpleNamespace())
+        mod._cache.put("dev2", SimpleNamespace())
+        assert mod.get_cache_size() == 2
+
+    def test_get_cache_stats(self):
+        mod._cache = self._make_cache()
+        stats = mod.get_cache_stats()
+        assert isinstance(stats, dict)
+
+    def test_cleanup_expired_cache(self):
+        mod._cache = self._make_cache()
+        result = mod.cleanup_expired_cache()
+        assert isinstance(result, int)

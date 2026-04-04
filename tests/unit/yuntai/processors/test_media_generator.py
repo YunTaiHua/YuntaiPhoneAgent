@@ -171,3 +171,163 @@ def test_generate_video_error_text_json_and_check_unknown(monkeypatch, tmp_path)
     )
     unknown = mg.check_video_result("t")
     assert unknown["success"] is False and "未知状态" in unknown["message"]
+
+
+class TestMediaGeneratorDeepBranches:
+    def test_generate_image_request_exception(self, monkeypatch, tmp_path):
+        import requests as req
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(
+            "yuntai.processors.media_generator.requests.post",
+            lambda *a, **k: (_ for _ in ()).throw(req.RequestException("connection error")),
+        )
+        result = mg.generate_image("cat")
+        assert result["success"] is False
+        assert "图像生成失败" in result["message"]
+
+    def test_generate_image_unknown_exception(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(
+            "yuntai.processors.media_generator.requests.post",
+            lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unknown")),
+        )
+        result = mg.generate_image("cat")
+        assert result["success"] is False
+        assert "未知错误" in result["message"]
+
+    def test_download_image_no_filename(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(
+            "yuntai.processors.media_generator.requests.get",
+            lambda *a, **k: _Resp(status_code=200, content=b"img"),
+        )
+        monkeypatch.setattr("yuntai.processors.media_generator.time.time", lambda: 1000000)
+        out = mg.download_image("https://img")
+        assert "image_1000000.png" in out
+
+    def test_generate_video_empty_url_in_list(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(
+            "yuntai.processors.media_generator.requests.post",
+            lambda *a, **k: _Resp(status_code=200, json_data={"id": "t1", "task_status": "PROCESSING"}),
+        )
+        result = mg.generate_video("p", image_urls=["http://valid.com/img.jpg", "  "])
+        assert result["success"] is True
+
+    def test_generate_video_two_valid_image_urls(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(
+            "yuntai.processors.media_generator.requests.post",
+            lambda *a, **k: _Resp(status_code=200, json_data={"id": "t2", "task_status": "PROCESSING"}),
+        )
+        result = mg.generate_video("p", image_urls=["http://a.com/1.jpg", "http://b.com/2.jpg"])
+        assert result["success"] is True
+
+    def test_generate_video_no_valid_images_after_filter(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(
+            "yuntai.processors.media_generator.requests.post",
+            lambda *a, **k: _Resp(status_code=200, json_data={"id": "t1", "task_status": "PROCESSING"}),
+        )
+        result = mg.generate_video("p", image_urls=["bad1", "bad2"])
+        assert result["success"] is True
+
+    def test_generate_video_outer_exception(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(
+            "yuntai.processors.media_generator.requests.post",
+            lambda *a, **k: (_ for _ in ()).throw(RuntimeError("video boom")),
+        )
+        result = mg.generate_video("p")
+        assert result["success"] is False
+        assert "视频生成失败" in result["message"]
+
+    def test_check_video_result_processing_status(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(
+            "yuntai.processors.media_generator.requests.get",
+            lambda *a, **k: _Resp(status_code=200, json_data={"task_status": "PROCESSING"}),
+        )
+        result = mg.check_video_result("t")
+        assert result["success"] is False
+        assert result["status"] == "PROCESSING"
+
+    def test_check_video_result_fail_status(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(
+            "yuntai.processors.media_generator.requests.get",
+            lambda *a, **k: _Resp(status_code=200, json_data={"task_status": "FAIL", "error": {"message": "boom"}}),
+        )
+        result = mg.check_video_result("t")
+        assert result["success"] is False
+        assert "boom" in result["message"]
+
+    def test_check_video_result_non_200(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(
+            "yuntai.processors.media_generator.requests.get",
+            lambda *a, **k: _Resp(status_code=500, text="server error"),
+        )
+        result = mg.check_video_result("t")
+        assert result["success"] is False
+        assert "查询失败" in result["message"]
+
+    def test_check_video_result_exception(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(
+            "yuntai.processors.media_generator.requests.get",
+            lambda *a, **k: (_ for _ in ()).throw(RuntimeError("check boom")),
+        )
+        result = mg.check_video_result("t")
+        assert result["success"] is False
+        assert "查询视频结果失败" in result["message"]
+
+    def test_check_video_result_success_empty_result(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(
+            "yuntai.processors.media_generator.requests.get",
+            lambda *a, **k: _Resp(status_code=200, json_data={"task_status": "SUCCESS", "video_result": []}),
+        )
+        result = mg.check_video_result("t")
+        assert result["success"] is False
+        assert "视频结果格式错误" in result["message"]
+
+    def test_download_video_exception(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(
+            "yuntai.processors.media_generator.requests.get",
+            lambda *a, **k: (_ for _ in ()).throw(RuntimeError("download boom")),
+        )
+        result = mg.download_video("https://video")
+        assert result["success"] is False
+
+    def test_download_video_cover_download_failure(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        call_count = {"n": 0}
+
+        def _fake_get(url, *args, **kwargs):
+            call_count["n"] += 1
+            if call_count["n"] > 1:
+                raise RuntimeError("cover download failed")
+            return _Resp(status_code=200, headers={"content-length": "4"}, chunks=[b"ab", b"cd"])
+
+        monkeypatch.setattr("yuntai.processors.media_generator.requests.get", _fake_get)
+        result = mg.download_video("https://video", cover_url="https://cover", filename="test")
+        assert result["success"] is True
+
+    def test_wait_for_video_timeout(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(mg, "check_video_result", lambda *_: {"success": False, "status": "PROCESSING"})
+        monkeypatch.setattr("yuntai.processors.media_generator.time.sleep", lambda *_: None)
+        result = mg.wait_for_video_completion("task", image_count=0, interval=0, max_attempts=1)
+        assert result["success"] is False
+        assert "超时" in result["message"]
+
+    def test_wait_for_video_fail_event(self, monkeypatch, tmp_path):
+        mg = MediaGenerator(api_key="k", project_root=tmp_path)
+        monkeypatch.setattr(mg, "check_video_result", lambda *_: {"success": False, "status": "FAIL"})
+        monkeypatch.setattr("yuntai.processors.media_generator.time.sleep", lambda *_: None)
+        events = []
+        result = mg.wait_for_video_completion("task", callback=lambda *e: events.append(e))
+        assert result["status"] == "FAIL"
+        assert any(e[0] == "FAIL" for e in events)

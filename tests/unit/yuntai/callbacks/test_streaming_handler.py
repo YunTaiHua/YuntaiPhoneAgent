@@ -1,4 +1,7 @@
 import asyncio
+import sys
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 from langchain_core.outputs import LLMResult
 
@@ -74,3 +77,58 @@ def test_async_streaming_handler_supports_sync_and_async_callbacks():
     asyncio.run(h_async.on_llm_new_token_async("b"))
     assert async_tokens == ["b"]
     assert h_async.get_current_response() == "b"
+
+
+class TestStreamingHandlerCoverageGaps:
+    def test_output_callback_exception(self):
+        handler = StreamingCallbackHandler()
+        handler._is_streaming = True
+        handler.output_callback = lambda t: (_ for _ in ()).throw(RuntimeError("cb boom"))
+        handler.on_llm_new_token("test", run=MagicMock())
+
+    def test_complete_callback_exception(self):
+        handler = StreamingCallbackHandler()
+        handler._is_streaming = True
+        handler._current_response = "some response"
+        handler.complete_callback = lambda t: (_ for _ in ()).throw(RuntimeError("cb boom"))
+        handler.on_llm_end(MagicMock(), run=MagicMock())
+
+    def test_reset_method(self):
+        handler = StreamingCallbackHandler()
+        handler._current_response = "old"
+        handler._is_streaming = True
+        handler.reset()
+        assert handler._current_response == ""
+        assert handler._is_streaming is False
+
+    def test_qt_handler_not_streaming_early_return(self):
+        handler = QtStreamingCallbackHandler()
+        handler._is_streaming = False
+        handler.on_llm_new_token("test", run=MagicMock())
+
+    def test_qt_handler_signal_exception(self):
+        handler = QtStreamingCallbackHandler()
+        handler._is_streaming = True
+        handler.append_signal = SimpleNamespace(emit=lambda t: (_ for _ in ()).throw(RuntimeError("signal boom")))
+        handler.on_llm_new_token("test", run=MagicMock())
+
+    def test_qt_handler_complete_signal_exception(self):
+        handler = QtStreamingCallbackHandler()
+        handler._is_streaming = True
+        handler._current_response = "resp"
+        handler.complete_signal = SimpleNamespace(emit=lambda t: (_ for _ in ()).throw(RuntimeError("signal boom")))
+        handler.on_llm_end(MagicMock(), run=MagicMock())
+
+    def test_async_handler_not_streaming_early_return(self):
+        handler = AsyncStreamingCallbackHandler()
+        handler._is_streaming = False
+        asyncio.run(handler.on_llm_new_token_async("test", run=MagicMock()))
+
+    def test_async_handler_callback_exception(self, monkeypatch):
+        import builtins
+        handler = AsyncStreamingCallbackHandler()
+        handler._is_streaming = True
+        handler.output_callback = lambda t: (_ for _ in ()).throw(RuntimeError("async boom"))
+        real_print = builtins.print
+        monkeypatch.setattr(builtins, "print", lambda *a, **k: None)
+        asyncio.run(handler.on_llm_new_token_async("test", run=MagicMock()))

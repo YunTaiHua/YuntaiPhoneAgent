@@ -1,5 +1,9 @@
+import importlib
 import inspect
+import sys
 from types import SimpleNamespace
+
+import pytest
 
 import yuntai.gui.gui_view as mod
 
@@ -42,8 +46,6 @@ def test_gui_view_init_executes_expected_setup(monkeypatch):
             self.view = view
 
     fake_pages = SimpleNamespace(PageBuilder=_PageBuilder)
-    import sys
-
     monkeypatch.setitem(sys.modules, "yuntai.views.pages", fake_pages)
 
     view = mod.GUIView()
@@ -56,3 +58,35 @@ def test_gui_view_init_executes_expected_setup(monkeypatch):
     assert getattr(view, "_layout_done", False) is True
     assert getattr(view, "_toast", False) is True
     assert hasattr(view, "page_builder")
+
+
+def test_gui_controller_class_mro_and_main(monkeypatch):
+    gui_mod = importlib.import_module("yuntai.gui.gui_controller")
+    assert issubclass(gui_mod.GUIController, gui_mod.ControllerCore)
+    assert issubclass(gui_mod.GUIController, gui_mod.CommandMixin)
+
+    created = {}
+
+    class _FakeController:
+        def __init__(self, project_root, scrcpy_path):
+            created["project_root"] = project_root
+            created["scrcpy_path"] = scrcpy_path
+
+        def run(self):
+            return 7
+
+    cfg = importlib.import_module("yuntai.core.config")
+    monkeypatch.setattr(cfg, "PROJECT_ROOT", "ROOT_X", raising=False)
+    monkeypatch.setattr(cfg, "SCRCPY_PATH", "SCRCPY_X", raising=False)
+    monkeypatch.setattr(gui_mod, "GUIController", _FakeController)
+
+    def _raise_exit(code):
+        raise SystemExit(code)
+
+    monkeypatch.setattr(sys, "exit", _raise_exit)
+
+    with pytest.raises(SystemExit) as excinfo:
+        gui_mod.main()
+
+    assert excinfo.value.code == 7
+    assert created == {"project_root": "ROOT_X", "scrcpy_path": "SCRCPY_X"}

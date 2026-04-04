@@ -1,4 +1,7 @@
+import asyncio
 import builtins
+import os
+import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -181,3 +184,195 @@ def test_convert_to_simplified_and_cleanup_temp_files(monkeypatch, tmp_path):
     ap.cleanup_temp_files(older_than_hours=24)
     assert old_file.exists() is False
     assert new_file.exists() is True
+
+
+class TestAudioProcessorExecutorAndAsync:
+    def test_get_executor_creates_thread_pool(self, monkeypatch):
+        monkeypatch.setattr(module, "_executor", None)
+        executor = module._get_executor()
+        assert executor is not None
+        assert executor._max_workers == 4
+
+    def test_check_ffmpeg_async(self, monkeypatch, tmp_path):
+        ffmpeg = tmp_path / "ffmpeg.exe"
+        ffmpeg.write_text("x", encoding="utf-8")
+        ap = module.AudioProcessor(ffmpeg_path=str(ffmpeg))
+        monkeypatch.setattr(module.subprocess, "run", lambda *args, **kwargs: SimpleNamespace(returncode=0, stderr=""))
+        loop = asyncio.new_event_loop()
+        try:
+            ok, msg = loop.run_until_complete(ap.check_ffmpeg_async())
+            assert ok is True
+        finally:
+            loop.close()
+
+    def test_process_video_with_audio_async(self, monkeypatch, tmp_path):
+        ap = module.AudioProcessor(ffmpeg_path=None)
+        video = tmp_path / "v.mp4"
+        video.write_bytes(b"x")
+        monkeypatch.setattr(ap, "process_video_with_audio", lambda *a, **k: (True, {"audio_path": "test"}))
+        loop = asyncio.new_event_loop()
+        try:
+            ok, result = loop.run_until_complete(ap.process_video_with_audio_async(str(video)))
+            assert ok is True
+        finally:
+            loop.close()
+
+    def test_process_audio_only_async(self, monkeypatch, tmp_path):
+        ap = module.AudioProcessor(ffmpeg_path=None)
+        audio = tmp_path / "a.wav"
+        audio.write_bytes(b"x")
+        monkeypatch.setattr(ap, "process_audio_only", lambda *a, **k: (True, {"audio_path": "test"}))
+        loop = asyncio.new_event_loop()
+        try:
+            ok, result = loop.run_until_complete(ap.process_audio_only_async(str(audio)))
+            assert ok is True
+        finally:
+            loop.close()
+
+
+class TestAudioProcessorDeepBranches:
+    def test_convert_to_simplified_chinese_has_convert_attr(self, monkeypatch):
+        ap = module.AudioProcessor(ffmpeg_path=None)
+        monkeypatch.setattr(module, "WHISPER_CONVERT_TO_SIMPLIFIED", True)
+
+        class _FakeConverter:
+            def convert(self, text):
+                return f"converted_{text}"
+
+        ap.text_converter = _FakeConverter()
+        result = ap._convert_to_simplified_chinese("测试")
+        assert result == "converted_测试"
+
+    def test_extract_audio_with_custom_output_path(self, monkeypatch, tmp_path):
+        ffmpeg = tmp_path / "ffmpeg.exe"
+        ffmpeg.write_text("x", encoding="utf-8")
+        ap = module.AudioProcessor(ffmpeg_path=str(ffmpeg))
+        video = tmp_path / "v.mp4"
+        video.write_bytes(b"x")
+        output = tmp_path / "custom_output.wav"
+        monkeypatch.setattr(module.subprocess, "run", lambda *args, **kwargs: SimpleNamespace(returncode=0, stderr=b""))
+        ok, out = ap.extract_audio_from_video(str(video), str(output))
+        assert ok is True
+
+    def test_extract_audio_timeout(self, monkeypatch, tmp_path):
+        ffmpeg = tmp_path / "ffmpeg.exe"
+        ffmpeg.write_text("x", encoding="utf-8")
+        ap = module.AudioProcessor(ffmpeg_path=str(ffmpeg))
+        video = tmp_path / "v.mp4"
+        video.write_bytes(b"x")
+        call_count = {"n": 0}
+
+        def conditional_timeout(*args, **kwargs):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                return SimpleNamespace(returncode=0, stderr="")
+            raise subprocess.TimeoutExpired(cmd=["ffmpeg"], timeout=1)
+
+        monkeypatch.setattr(module.subprocess, "run", conditional_timeout)
+        ok, msg = ap.extract_audio_from_video(str(video))
+        assert ok is False
+        assert "超时" in msg
+
+    def test_transcribe_audio_loads_model_if_needed(self, monkeypatch, tmp_path):
+        ap = module.AudioProcessor(ffmpeg_path=None)
+        audio = tmp_path / "a.wav"
+        audio.write_bytes(b"x")
+        ap.model_loaded = False
+        monkeypatch.setattr(ap, "load_whisper_model", lambda *a, **k: (True, ""))
+        ap.whisper_model = SimpleNamespace(transcribe=lambda *a, **k: {"text": "转录结果"})
+        monkeypatch.setattr(ap, "_convert_to_simplified_chinese", lambda t: t)
+        ok, text = ap.transcribe_audio(str(audio), "zh")
+        assert ok is True
+
+    def test_transcribe_audio_exception(self, monkeypatch, tmp_path):
+        ap = module.AudioProcessor(ffmpeg_path=None)
+        audio = tmp_path / "a.wav"
+        audio.write_bytes(b"x")
+        ap.model_loaded = True
+        ap.whisper_model = SimpleNamespace(transcribe=lambda *a, **k: (_ for _ in ()).throw(RuntimeError("transcribe boom")))
+        ok, msg = ap.transcribe_audio(str(audio), "zh")
+        assert ok is False
+        assert "转录失败" in msg
+
+    def test_process_video_file_not_found(self, monkeypatch):
+        ap = module.AudioProcessor(ffmpeg_path=None)
+        ok, result = ap.process_video_with_audio("/nonexistent/video.mp4")
+        assert ok is False
+        assert "不存在" in result["error"]
+
+    def test_process_video_audio_extract_fail(self, monkeypatch, tmp_path):
+        ap = module.AudioProcessor(ffmpeg_path=None)
+        video = tmp_path / "v.mp4"
+        video.write_bytes(b"x")
+        monkeypatch.setattr(ap, "extract_audio_from_video", lambda *a: (False, "提取失败"))
+        ok, result = ap.process_video_with_audio(str(video))
+        assert ok is False
+        assert "音频提取失败" in result["error"]
+
+    def test_process_video_transcribe_fail(self, monkeypatch, tmp_path):
+        ap = module.AudioProcessor(ffmpeg_path=None)
+        video = tmp_path / "v.mp4"
+        video.write_bytes(b"x")
+        monkeypatch.setattr(ap, "extract_audio_from_video", lambda *a: (True, str(tmp_path / "audio.wav")))
+        monkeypatch.setattr(ap, "transcribe_audio", lambda *a, **k: (False, "转录失败"))
+        ok, result = ap.process_video_with_audio(str(video))
+        assert ok is False
+        assert "音频转录失败" in result["error"]
+
+    def test_process_video_exception(self, monkeypatch, tmp_path):
+        ap = module.AudioProcessor(ffmpeg_path=None)
+        video = tmp_path / "v.mp4"
+        video.write_bytes(b"x")
+        monkeypatch.setattr(ap, "extract_audio_from_video", lambda *a: (_ for _ in ()).throw(RuntimeError("boom")))
+        ok, result = ap.process_video_with_audio(str(video))
+        assert ok is False
+        assert "失败" in result["error"]
+
+    def test_process_audio_only_file_not_found(self, monkeypatch):
+        ap = module.AudioProcessor(ffmpeg_path=None)
+        ok, result = ap.process_audio_only("/nonexistent/audio.wav")
+        assert ok is False
+        assert "不存在" in result["error"]
+
+    def test_process_audio_only_transcribe_fail(self, monkeypatch, tmp_path):
+        ap = module.AudioProcessor(ffmpeg_path=None)
+        audio = tmp_path / "a.wav"
+        audio.write_bytes(b"x")
+        monkeypatch.setattr(ap, "transcribe_audio", lambda *a, **k: (False, "转录失败"))
+        ok, result = ap.process_audio_only(str(audio))
+        assert ok is False
+        assert "音频转录失败" in result["error"]
+
+    def test_process_audio_only_exception(self, monkeypatch, tmp_path):
+        ap = module.AudioProcessor(ffmpeg_path=None)
+        audio = tmp_path / "a.wav"
+        audio.write_bytes(b"x")
+        monkeypatch.setattr(ap, "transcribe_audio", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+        ok, result = ap.process_audio_only(str(audio))
+        assert ok is False
+        assert "失败" in result["error"]
+
+    def test_cleanup_temp_files_unlink_failure(self, monkeypatch, tmp_path):
+        import time as _time
+        ap = module.AudioProcessor(ffmpeg_path=None)
+        old_file = tmp_path / "old_audio.wav"
+        old_file.write_bytes(b"x")
+        now = _time.time()
+        os.utime(old_file, (now - 50 * 3600, now - 50 * 3600))
+        ap.temp_dir = tmp_path
+        real_unlink = Path.unlink
+
+        def failing_unlink(self_path, *args, **kwargs):
+            if "old_audio.wav" in str(self_path):
+                raise OSError("permission denied")
+            return real_unlink(self_path, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "unlink", failing_unlink)
+        ap.cleanup_temp_files(older_than_hours=24)
+        assert old_file.exists() is True
+
+    def test_cleanup_temp_files_outer_exception(self, monkeypatch, tmp_path):
+        ap = module.AudioProcessor(ffmpeg_path=None)
+        ap.temp_dir = tmp_path
+        monkeypatch.setattr(tmp_path.__class__, "iterdir", lambda self: (_ for _ in ()).throw(RuntimeError("iterdir boom")))
+        ap.cleanup_temp_files(older_than_hours=24)

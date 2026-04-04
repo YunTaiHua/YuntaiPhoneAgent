@@ -206,3 +206,170 @@ def test_save_synthesis_result_branches(monkeypatch, tmp_path):
     assert out.endswith("ref_20260101_020202.wav")
     assert writes
     assert added and added[0].endswith(".wav")
+
+
+class TestNullIOAndNullWriter:
+    def test_null_io_writes_error_text(self):
+        from yuntai.managers.tts_engine import NullIO
+        null_io = NullIO()
+        result = null_io.write("this is an ERROR message")
+        assert result > 0
+        assert "ERROR" in null_io.getvalue()
+
+    def test_null_io_skips_normal_text(self):
+        from yuntai.managers.tts_engine import NullIO
+        null_io = NullIO()
+        result = null_io.write("normal text without issues")
+        assert result == len("normal text without issues")
+        assert null_io.getvalue() == ""
+
+    def test_null_io_writes_exception_text(self):
+        from yuntai.managers.tts_engine import NullIO
+        null_io = NullIO()
+        result = null_io.write("caught an exception here")
+        assert result > 0
+        assert "exception" in null_io.getvalue()
+
+    def test_null_writer_write_returns_length(self):
+        from yuntai.managers.tts_engine import NullWriter
+        nw = NullWriter()
+        assert nw.write("hello") == 5
+
+    def test_null_writer_flush_does_nothing(self):
+        from yuntai.managers.tts_engine import NullWriter
+        nw = NullWriter()
+        nw.flush()
+
+
+class TestTTSEngineModuleLoadFallback:
+    def test_load_custom_tts_modules_imports(self, monkeypatch, tmp_path):
+        module = _load_module(monkeypatch)
+        engine = _make_engine(module, tmp_path)
+        import types
+        fake_gpt_sovits_custom = types.ModuleType("yuntai.managers.gpt_sovits_custom")
+        fake_gpt_sovits_custom.get_tts_wav = lambda *a, **k: None
+        fake_gpt_sovits_custom.change_gpt_weights = lambda *a: None
+        fake_gpt_sovits_custom.change_sovits_weights = lambda *a: None
+        fake_gpt_sovits_custom.I18nAuto = lambda: "i18n"
+        monkeypatch.setitem(sys.modules, "yuntai.managers.gpt_sovits_custom", fake_gpt_sovits_custom)
+        engine._load_custom_tts_modules()
+        assert "get_tts_wav" in engine.tts_modules
+        assert "I18nAuto" in engine.tts_modules
+        assert "i18n" in engine.tts_modules
+
+    def test_load_original_tts_modules_imports(self, monkeypatch, tmp_path):
+        module = _load_module(monkeypatch)
+        engine = _make_engine(module, tmp_path)
+        import types
+        fake_i18n_mod = types.ModuleType("tools.i18n.i18n")
+        fake_i18n_mod.I18nAuto = lambda: "orig_i18n"
+        fake_inference = types.ModuleType("GPT_SoVITS.inference_webui")
+        fake_inference.change_gpt_weights = lambda *a: None
+        fake_inference.change_sovits_weights = lambda *a: None
+        fake_inference.get_tts_wav = lambda *a, **k: "orig_wav"
+        monkeypatch.setitem(sys.modules, "tools.i18n.i18n", fake_i18n_mod)
+        monkeypatch.setitem(sys.modules, "GPT_SoVITS.inference_webui", fake_inference)
+        engine._load_original_tts_modules()
+        assert "get_tts_wav" in engine.tts_modules
+        assert "i18n" in engine.tts_modules
+
+
+class TestTTSEngineRetrySynthesis:
+    def test_retry_all_attempts_busy(self, monkeypatch, tmp_path):
+        module = _load_module(monkeypatch)
+        engine = _make_engine(module, tmp_path)
+        engine.is_tts_synthesizing = True
+        engine.tts_modules_loaded = True
+        engine.tts_available = True
+        monkeypatch.setattr(module.time, "sleep", lambda *_args: None)
+        ok, msg = engine.synthesize_text_with_retry("x", "a", "b", max_retries=0, retry_delay=0)
+        assert ok is False
+        assert "TTS正忙" in msg
+
+    def test_retry_non_busy_failure_no_retry_keyword(self, monkeypatch, tmp_path):
+        module = _load_module(monkeypatch)
+        engine = _make_engine(module, tmp_path)
+        engine.is_tts_synthesizing = False
+        engine.tts_modules_loaded = True
+        engine.tts_available = True
+        monkeypatch.setattr(engine, "_do_synthesis", lambda *_args: (False, "其他错误"))
+        ok, msg = engine.synthesize_text_with_retry("x", "a", "b", max_retries=2, retry_delay=0)
+        assert ok is False
+        assert "其他错误" in msg
+
+    def test_retry_exception_on_final_attempt(self, monkeypatch, tmp_path):
+        module = _load_module(monkeypatch)
+        engine = _make_engine(module, tmp_path)
+        engine.is_tts_synthesizing = False
+        engine.tts_modules_loaded = True
+        engine.tts_available = True
+        monkeypatch.setattr(module.time, "sleep", lambda *_args: None)
+        monkeypatch.setattr(engine, "_do_synthesis", lambda *_args: (_ for _ in ()).throw(RuntimeError("err")))
+        ok, msg = engine.synthesize_text_with_retry("x", "a", "b", max_retries=0, retry_delay=0)
+        assert ok is False
+        assert "合成异常" in msg
+
+
+class TestTTSEngineDoSynthesisDeepBranches:
+    def test_ref_text_file_not_found(self, monkeypatch, tmp_path):
+        module = _load_module(monkeypatch)
+        engine = _make_engine(module, tmp_path)
+        engine.tts_modules_loaded = True
+        engine.tts_available = True
+        ref_audio = tmp_path / "ref.wav"
+        ref_audio.write_bytes(b"x")
+        ok, msg = engine._do_synthesis("abc", str(ref_audio), str(tmp_path / "missing.txt"))
+        assert ok is False
+        assert "参考文本文件不存在" in msg
+
+    def test_text_few_chinese_chars_uses_default(self, monkeypatch, tmp_path):
+        module = _load_module(monkeypatch)
+        engine = _make_engine(module, tmp_path)
+        engine.tts_modules_loaded = True
+        engine.tts_available = True
+        ref_audio = tmp_path / "ref.wav"
+        ref_text = tmp_path / "ref.txt"
+        ref_audio.write_bytes(b"x")
+        ref_text.write_text("ref", encoding="utf-8")
+        engine.database_manager.get_cached_text = lambda _p: "参考文本"
+        engine.tts_modules = {"get_tts_wav": lambda *a, **k: [(16000, [0.1])], "i18n": lambda x: x}
+        engine.text_processor.clean_text_for_tts = lambda _t: "hello world abc"
+        monkeypatch.setattr(engine, "_execute_synthesis", lambda *_args: [(16000, [0.1])])
+        monkeypatch.setattr(engine, "_save_synthesis_result", lambda *_args: (True, "ok.wav"))
+        ok, msg = engine._do_synthesis("abc", str(ref_audio), str(ref_text))
+        assert ok is True
+
+    def test_synthesis_exception_catches_and_returns_error(self, monkeypatch, tmp_path):
+        module = _load_module(monkeypatch)
+        engine = _make_engine(module, tmp_path)
+        engine.tts_modules_loaded = True
+        engine.tts_available = True
+        ref_audio = tmp_path / "ref.wav"
+        ref_text = tmp_path / "ref.txt"
+        ref_audio.write_bytes(b"x")
+        ref_text.write_text("x", encoding="utf-8")
+        engine.database_manager.get_cached_text = lambda _p: "有效参考"
+        engine.tts_modules = {"get_tts_wav": object(), "i18n": lambda x: x}
+        engine.text_processor.clean_text_for_tts = lambda _t: "这是一个足够长的文本用于测试"
+        monkeypatch.setattr(
+            engine,
+            "_execute_synthesis",
+            lambda *_args: (_ for _ in ()).throw(ValueError("合成内部错误")),
+        )
+        ok, msg = engine._do_synthesis("abc", str(ref_audio), str(ref_text))
+        assert ok is False
+        assert "合成出错" in msg
+
+
+class TestTTSEngineExecuteSynthesis:
+    def test_execute_synthesis_returns_result(self, monkeypatch, tmp_path):
+        module = _load_module(monkeypatch)
+        engine = _make_engine(module, tmp_path)
+        engine.tts_modules = {
+            "get_tts_wav": lambda *a, **k: [(16000, [0.1, 0.2])],
+            "i18n": lambda x: x,
+        }
+        engine.default_tts_config["ref_language"] = "中文"
+        engine.default_tts_config["target_language"] = "中文"
+        result = engine._execute_synthesis("测试文本", "ref.wav", "参考文本")
+        assert result is not None

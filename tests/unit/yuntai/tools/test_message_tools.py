@@ -211,3 +211,66 @@ def test_check_new_messages_filters_existing_and_my_messages(monkeypatch):
     )
     assert has_new is True
     assert new_msgs == ["全新消息"]
+
+
+class TestMessageToolsDeepBranches:
+    def test_parse_messages_exception(self, monkeypatch):
+        module = _load_message_tools_module("test_message_tools_exc")
+
+        class _BoomClient:
+            class chat:
+                class completions:
+                    @staticmethod
+                    def create(**kwargs):
+                        raise RuntimeError("api boom")
+
+        result = module.parse_messages("A: hello。B: world", _BoomClient())
+        assert isinstance(result, list)
+
+    def test_generate_reply_empty_latest_message(self, monkeypatch):
+        module = _load_message_tools_module("test_message_tools_empty")
+        result = module.generate_reply("", [], object())
+        assert result == ""
+
+    def test_generate_reply_exception_in_stream(self, monkeypatch):
+        module = _load_message_tools_module("test_message_tools_stream_exc")
+
+        class _BoomStreamClient:
+            class chat:
+                class completions:
+                    @staticmethod
+                    def create(**kwargs):
+                        def _gen():
+                            yield _Chunk("first")
+                            raise RuntimeError("stream boom")
+                        return _gen()
+
+        result = module.generate_reply("test", [], _BoomStreamClient())
+        assert result == ""
+
+    def test_check_new_messages_all_existing(self, monkeypatch):
+        module = _load_message_tools_module("test_message_tools_all_existing")
+        monkeypatch.setattr(module, "is_similar", lambda a, b, threshold=0.5: True)
+        has_new, new_msgs = module.check_new_messages(
+            ["existing1", "existing2"],
+            ["existing1"],
+            ["existing2"],
+        )
+        assert has_new is False
+        assert new_msgs == []
+
+    def test_check_new_messages_empty_input(self, monkeypatch):
+        module = _load_message_tools_module("test_message_tools_empty_input")
+        has_new, new_msgs = module.check_new_messages([], [], [])
+        assert has_new is False
+        assert new_msgs == []
+
+    def test_emergency_extract_empty_string(self, monkeypatch):
+        module = _load_message_tools_module("test_message_tools_emergency_empty")
+        result = module._emergency_extract("")
+        assert result == []
+
+    def test_emergency_extract_no_delimiters(self, monkeypatch):
+        module = _load_message_tools_module("test_message_tools_emergency_no_delim")
+        result = module._emergency_extract("没有分隔符的纯文本")
+        assert isinstance(result, list)

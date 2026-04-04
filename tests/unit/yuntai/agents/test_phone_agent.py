@@ -1,3 +1,6 @@
+from types import SimpleNamespace
+from unittest.mock import MagicMock
+
 from yuntai.agents.phone_agent import PhoneAgent, PhoneAgentWrapper
 
 
@@ -132,3 +135,75 @@ def test_phone_agent_delegation_and_state_cache(monkeypatch):
     assert agent._wrapper is None
     agent.open_app("抖音")
     assert created == ["d1", "d2"]
+
+
+class TestPhoneAgentCoverageGaps:
+    def _make_wrapper(self, monkeypatch):
+        import yuntai.agents.phone_agent as mod
+        monkeypatch.setattr(mod, "ModelConfig", lambda **kw: SimpleNamespace(**kw))
+        monkeypatch.setattr(mod, "AgentConfig", lambda **kw: SimpleNamespace(**kw))
+        monkeypatch.setattr(mod, "ExternalPhoneAgent", MagicMock())
+        wrapper = mod.PhoneAgentWrapper(device_id="test_dev", max_steps=10)
+        return wrapper
+
+    def test_create_agent(self, monkeypatch):
+        wrapper = self._make_wrapper(monkeypatch)
+        agent = wrapper._create_agent()
+        assert agent is not None
+
+    def test_get_agent_lazy_creation(self, monkeypatch):
+        wrapper = self._make_wrapper(monkeypatch)
+        agent = wrapper._get_agent()
+        assert agent is not None
+        agent2 = wrapper._get_agent()
+        assert agent2 is agent
+
+    def test_reset_agent(self, monkeypatch):
+        wrapper = self._make_wrapper(monkeypatch)
+        wrapper._get_agent()
+        wrapper._reset_agent()
+        assert wrapper._agent is None
+
+    def test_setup_pipe(self, monkeypatch):
+        import yuntai.agents.phone_agent as mod
+        called = []
+        monkeypatch.setattr(mod.AgentExecutor, "_setup_stdin_pipe", lambda: called.append(True))
+        wrapper = self._make_wrapper(monkeypatch)
+        wrapper._setup_pipe()
+        assert called == [True]
+
+    def test_cleanup_pipe(self, monkeypatch):
+        import yuntai.agents.phone_agent as mod
+        called = []
+        monkeypatch.setattr(mod.AgentExecutor, "_cleanup_stdin_pipe", lambda: called.append(True))
+        wrapper = self._make_wrapper(monkeypatch)
+        wrapper._cleanup_pipe()
+        assert called == [True]
+
+    def test_open_app(self, monkeypatch):
+        wrapper = self._make_wrapper(monkeypatch)
+        wrapper.execute = MagicMock(return_value=True)
+        result = wrapper.open_app("微信")
+        assert result is True
+        wrapper.execute.assert_called_once_with("打开微信")
+
+    def test_send_message_default_template(self, monkeypatch):
+        wrapper = self._make_wrapper(monkeypatch)
+        mock_agent = MagicMock()
+        mock_agent.run.return_value = "消息已成功发送"
+        wrapper._setup_pipe = MagicMock()
+        wrapper._get_agent = MagicMock(return_value=mock_agent)
+        wrapper._reset_agent = MagicMock()
+        ok, result = wrapper.send_message("微博", "friend", "hello")
+        assert ok is True
+
+    def test_send_message_exception(self, monkeypatch):
+        wrapper = self._make_wrapper(monkeypatch)
+        mock_agent = MagicMock()
+        mock_agent.run.side_effect = RuntimeError("exec boom")
+        wrapper._setup_pipe = MagicMock()
+        wrapper._get_agent = MagicMock(return_value=mock_agent)
+        wrapper._reset_agent = MagicMock()
+        ok, msg = wrapper.send_message("微信", "friend", "hello")
+        assert ok is False
+        assert "发送失败" in msg
