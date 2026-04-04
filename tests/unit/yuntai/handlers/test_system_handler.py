@@ -552,3 +552,6 @@ def test_system_check_dialog_slots_and_format_action_lines():
     from yuntai.gui.controller import core as controller_core_mod
     assert controller_core_mod._format_action_lines("x") == "x"
     assert controller_core_mod._format_action_lines({"a": 1, "b": 2}) == "a: 1\nb: 2"
+
+
+

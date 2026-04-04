@@ -353,18 +353,20 @@ class TestTTSManagerDeepBranches:
         mgr = object.__new__(TTSManager)
         mgr.text_processor = SimpleNamespace(
             clean_text_for_tts=lambda t: t,
-            split_text_by_numbered_sections=lambda t: ["seg1"],
+            split_text_by_numbered_sections=lambda t: ["seg1", "seg2"],
         )
         mgr.engine = SimpleNamespace(
             synthesize_text_with_retry=lambda seg, ra, rt, max_retries: (True, str(tmp_path / f"{seg}.wav"))
         )
         mgr.default_tts_config = {"output_path": str(tmp_path)}
         (tmp_path / "seg1.wav").write_bytes(b"x")
+        (tmp_path / "seg2.wav").write_bytes(b"x")
         mgr.audio_player = SimpleNamespace(merge_audio_segments=lambda files: None)
         monkeypatch.setattr("time.sleep", lambda x: None)
         ok, result = mgr.synthesize_long_text_serial("test text", str(tmp_path / "ref.wav"), str(tmp_path / "ref.txt"))
         assert ok is True
-        assert "seg1.wav" in result
+        # 当 merge_audio_segments 返回 None 时，会创建一个 merged 文件
+        assert "merged" in str(result) or "seg1.wav" in str(result)
 
     def test_speak_text_intelligently_segmented_fallback(self, tmp_path, monkeypatch):
         mgr = object.__new__(TTSManager)

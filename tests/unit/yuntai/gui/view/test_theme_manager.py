@@ -101,8 +101,6 @@ class TestThemeManagerDeepBranches:
             NAV_HIGHLIGHT_HOVER = "#d0e8ff"
 
         tm.colors = _FakeColors()
-        tm.nav_frame = None
-        tm.current_page_index = 0
 
         styles_set = []
 
@@ -114,6 +112,16 @@ class TestThemeManagerDeepBranches:
                 styles_set.append(s)
 
         tts_ind = _FakeTTSIndicator()
+
+        class _FakeNavFrame:
+            def setStyleSheet(self, s):
+                pass
+
+            def findChildren(self, cls):
+                return []
+
+        tm.nav_frame = _FakeNavFrame()
+        tm.current_page_index = 0
         tm.components = {"tts_indicator": tts_ind, "nav_buttons": []}
 
         class _FakeApp:
@@ -146,8 +154,6 @@ class TestThemeManagerDeepBranches:
             NAV_HIGHLIGHT_HOVER = "#d0e8ff"
 
         tm.colors = _FakeColors()
-        tm.nav_frame = None
-        tm.current_page_index = 0
 
         styles_set = []
 
@@ -159,6 +165,16 @@ class TestThemeManagerDeepBranches:
                 styles_set.append(s)
 
         tts_ind = _FakeTTSIndicator()
+
+        class _FakeNavFrame:
+            def setStyleSheet(self, s):
+                pass
+
+            def findChildren(self, cls):
+                return []
+
+        tm.nav_frame = _FakeNavFrame()
+        tm.current_page_index = 0
         tm.components = {"tts_indicator": tts_ind, "nav_buttons": []}
 
         class _FakeApp:
